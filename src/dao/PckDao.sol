@@ -6,6 +6,12 @@ import {CA, AttestationRequestData, AttestationRequest} from "../Common.sol";
 abstract contract PckDao {
     /// @notice retrieves the attested PCK Cert from the registry
     /// key: keccak256(qeid ++ pceid ++ cpuSvn ++ pceSvn)
+    ///
+    /// @notice the schema of the attested data is the following:
+    /// A tuple of (bytes, uint256, uint256)
+    /// - bytes pckCert
+    /// - uint256 createdAt timestamp
+    /// - uint256 updatedAt timestamp
     mapping(bytes32 => bytes32) pckCertAttestations;
 
     event PCKMissing(string qeid, string pceid, string cpusvn, string pcesvn);
@@ -14,7 +20,7 @@ abstract contract PckDao {
         external
         returns (bytes memory pckCert)
     {
-        bytes32 attestationId = _getPckAttestationId(qeid, pceid, cpusvn, pcesvn);
+        bytes32 attestationId = _getAttestationId(qeid, pceid, cpusvn, pcesvn);
         if (attestationId == bytes32(0)) {
             emit PCKMissing(qeid, pceid, cpusvn, pcesvn);
         } else {
@@ -38,11 +44,7 @@ abstract contract PckDao {
         pckCertAttestations[keccak256(abi.encodePacked(qeid, pceid, cpusvn, pcesvn))] = attestationId;
     }
 
-    function getPckCertChain(CA ca)
-        external
-        view
-        returns (bytes memory intermediateCert, bytes memory rootCert)
-    {
+    function getPckCertChain(CA ca) external view returns (bytes memory intermediateCert, bytes memory rootCert) {
         // TODO
     }
 
@@ -52,7 +54,7 @@ abstract contract PckDao {
 
     function _getAttestedData(bytes32 attestationId) internal view virtual returns (bytes memory attestationData);
 
-    function _getPckAttestationId(
+    function _getAttestationId(
         string calldata qeid,
         string calldata pceid,
         string calldata cpusvn,
@@ -68,7 +70,7 @@ abstract contract PckDao {
         string calldata pcesvn,
         bytes calldata cert
     ) private view returns (AttestationRequest memory req) {
-        bytes32 predecessorAttestationId = _getPckAttestationId(qeid, pceid, cpusvn, pcesvn);
+        bytes32 predecessorAttestationId = _getAttestationId(qeid, pceid, cpusvn, pcesvn);
         uint256 createdAt;
         if (predecessorAttestationId != bytes32(0)) {
             (, createdAt,) = abi.decode(_getAttestedData(predecessorAttestationId), (bytes, uint256, uint256));
