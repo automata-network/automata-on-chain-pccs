@@ -19,7 +19,6 @@ abstract contract EnclaveIdentityDao {
 
     event EnclaveIdentityMissing(uint256 id, uint256 version);
 
-    error Enclave_Identity_Invalid();
     error Cert_Chain_Not_Verified();
 
     constructor(address _pcs) {
