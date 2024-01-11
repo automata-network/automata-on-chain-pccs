@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {CA, AttestationRequestData, AttestationRequest} from "../Common.sol";
+import {CA, AttestationRequestData, AttestationRequest} from "../../Common.sol";
 import {PcsDao} from "./PcsDao.sol";
 
 abstract contract EnclaveIdentityDao {
-
     PcsDao Pcs;
 
     /// @notice retrieves the attested EnclaveIdentity from the registry
@@ -18,15 +17,16 @@ abstract contract EnclaveIdentityDao {
     /// - uint256 updatedAt
     mapping(bytes32 => bytes32) public enclaveIdentityAttestations;
 
-    event EnclaveIdentityMissing(string id, uint256 version);
+    event EnclaveIdentityMissing(uint256 id, uint256 version);
 
+    error Enclave_Identity_Invalid();
     error Cert_Chain_Not_Verified();
 
     constructor(address _pcs) {
         Pcs = PcsDao(_pcs);
     }
 
-    function getEnclaveIdentity(string calldata id, uint256 version) external returns (bytes memory enclaveIdentity) {
+    function getEnclaveIdentity(uint256 id, uint256 version) external returns (bytes memory enclaveIdentity) {
         bytes32 attestationId = _getAttestationId(id, version);
         if (attestationId == bytes32(0)) {
             emit EnclaveIdentityMissing(id, version);
@@ -39,9 +39,8 @@ abstract contract EnclaveIdentityDao {
     /// @dev Attestation Registry Entrypoint Contracts, such as Portals on Verax are responsible
     /// @dev for performing ECDSA verification on the provided Enclave Identity
     /// against the Signing CA key prior to attestations
-    function upsertEnclaveIdentity(bytes calldata identityBlob) external {
-        (AttestationRequest memory req, string memory id, uint256 version) =
-            _buildEnclaveIdentityAttestationRequest(identityBlob);
+    function upsertEnclaveIdentity(uint256 id, uint256 version, bytes calldata identityBlob) external {
+        AttestationRequest memory req = _buildEnclaveIdentityAttestationRequest(id, version, identityBlob);
         bytes32 attestationId = _attestEnclaveIdentity(req);
         enclaveIdentityAttestations[keccak256(abi.encodePacked(id, version))] = attestationId;
     }
@@ -62,16 +61,15 @@ abstract contract EnclaveIdentityDao {
 
     function _getAttestedData(bytes32 attestationId) internal view virtual returns (bytes memory attestationData);
 
-    function _getAttestationId(string memory id, uint256 version) private view returns (bytes32 attestationId) {
+    function _getAttestationId(uint256 id, uint256 version) private view returns (bytes32 attestationId) {
         attestationId = enclaveIdentityAttestations[keccak256(abi.encodePacked(id, version))];
     }
 
-    function _buildEnclaveIdentityAttestationRequest(bytes calldata identityBlob)
+    function _buildEnclaveIdentityAttestationRequest(uint256 id, uint256 version, bytes calldata identityBlob)
         private
         view
-        returns (AttestationRequest memory req, string memory id, uint256 version)
+        returns (AttestationRequest memory req)
     {
-        (id, version) = _parseBlobAndGetKey(identityBlob);
         bytes32 predecessorAttestationId = _getAttestationId(id, version);
         uint256 createdAt;
         if (predecessorAttestationId != bytes32(0)) {
@@ -88,13 +86,5 @@ abstract contract EnclaveIdentityDao {
             value: 0
         });
         req = AttestationRequest({schema: enclaveIdentitySchemaID(), data: reqData});
-    }
-
-    function _parseBlobAndGetKey(bytes calldata identityBlob)
-        private
-        pure
-        returns (string memory id, uint256 version)
-    {
-        // TODO
     }
 }

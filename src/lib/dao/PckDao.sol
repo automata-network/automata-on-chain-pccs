@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {CA, AttestationRequestData, AttestationRequest} from "../Common.sol";
+import {CA, AttestationRequestData, AttestationRequest} from "../../Common.sol";
 import {PcsDao} from "./PcsDao.sol";
 
 abstract contract PckDao {
-
     PcsDao Pcs;
 
     /// @notice retrieves the attested PCK Cert from the registry

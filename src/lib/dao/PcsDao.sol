@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {CA, AttestationRequestData, AttestationRequest} from "../Common.sol";
+import {CA, AttestationRequestData, AttestationRequest} from "../../Common.sol";
 
 abstract contract PcsDao {
     /// @notice PCS Certificates mapping

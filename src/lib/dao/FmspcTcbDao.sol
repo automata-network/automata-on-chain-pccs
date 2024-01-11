@@ -1,10 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {CA, AttestationRequestData, AttestationRequest} from "../Common.sol";
+import {CA, AttestationRequestData, AttestationRequest} from "../../Common.sol";
 import {PcsDao} from "./PcsDao.sol";
 
+import {JSONParserLib} from "solady/utils/JSONParserLib.sol";
+import {LibString} from "solady/utils/LibString.sol";
+
 abstract contract FmspcTcbDao {
+    using JSONParserLib for JSONParserLib.Item;
+    using LibString for string;
 
     PcsDao Pcs;
 
@@ -20,6 +25,7 @@ abstract contract FmspcTcbDao {
 
     event TCBInfoMissing(uint256 tcbType, string fmspc, uint256 version);
 
+    error TCBInfo_Invalid();
     error Cert_Chain_Not_Verified();
 
     constructor(address _pcs) {
@@ -101,6 +107,51 @@ abstract contract FmspcTcbDao {
         pure
         returns (uint256 tcbType, string memory fmspc, uint256 version)
     {
-        // TODO
+        JSONParserLib.Item memory root = JSONParserLib.parse(string(tcbInfoJsonBlob));
+        JSONParserLib.Item[] memory children = root.children();
+        JSONParserLib.Item[] memory tcbInfoObj;
+
+        uint256 tcbInfoIndex;
+        for (uint256 x = 0; x < root.size(); x++) {
+            string memory decodedKey = JSONParserLib.decodeString(children[x].key());
+            if (decodedKey.eq("tcbInfo")) {
+                tcbInfoObj = children[x].children();
+                tcbInfoIndex = x;
+            }
+        }
+
+        if (tcbInfoObj.length == 0) {
+            revert TCBInfo_Invalid();
+        }
+
+        bool tcbTypeFound;
+        bool fmspcFound;
+        bool versionFound;
+        bool allFound;
+
+        for (uint256 y = 0; y < children[tcbInfoIndex].size(); y++) {
+            JSONParserLib.Item memory current = tcbInfoObj[y];
+            string memory decodedKey = JSONParserLib.decodeString(current.key());
+            if (decodedKey.eq("tcbType")) {
+                tcbType = JSONParserLib.parseUint(current.value());
+                tcbTypeFound = true;
+            }
+            if (decodedKey.eq("fmspc")) {
+                fmspc = JSONParserLib.decodeString(current.value());
+                fmspcFound = true;
+            }
+            if (decodedKey.eq("version")) {
+                version = JSONParserLib.parseUint(current.value());
+                versionFound = true;
+            }
+            allFound = (tcbTypeFound && fmspcFound && versionFound);
+            if (allFound) {
+                break;
+            }
+        }
+
+        if (!allFound) {
+            revert TCBInfo_Invalid();
+        }
     }
 }
