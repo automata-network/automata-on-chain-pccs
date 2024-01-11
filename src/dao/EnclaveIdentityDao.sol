@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {AttestationRequestData, AttestationRequest} from "../Common.sol";
+import {CA, AttestationRequestData, AttestationRequest} from "../Common.sol";
+import {PcsDao} from "./PcsDao.sol";
 
 abstract contract EnclaveIdentityDao {
+
+    PcsDao Pcs;
+
     /// @notice retrieves the attested EnclaveIdentity from the registry
     /// key: keccak256(id ++ version)
     ///
@@ -12,17 +16,23 @@ abstract contract EnclaveIdentityDao {
     /// - bytes identity json blob
     /// - uint256 createdAt
     /// - uint256 updatedAt
-    mapping(bytes32 => bytes32) enclaveIdentityAttestations;
+    mapping(bytes32 => bytes32) public enclaveIdentityAttestations;
 
     event EnclaveIdentityMissing(string id, uint256 version);
 
-    function getEnclaveIdentity(string calldata id, uint256 version) external returns (bytes memory tcbInfo) {
+    error Cert_Chain_Not_Verified();
+
+    constructor(address _pcs) {
+        Pcs = PcsDao(_pcs);
+    }
+
+    function getEnclaveIdentity(string calldata id, uint256 version) external returns (bytes memory enclaveIdentity) {
         bytes32 attestationId = _getAttestationId(id, version);
         if (attestationId == bytes32(0)) {
             emit EnclaveIdentityMissing(id, version);
         } else {
             bytes memory attestedPckData = _getAttestedData(attestationId);
-            (tcbInfo,,) = abi.decode(attestedPckData, (bytes, uint256, uint256));
+            (enclaveIdentity,,) = abi.decode(attestedPckData, (bytes, uint256, uint256));
         }
     }
 
@@ -37,7 +47,13 @@ abstract contract EnclaveIdentityDao {
     }
 
     function getEnclaveIdentityIssuerChain() external view returns (bytes memory signingCert, bytes memory rootCert) {
-        // TODO
+        bytes32 signingCertAttestationId = Pcs.pcsCertAttestations(CA.SIGNING);
+        bytes32 rootCertAttestationId = Pcs.pcsCertAttestations(CA.ROOT);
+        if (!Pcs.verifyCertchain(signingCertAttestationId, rootCertAttestationId)) {
+            revert Cert_Chain_Not_Verified();
+        }
+        (signingCert,,) = abi.decode(_getAttestedData(signingCertAttestationId), (bytes, uint256, uint256));
+        (rootCert,,) = abi.decode(_getAttestedData(rootCertAttestationId), (bytes, uint256, uint256));
     }
 
     function enclaveIdentitySchemaID() public view virtual returns (bytes32 FMSPC_TCB_SCHEMA_ID);

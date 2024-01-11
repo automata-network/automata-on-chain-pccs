@@ -2,8 +2,10 @@
 pragma solidity ^0.8.0;
 
 enum CA {
+    ROOT,
     PROCESSOR,
-    PLATFORM
+    PLATFORM,
+    SIGNING
 }
 
 /// @notice Attestation Definition is taken from https://github.com/ethereum-attestation-service/eas-contracts/blob/52af661748bde9b40ae782907702f885852bc149/contracts/IEAS.sol#L9C1-L23C2

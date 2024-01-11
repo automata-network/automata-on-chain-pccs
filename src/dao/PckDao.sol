@@ -2,8 +2,12 @@
 pragma solidity ^0.8.0;
 
 import {CA, AttestationRequestData, AttestationRequest} from "../Common.sol";
+import {PcsDao} from "./PcsDao.sol";
 
 abstract contract PckDao {
+
+    PcsDao Pcs;
+
     /// @notice retrieves the attested PCK Cert from the registry
     /// key: keccak256(qeid ++ pceid ++ cpuSvn ++ pceSvn)
     ///
@@ -12,9 +16,15 @@ abstract contract PckDao {
     /// - bytes pckCert
     /// - uint256 createdAt timestamp
     /// - uint256 updatedAt timestamp
-    mapping(bytes32 => bytes32) pckCertAttestations;
+    mapping(bytes32 => bytes32) public pckCertAttestations;
 
     event PCKMissing(string qeid, string pceid, string cpusvn, string pcesvn);
+
+    error Cert_Chain_Not_Verified();
+
+    constructor(address _pcs) {
+        Pcs = PcsDao(_pcs);
+    }
 
     function getCert(string calldata qeid, string calldata pceid, string calldata cpusvn, string calldata pcesvn)
         external
@@ -45,7 +55,13 @@ abstract contract PckDao {
     }
 
     function getPckCertChain(CA ca) external view returns (bytes memory intermediateCert, bytes memory rootCert) {
-        // TODO
+        bytes32 intermediateCertAttestationId = Pcs.pcsCertAttestations(ca);
+        bytes32 rootCertAttestationId = Pcs.pcsCertAttestations(CA.ROOT);
+        if (!Pcs.verifyCertchain(intermediateCertAttestationId, rootCertAttestationId)) {
+            revert Cert_Chain_Not_Verified();
+        }
+        (intermediateCert,,) = abi.decode(_getAttestedData(intermediateCertAttestationId), (bytes, uint256, uint256));
+        (rootCert,,) = abi.decode(_getAttestedData(rootCertAttestationId), (bytes, uint256, uint256));
     }
 
     function pckSchemaID() public view virtual returns (bytes32 PCK_SCHEMA_ID);

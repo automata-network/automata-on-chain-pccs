@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {AttestationRequestData, AttestationRequest} from "../Common.sol";
+import {CA, AttestationRequestData, AttestationRequest} from "../Common.sol";
+import {PcsDao} from "./PcsDao.sol";
 
 abstract contract FmspcTcbDao {
+
+    PcsDao Pcs;
+
     /// @notice retrieves the attested FMSPC TCBInfo from the registry
     /// key: keccak256(FMSPC ++ type ++ version)
     ///
@@ -12,9 +16,15 @@ abstract contract FmspcTcbDao {
     /// - bytes tcbInfoJson blob
     /// - uint256 createdAt
     /// - uint256 updatedAt
-    mapping(bytes32 => bytes32) fmspcTcbInfoAttestations;
+    mapping(bytes32 => bytes32) public fmspcTcbInfoAttestations;
 
     event TCBInfoMissing(uint256 tcbType, string fmspc, uint256 version);
+
+    error Cert_Chain_Not_Verified();
+
+    constructor(address _pcs) {
+        Pcs = PcsDao(_pcs);
+    }
 
     function getTcbInfo(uint256 tcbType, string calldata fmspc, uint256 version)
         external
@@ -39,7 +49,13 @@ abstract contract FmspcTcbDao {
     }
 
     function getTcbIssuerChain() external view returns (bytes memory signingCert, bytes memory rootCert) {
-        // TODO
+        bytes32 signingCertAttestationId = Pcs.pcsCertAttestations(CA.SIGNING);
+        bytes32 rootCertAttestationId = Pcs.pcsCertAttestations(CA.ROOT);
+        if (!Pcs.verifyCertchain(signingCertAttestationId, rootCertAttestationId)) {
+            revert Cert_Chain_Not_Verified();
+        }
+        (signingCert,,) = abi.decode(_getAttestedData(signingCertAttestationId), (bytes, uint256, uint256));
+        (rootCert,,) = abi.decode(_getAttestedData(rootCertAttestationId), (bytes, uint256, uint256));
     }
 
     function fmspcTcbSchemaID() public view virtual returns (bytes32 FMSPC_TCB_SCHEMA_ID);
