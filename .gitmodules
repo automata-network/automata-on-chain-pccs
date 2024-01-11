@@ -4,3 +4,6 @@
 [submodule "lib/solady"]
 	path = lib/solady
 	url = https://github.com/vectorized/solady
+[submodule "lib/linea-attestation-registry"]
+	path = lib/linea-attestation-registry
+	url = https://github.com/consensys/linea-attestation-registry
