@@ -54,7 +54,7 @@ abstract contract FmspcTcbDao {
         fmspcTcbInfoAttestations[keccak256(abi.encodePacked(tcbType, fmspc, version))] = attestationId;
     }
 
-    function getTcbIssuerChain() external view returns (bytes memory signingCert, bytes memory rootCert) {
+    function getTcbIssuerChain() public view returns (bytes memory signingCert, bytes memory rootCert) {
         bytes32 signingCertAttestationId = Pcs.pcsCertAttestations(CA.SIGNING);
         bytes32 rootCertAttestationId = Pcs.pcsCertAttestations(CA.ROOT);
         if (!Pcs.verifyCertchain(signingCertAttestationId, rootCertAttestationId)) {
