@@ -5,7 +5,7 @@ import {CA, AttestationRequestData, AttestationRequest} from "../../Common.sol";
 import {PcsDao} from "./PcsDao.sol";
 
 abstract contract PckDao {
-    PcsDao Pcs;
+    PcsDao public Pcs;
 
     /// @notice retrieves the attested PCK Cert from the registry
     /// key: keccak256(qeid ++ pceid ++ cpuSvn ++ pceSvn)

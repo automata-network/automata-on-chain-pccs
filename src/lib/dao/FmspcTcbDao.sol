@@ -11,7 +11,7 @@ abstract contract FmspcTcbDao {
     using JSONParserLib for JSONParserLib.Item;
     using LibString for string;
 
-    PcsDao Pcs;
+    PcsDao public Pcs;
 
     /// @notice retrieves the attested FMSPC TCBInfo from the registry
     /// key: keccak256(FMSPC ++ type ++ version)

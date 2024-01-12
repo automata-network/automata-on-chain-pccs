@@ -5,7 +5,7 @@ import {CA, AttestationRequestData, AttestationRequest} from "../../Common.sol";
 import {PcsDao} from "./PcsDao.sol";
 
 abstract contract EnclaveIdentityDao {
-    PcsDao Pcs;
+    PcsDao public Pcs;
 
     /// @notice retrieves the attested EnclaveIdentity from the registry
     /// key: keccak256(id ++ version)
