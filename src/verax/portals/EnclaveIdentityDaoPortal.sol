@@ -12,6 +12,8 @@ contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal {
     error No_BulkRevocation();
     /// @notice Error thrown when trying to improperly make attestations
     error No_External_Attestation();
+    /// @notice Error thrown when trying to retrieve an attestation that has been revoked/replaced
+    error Attestation_Revoked(bytes32 predecessor, bytes32 successor);
 
     bool private _unlock;
 
@@ -63,6 +65,9 @@ contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal {
 
     function _getAttestedData(bytes32 attestationId) internal view override returns (bytes memory attestationData) {
         Attestation memory attestation = attestationRegistry.getAttestation(attestationId);
+        if (attestation.revoked) {
+            revert Attestation_Revoked(attestationId, attestation.replacedBy);
+        }
         attestationData = attestation.attestationData;
     }
 
@@ -82,13 +87,17 @@ contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal {
         AttestationPayload memory, /*attestationPayload*/
         address, /*attester*/
         uint256 /*value*/
-    ) internal override locked {}
+    ) internal override locked {
+        // TODO: Check prev identity.issueDate < current identity.issueDate
+    }
 
     function _onBulkReplace(
         bytes32[] memory, /*attestationIds*/
         AttestationPayload[] memory, /*attestationsPayloads*/
         bytes[][] memory /*validationPayloads*/
-    ) internal override locked {}
+    ) internal override locked {
+        // TODO: Check prev identity.issueDate < current identity.issueDate
+    }
 
     /**
      * @inheritdoc AbstractPortal

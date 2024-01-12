@@ -83,6 +83,9 @@ abstract contract PcsDao {
     /// @dev access-controlled
     function upsertPcsCertificates(CA ca, bytes calldata cert) external {
         AttestationRequest memory req = _buildPcsAttestationRequest(false, ca, cert);
+        if (ca == CA.PROCESSOR || ca == CA.PLATFORM) {
+            // TODO: Intermediate CA Serial Number check from Root CRL
+        }
         bytes32 attestationId = _attestPcs(req, false);
         pcsCertAttestations[ca] = attestationId;
     }

@@ -19,6 +19,7 @@ abstract contract PckDao {
 
     event PCKMissing(string qeid, string pceid, string cpusvn, string pcesvn);
 
+    error Invalid_PCK_CA(CA ca);
     error Cert_Chain_Not_Verified();
 
     constructor(address _pcs) {
@@ -53,7 +54,10 @@ abstract contract PckDao {
         pckCertAttestations[keccak256(abi.encodePacked(qeid, pceid, cpusvn, pcesvn))] = attestationId;
     }
 
-    function getPckCertChain(CA ca) external view returns (bytes memory intermediateCert, bytes memory rootCert) {
+    function getPckCertChain(CA ca) public view returns (bytes memory intermediateCert, bytes memory rootCert) {
+        if (ca == CA.ROOT || ca == CA.SIGNING) {
+            revert Invalid_PCK_CA(ca);
+        }
         bytes32 intermediateCertAttestationId = Pcs.pcsCertAttestations(ca);
         bytes32 rootCertAttestationId = Pcs.pcsCertAttestations(CA.ROOT);
         if (!Pcs.verifyCertchain(intermediateCertAttestationId, rootCertAttestationId)) {

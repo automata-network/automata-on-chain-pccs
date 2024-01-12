@@ -3,13 +3,9 @@ pragma solidity ^0.8.0;
 
 import {AbstractPortal} from "@consensys/linea-attestation-registry-contracts/abstracts/AbstractPortal.sol";
 import {AttestationPayload, Attestation} from "@consensys/linea-attestation-registry-contracts/types/Structs.sol";
-import {FmspcTcbDao, AttestationRequest} from "../../lib/dao/FmspcTcbDao.sol";
+import {PckDao, AttestationRequest, CA} from "../../lib/dao/PckDao.sol";
 
-contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal {
-    /// @notice Error thrown when trying to revoke an attestation
-    error No_Revocation();
-    /// @notice Error thrown when trying to bulk revoke attestations
-    error No_BulkRevocation();
+contract PckDaoPortal is PckDao, AbstractPortal {
     /// @notice Error thrown when trying to improperly make attestations
     error No_External_Attestation();
     /// @notice Error thrown when trying to retrieve an attestation that has been revoked/replaced
@@ -19,7 +15,7 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal {
 
     constructor(address[] memory modules, address router, address pcs)
         AbstractPortal(modules, router)
-        FmspcTcbDao(pcs)
+        PckDao(pcs)
     {}
 
     modifier locked() {
@@ -32,20 +28,20 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal {
     /// @inheritdoc AbstractPortal
     function withdraw(address payable to, uint256 amount) external override {}
 
-    function fmspcTcbSchemaID() public pure override returns (bytes32 FMSPC_TCB_SCHEMA_ID) {
-        // keccak256(bytes("bytes tcbInfo, uint256 createdAt, uint256 updatedAt"))
-        FMSPC_TCB_SCHEMA_ID = 0xd16d0301ef1e0da2909ee969b5b4f21704a6e38a7dad4575242cbc84eeeb8903;
+    function pckSchemaID() public pure override returns (bytes32 PCK_SCHEMA_ID) {
+        // keccak256(bytes("bytes pckCert, uint256 createdAt, uint256 updatedAt"))
+        PCK_SCHEMA_ID = 0x2ca531ee0086eee1c85b98d4c6dda78d3fb22921669e2fced0ebf3914f48e32d;
     }
 
-    function _attestTcb(AttestationRequest memory req) internal override returns (bytes32 attestationId) {
+    function _attestPck(AttestationRequest memory req, CA ca) internal override returns (bytes32 attestationId) {
         _unlock = true;
 
         // Generate the Validation payload
-        // The validation payload simply contains the Signing CA Certificate chain
-        // used for verifying the TCBInfo Signature
+        // The validation payload simply contains the corresponding Intermediate CA and Root CA Chain
+        // used for verifying the signature in the PCK Certificate
         bytes[] memory validationPayload = new bytes[](1);
-        (bytes memory signingCert, bytes memory rootCert) = getTcbIssuerChain();
-        validationPayload[0] = abi.encode(signingCert, rootCert);
+        (bytes memory intermediateCert, bytes memory rootCert) = getPckCertChain(ca);
+        validationPayload[0] = abi.encode(intermediateCert, rootCert);
 
         AttestationPayload memory attestationPayload =
             AttestationPayload(req.schema, req.data.expirationTime, abi.encodePacked(req.data.recipient), req.data.data);
@@ -75,12 +71,16 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal {
         internal
         override
         locked
-    {}
+    {
+        // TODO: Check serial number from CRL
+    }
 
     function _onBulkAttest(
         AttestationPayload[] memory, /*attestationsPayloads*/
         bytes[][] memory /*validationPayloads*/
-    ) internal override locked {}
+    ) internal override locked {
+        // TODO: Check serial number from CRL
+    }
 
     function _onReplace(
         bytes32, /*attestationId*/
@@ -88,7 +88,7 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal {
         address, /*attester*/
         uint256 /*value*/
     ) internal override locked {
-        // TODO: Check prev tcbInfo.issueDate < current tcbInfo.issueDate
+        // TODO: Check serial number from CRL
     }
 
     function _onBulkReplace(
@@ -96,22 +96,14 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal {
         AttestationPayload[] memory, /*attestationsPayloads*/
         bytes[][] memory /*validationPayloads*/
     ) internal override locked {
-        // TODO: Check prev tcbInfo.issueDate < current tcbInfo.issueDate
+        // TODO: Check serial number from CRL
     }
 
-    /**
-     * @inheritdoc AbstractPortal
-     * @notice This portal doesn't allow for an attestation to be revoked
-     */
-    function _onRevoke(bytes32 /*attestationId*/ ) internal pure override {
-        revert No_Revocation();
+    function _onRevoke(bytes32 attestationId) internal override {
+        // TODO: Check serial number from CRL
     }
 
-    /**
-     * @inheritdoc AbstractPortal
-     * @notice This portal doesn't allow for attestations to be revoked
-     */
-    function _onBulkRevoke(bytes32[] memory /*attestationIds*/ ) internal pure override {
-        revert No_BulkRevocation();
+    function _onBulkRevoke(bytes32[] memory attestationIds) internal override {
+        // TODO: Check serial number from CRL
     }
 }
