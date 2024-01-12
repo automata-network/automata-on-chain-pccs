@@ -3,9 +3,9 @@ pragma solidity ^0.8.0;
 
 import {AbstractPortal} from "@consensys/linea-attestation-registry-contracts/abstracts/AbstractPortal.sol";
 import {AttestationPayload, Attestation} from "@consensys/linea-attestation-registry-contracts/types/Structs.sol";
-import {FmspcTcbDao, AttestationRequest} from "../../lib/dao/FmspcTcbDao.sol";
+import {PcsDao, AttestationRequest, CA} from "../../lib/dao/PcsDao.sol";
 
-contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal {
+contract PcsDaoPortal is PcsDao, AbstractPortal {
     /// @notice Error thrown when trying to revoke an attestation
     error No_Revocation();
     /// @notice Error thrown when trying to bulk revoke attestations
@@ -17,10 +17,7 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal {
 
     bool private _unlock;
 
-    constructor(address[] memory modules, address router, address pcs)
-        AbstractPortal(modules, router)
-        FmspcTcbDao(pcs)
-    {}
+    constructor(address[] memory modules, address router) AbstractPortal(modules, router) {}
 
     modifier locked() {
         if (!_unlock) {
@@ -32,20 +29,33 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal {
     /// @inheritdoc AbstractPortal
     function withdraw(address payable to, uint256 amount) external override {}
 
-    function fmspcTcbSchemaID() public pure override returns (bytes32 FMSPC_TCB_SCHEMA_ID) {
-        // keccak256(bytes("bytes tcbInfo, uint256 createdAt, uint256 updatedAt"))
-        FMSPC_TCB_SCHEMA_ID = 0xd16d0301ef1e0da2909ee969b5b4f21704a6e38a7dad4575242cbc84eeeb8903;
+    function pcsCertSchemaID() public pure override returns (bytes32 PCS_CERT_SCHEMA_ID) {
+        // keccak256(bytes("bytes cert, uint256 createdAt, uint256 updatedAt"))
+        PCS_CERT_SCHEMA_ID = 0xd40b0e479454338b427175ced4a30fe673891ca9996a4f2856b9f167a4d5aea8;
     }
 
-    function _attestTcb(AttestationRequest memory req) internal override returns (bytes32 attestationId) {
+    function pcsCrlSchemaID() public pure override returns (bytes32 PCS_CRL_SCHEMA_ID) {
+        // keccak256(bytes("bytes crl, uint256 createdAt, uint256 updatedAt"))
+        PCS_CRL_SCHEMA_ID = 0x1be4440baf56d6a66f4e13f8698a629306ee55cd56f09e1989f2a6045a766559;
+    }
+
+    function certificateChainSchemaID() public pure override returns (bytes32 CERTIFICATE_CHAIN_SCHEMA_ID) {
+        // https://docs.ver.ax/verax-documentation/developer-guides/for-attestation-issuers/link-attestations
+        CERTIFICATE_CHAIN_SCHEMA_ID = 0x89bd76e17fd84df8e1e448fa1b46dd8d97f7e8e806552b003f8386a5aebcb9f0;
+    }
+
+    function _attestPcs(AttestationRequest memory req, CA ca, bool isCrl)
+        internal
+        override
+        returns (bytes32 attestationId)
+    {
         _unlock = true;
 
-        // Generate the Validation payload
-        // The validation payload simply contains the Signing CA Certificate
-        // used for verifying the TCBInfo Signature
         bytes[] memory validationPayload = new bytes[](1);
-        (bytes memory signingCert,) = getTcbIssuerChain();
-        validationPayload[0] = signingCert;
+
+        if (isCrl) {
+            validationPayload[0] = _verifyCrlIssuerChain(ca);
+        }
 
         AttestationPayload memory attestationPayload =
             AttestationPayload(req.schema, req.data.expirationTime, abi.encodePacked(req.data.recipient), req.data.data);
@@ -59,6 +69,29 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal {
         } else {
             super.replace(predecessor, attestationPayload, validationPayload);
         }
+
+        _unlock = false;
+    }
+
+    function _attestCertChain(AttestationRequest memory req) internal override returns (bytes32 attestationId) {
+        _unlock = true;
+
+        bytes[] memory validationPayload = new bytes[](1);
+
+        (bytes32 certAttestationId,, bytes32 issuerAttestationId) =
+            abi.decode(req.data.data, (bytes32, string, bytes32));
+
+        (bytes memory cert,,) = abi.decode(_getAttestedData(certAttestationId), (bytes, uint256, uint256));
+        (bytes memory issuer,,) = abi.decode(_getAttestedData(issuerAttestationId), (bytes, uint256, uint256));
+        validationPayload[0] = abi.encode(cert, issuer);
+
+        AttestationPayload memory attestationPayload =
+            AttestationPayload(req.schema, req.data.expirationTime, abi.encodePacked(req.data.recipient), req.data.data);
+
+        uint32 attestationIdCounter = attestationRegistry.getAttestationIdCounter();
+        attestationId = bytes32(abi.encode(attestationIdCounter));
+
+        super.attest(attestationPayload, validationPayload);
 
         _unlock = false;
     }
@@ -87,17 +120,13 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal {
         AttestationPayload memory, /*attestationPayload*/
         address, /*attester*/
         uint256 /*value*/
-    ) internal override locked {
-        // TODO: Check prev tcbInfo.issueDate < current tcbInfo.issueDate
-    }
+    ) internal override locked {}
 
     function _onBulkReplace(
         bytes32[] memory, /*attestationIds*/
         AttestationPayload[] memory, /*attestationsPayloads*/
         bytes[][] memory /*validationPayloads*/
-    ) internal override locked {
-        // TODO: Check prev tcbInfo.issueDate < current tcbInfo.issueDate
-    }
+    ) internal override locked {}
 
     /**
      * @inheritdoc AbstractPortal
@@ -113,5 +142,14 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal {
      */
     function _onBulkRevoke(bytes32[] memory /*attestationIds*/ ) internal pure override {
         revert No_BulkRevocation();
+    }
+
+    function _verifyCrlIssuerChain(CA ca) private view returns (bytes memory intermediateCert) {
+        bytes32 intermediateCertAttestationId = pcsCertAttestations[ca];
+        bytes32 rootCertAttestationId = pcsCertAttestations[CA.ROOT];
+        if (!verifyCertchain(intermediateCertAttestationId, rootCertAttestationId)) {
+            revert("Unverified CRL Cert Chain");
+        }
+        (intermediateCert,,) = abi.decode(_getAttestedData(intermediateCertAttestationId), (bytes, uint256, uint256));
     }
 }

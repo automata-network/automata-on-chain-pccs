@@ -13,10 +13,7 @@ contract PckDaoPortal is PckDao, AbstractPortal {
 
     bool private _unlock;
 
-    constructor(address[] memory modules, address router, address pcs)
-        AbstractPortal(modules, router)
-        PckDao(pcs)
-    {}
+    constructor(address[] memory modules, address router, address pcs) AbstractPortal(modules, router) PckDao(pcs) {}
 
     modifier locked() {
         if (!_unlock) {
@@ -37,11 +34,11 @@ contract PckDaoPortal is PckDao, AbstractPortal {
         _unlock = true;
 
         // Generate the Validation payload
-        // The validation payload simply contains the corresponding Intermediate CA and Root CA Chain
+        // The validation payload simply contains the corresponding Intermediate CA
         // used for verifying the signature in the PCK Certificate
         bytes[] memory validationPayload = new bytes[](1);
-        (bytes memory intermediateCert, bytes memory rootCert) = getPckCertChain(ca);
-        validationPayload[0] = abi.encode(intermediateCert, rootCert);
+        (bytes memory intermediateCert,) = getPckCertChain(ca);
+        validationPayload[0] = intermediateCert;
 
         AttestationPayload memory attestationPayload =
             AttestationPayload(req.schema, req.data.expirationTime, abi.encodePacked(req.data.recipient), req.data.data);

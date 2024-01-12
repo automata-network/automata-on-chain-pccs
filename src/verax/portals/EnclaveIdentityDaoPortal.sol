@@ -41,11 +41,11 @@ contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal {
         _unlock = true;
 
         // Generate the Validation payload
-        // The validation payload simply contains the Signing CA Certificate chain
+        // The validation payload simply contains the Signing CA Certificate
         // used for verifying the Identity Signature
         bytes[] memory validationPayload = new bytes[](1);
-        (bytes memory signingCert, bytes memory rootCert) = getEnclaveIdentityIssuerChain();
-        validationPayload[0] = abi.encode(signingCert, rootCert);
+        (bytes memory signingCert,) = getEnclaveIdentityIssuerChain();
+        validationPayload[0] = signingCert;
 
         AttestationPayload memory attestationPayload =
             AttestationPayload(req.schema, req.data.expirationTime, abi.encodePacked(req.data.recipient), req.data.data);

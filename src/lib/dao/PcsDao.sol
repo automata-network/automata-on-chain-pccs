@@ -58,7 +58,7 @@ abstract contract PcsDao {
         _;
     }
 
-    function verifyCertchain(bytes32 certAttestationId, bytes32 issuerAttestationId) external view returns (bool) {
+    function verifyCertchain(bytes32 certAttestationId, bytes32 issuerAttestationId) public view returns (bool) {
         return pcsCertchains[_getCertchainKey(certAttestationId, issuerAttestationId)] != bytes32(0);
     }
 
@@ -81,24 +81,21 @@ abstract contract PcsDao {
     }
 
     /// @dev access-controlled
-    function upsertPcsCertificates(CA ca, bytes calldata cert) external {
+    function upsertPcsCertificates(CA ca, bytes calldata cert) external virtual {
         AttestationRequest memory req = _buildPcsAttestationRequest(false, ca, cert);
-        if (ca == CA.PROCESSOR || ca == CA.PLATFORM) {
-            // TODO: Intermediate CA Serial Number check from Root CRL
-        }
-        bytes32 attestationId = _attestPcs(req, false);
+        bytes32 attestationId = _attestPcs(req, ca, false);
         pcsCertAttestations[ca] = attestationId;
     }
 
     function upsertPckCrl(CA ca, bytes calldata crl) external pckCACheck(ca) {
         AttestationRequest memory req = _buildPcsAttestationRequest(true, ca, crl);
-        bytes32 attestationId = _attestPcs(req, true);
+        bytes32 attestationId = _attestPcs(req, ca, true);
         pcsCertAttestations[ca] = attestationId;
     }
 
     function upsertRootCACrl(bytes calldata rootcacrl) external {
         AttestationRequest memory req = _buildPcsAttestationRequest(true, CA.ROOT, rootcacrl);
-        bytes32 attestationId = _attestPcs(req, true);
+        bytes32 attestationId = _attestPcs(req, CA.ROOT, true);
         pcsCertAttestations[CA.ROOT] = attestationId;
     }
 
@@ -147,7 +144,10 @@ abstract contract PcsDao {
 
     function _getAttestedData(bytes32 attestationId) internal view virtual returns (bytes memory attestationData);
 
-    function _attestPcs(AttestationRequest memory req, bool isCrl) internal virtual returns (bytes32 attestationId);
+    function _attestPcs(AttestationRequest memory req, CA ca, bool isCrl)
+        internal
+        virtual
+        returns (bytes32 attestationId);
 
     function _attestCertChain(AttestationRequest memory req) internal virtual returns (bytes32 attestationId);
 
