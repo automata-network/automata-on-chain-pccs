@@ -44,7 +44,7 @@ abstract contract EnclaveIdentityDao {
         enclaveIdentityAttestations[keccak256(abi.encodePacked(id, version))] = attestationId;
     }
 
-    function getEnclaveIdentityIssuerChain() external view returns (bytes memory signingCert, bytes memory rootCert) {
+    function getEnclaveIdentityIssuerChain() public view returns (bytes memory signingCert, bytes memory rootCert) {
         bytes32 signingCertAttestationId = Pcs.pcsCertAttestations(CA.SIGNING);
         bytes32 rootCertAttestationId = Pcs.pcsCertAttestations(CA.ROOT);
         if (!Pcs.verifyCertchain(signingCertAttestationId, rootCertAttestationId)) {
@@ -54,7 +54,7 @@ abstract contract EnclaveIdentityDao {
         (rootCert,,) = abi.decode(_getAttestedData(rootCertAttestationId), (bytes, uint256, uint256));
     }
 
-    function enclaveIdentitySchemaID() public view virtual returns (bytes32 FMSPC_TCB_SCHEMA_ID);
+    function enclaveIdentitySchemaID() public view virtual returns (bytes32 ENCLAVE_IDENTITY_SCHEMA_ID);
 
     function _attestEnclaveIdentity(AttestationRequest memory req) internal virtual returns (bytes32 attestationId);
 
