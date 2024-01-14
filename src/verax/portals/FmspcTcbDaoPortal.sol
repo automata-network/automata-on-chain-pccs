@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {AbstractPortal} from "@consensys/linea-attestation-registry-contracts/abstracts/AbstractPortal.sol";
 import {AttestationPayload, Attestation} from "@consensys/linea-attestation-registry-contracts/types/Structs.sol";
-import {FmspcTcbDao, AttestationRequest} from "../../lib/dao/FmspcTcbDao.sol";
+import {FmspcTcbDao, AttestationRequest} from "../../dao/FmspcTcbDao.sol";
 
 contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal {
     /// @notice Error thrown when trying to revoke an attestation
@@ -17,9 +17,9 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal {
 
     bool private _unlock;
 
-    constructor(address[] memory modules, address router, address pcs)
+    constructor(address[] memory modules, address router, address pcs, address fmspcTcbHelper)
         AbstractPortal(modules, router)
-        FmspcTcbDao(pcs)
+        FmspcTcbDao(pcs, fmspcTcbHelper)
     {}
 
     modifier locked() {
@@ -33,8 +33,8 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal {
     function withdraw(address payable to, uint256 amount) external override {}
 
     function fmspcTcbSchemaID() public pure override returns (bytes32 FMSPC_TCB_SCHEMA_ID) {
-        // keccak256(bytes("bytes tcbInfo, uint256 createdAt, uint256 updatedAt"))
-        FMSPC_TCB_SCHEMA_ID = 0xd16d0301ef1e0da2909ee969b5b4f21704a6e38a7dad4575242cbc84eeeb8903;
+        // keccak256(bytes("uint256 tcbType, uint256 version, string issueDate, string nextUpdate, string tcbInfo, bytes signature, uint256 createdAt, uint256 updatedAt"))
+        FMSPC_TCB_SCHEMA_ID = 0x30771bf53b4616c77b73a9ce543e6c3810ce34116d194c591c2e0234377f7564;
     }
 
     function _attestTcb(AttestationRequest memory req) internal override returns (bytes32 attestationId) {

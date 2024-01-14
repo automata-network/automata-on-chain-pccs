@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {AbstractPortal} from "@consensys/linea-attestation-registry-contracts/abstracts/AbstractPortal.sol";
 import {AttestationPayload, Attestation} from "@consensys/linea-attestation-registry-contracts/types/Structs.sol";
-import {PcsDao, AttestationRequest, CA} from "../../lib/dao/PcsDao.sol";
+import {PcsDao, AttestationRequest, CA} from "../../dao/PcsDao.sol";
 
 contract PcsDaoPortal is PcsDao, AbstractPortal {
     /// @notice Error thrown when trying to revoke an attestation

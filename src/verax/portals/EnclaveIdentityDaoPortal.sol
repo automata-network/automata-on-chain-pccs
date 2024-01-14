@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {AbstractPortal} from "@consensys/linea-attestation-registry-contracts/abstracts/AbstractPortal.sol";
 import {AttestationPayload, Attestation} from "@consensys/linea-attestation-registry-contracts/types/Structs.sol";
-import {EnclaveIdentityDao, AttestationRequest} from "../../lib/dao/EnclaveIdentityDao.sol";
+import {EnclaveIdentityDao, AttestationRequest} from "../../dao/EnclaveIdentityDao.sol";
 
 contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal {
     /// @notice Error thrown when trying to revoke an attestation

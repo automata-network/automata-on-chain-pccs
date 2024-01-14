@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {AbstractPortal} from "@consensys/linea-attestation-registry-contracts/abstracts/AbstractPortal.sol";
 import {AttestationPayload, Attestation} from "@consensys/linea-attestation-registry-contracts/types/Structs.sol";
-import {PckDao, AttestationRequest, CA} from "../../lib/dao/PckDao.sol";
+import {PckDao, AttestationRequest, CA} from "../../dao/PckDao.sol";
 
 contract PckDaoPortal is PckDao, AbstractPortal {
     /// @notice Error thrown when trying to improperly make attestations
