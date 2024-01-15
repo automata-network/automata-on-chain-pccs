@@ -25,16 +25,12 @@ contract FmspcTcbHelper is JSONHelperBase {
 
     error TCBInfo_Invalid();
 
+    constructor(address _x509helper) JSONHelperBase(_x509helper) {}
+
     function parseTcbString(string memory tcbInfoStr)
         external
         pure
-        returns (
-            uint256 tcbType,
-            string memory fmspc,
-            uint256 version,
-            uint256 issueDate,
-            uint256 nextUpdate
-        )
+        returns (uint256 tcbType, string memory fmspc, uint256 version, uint256 issueDate, uint256 nextUpdate)
     {
         JSONParserLib.Item memory root = JSONParserLib.parse(tcbInfoStr);
         JSONParserLib.Item[] memory tcbInfoObj = root.children();

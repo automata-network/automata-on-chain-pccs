@@ -40,8 +40,7 @@ abstract contract FmspcTcbDao {
             emit TCBInfoMissing(tcbType, fmspc, version);
         } else {
             bytes memory attestedTcbData = _getAttestedData(attestationId);
-            (,,,, tcbInfo, signature) =
-                abi.decode(attestedTcbData, (uint256, uint256, uint256, uint256, string, bytes));
+            (,,,, tcbInfo, signature) = abi.decode(attestedTcbData, (uint256, uint256, uint256, uint256, string, bytes));
         }
     }
 
@@ -87,9 +86,8 @@ abstract contract FmspcTcbDao {
         uint256 nextUpdate;
         (tcbType, fmspc, version, issueDate, nextUpdate) = FmspcTcbLib.parseTcbString(tcbInfoObj.tcbInfoStr);
         bytes32 predecessorAttestationId = _getAttestationId(tcbType, fmspc, version);
-        bytes memory attestationData = abi.encode(
-            tcbType, version, issueDate, nextUpdate, tcbInfoObj.tcbInfoStr, tcbInfoObj.signature
-        );
+        bytes memory attestationData =
+            abi.encode(tcbType, version, issueDate, nextUpdate, tcbInfoObj.tcbInfoStr, tcbInfoObj.signature);
         AttestationRequestData memory reqData = AttestationRequestData({
             recipient: msg.sender,
             expirationTime: 0,

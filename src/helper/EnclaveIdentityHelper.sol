@@ -33,10 +33,13 @@ contract EnclaveIdentityHelper is JSONHelperBase {
     using JSONParserLib for JSONParserLib.Item;
     using LibString for string;
 
-    function getIssueAndNextUpdateDates(string calldata identityStr) external pure returns (
-        uint256 issueDate,
-        uint256 nextUpdate
-    ) {
+    constructor(address _x509helper) JSONHelperBase(_x509helper) {}
+
+    function getIssueAndNextUpdateDates(string calldata identityStr)
+        external
+        pure
+        returns (uint256 issueDate, uint256 nextUpdate)
+    {
         JSONParserLib.Item memory root = JSONParserLib.parse(identityStr);
         JSONParserLib.Item[] memory identityObj = root.children();
 

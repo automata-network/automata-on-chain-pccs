@@ -41,7 +41,7 @@ abstract contract EnclaveIdentityDao {
             emit EnclaveIdentityMissing(id, version);
         } else {
             bytes memory attestedIdentityData = _getAttestedData(attestationId);
-            (,,enclaveIdentity, signature) = abi.decode(attestedIdentityData, (uint256, uint256, string, bytes));
+            (,, enclaveIdentity, signature) = abi.decode(attestedIdentityData, (uint256, uint256, string, bytes));
         }
     }
 
@@ -82,7 +82,8 @@ abstract contract EnclaveIdentityDao {
         EnclaveIdentityJsonObj calldata enclaveIdentityObj
     ) private view returns (AttestationRequest memory req) {
         bytes32 predecessorAttestationId = _getAttestationId(id, version);
-        (uint256 issueDate, uint256 nextUpdate) = EnclaveIdentityLib.getIssueAndNextUpdateDates(enclaveIdentityObj.identityStr);
+        (uint256 issueDate, uint256 nextUpdate) =
+            EnclaveIdentityLib.getIssueAndNextUpdateDates(enclaveIdentityObj.identityStr);
         bytes memory attestationData =
             abi.encode(issueDate, nextUpdate, enclaveIdentityObj.identityStr, enclaveIdentityObj.signature);
         AttestationRequestData memory reqData = AttestationRequestData({

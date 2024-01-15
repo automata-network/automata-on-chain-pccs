@@ -92,10 +92,8 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal {
     ) internal view override locked {
         bytes memory prevData = _getAttestedData(attestationId);
         bytes memory currentData = attestationPayload.attestationData;
-        (,,uint256 prevIssueDate,,,) =
-            abi.decode(prevData, (uint256, uint256, uint256, uint256, string, bytes));
-        (,,uint256 currentIssueDate,,,) =
-            abi.decode(currentData, (uint256, uint256, uint256, uint256, string, bytes));
+        (,, uint256 prevIssueDate,,,) = abi.decode(prevData, (uint256, uint256, uint256, uint256, string, bytes));
+        (,, uint256 currentIssueDate,,,) = abi.decode(currentData, (uint256, uint256, uint256, uint256, string, bytes));
 
         if (currentIssueDate < prevIssueDate) {
             revert Invalid_TCBInfo_Replacement();
