@@ -14,6 +14,8 @@ contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal {
     error No_External_Attestation();
     /// @notice Error thrown when trying to retrieve an attestation that has been revoked/replaced
     error Attestation_Revoked(bytes32 predecessor, bytes32 successor);
+    /// @notice Error thrown when the replacement of Enclave Identity is invalid
+    error Invalid_Identity_Replacement();
 
     bool private _unlock;
 
@@ -33,8 +35,8 @@ contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal {
     function withdraw(address payable to, uint256 amount) external override {}
 
     function enclaveIdentitySchemaID() public pure override returns (bytes32 ENCLAVE_IDENTITY_SCHEMA_ID) {
-        // keccak256(bytes("string identity, bytes signature, uint256 createdAt, uint256 updatedAt"))
-        ENCLAVE_IDENTITY_SCHEMA_ID = 0xe1df3bb5cfbb134ffce24c97834d856639afd53f4a67311e844dd307d7f05df2;
+        // keccak256(bytes("uint256 issueDateTimestamp, uint256 nextUpdateTimestamp, string identity, bytes signature"))
+        ENCLAVE_IDENTITY_SCHEMA_ID = 0x97b41ea5b7cea14d9f50d4b8f09b6fff7744522db6e340e18fbc324810ab9152;
     }
 
     function _attestEnclaveIdentity(AttestationRequest memory req) internal override returns (bytes32 attestationId) {
@@ -87,16 +89,17 @@ contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal {
         AttestationPayload memory attestationPayload,
         address, /*attester*/
         uint256 /*value*/
-    ) internal override locked {
+    ) internal view override locked {
         bytes memory prevData = _getAttestedData(attestationId);
         bytes memory currentData = attestationPayload.attestationData;
-        (string memory prevEnclaveIdentity,,,) = abi.decode(prevData, (string, bytes, uint256, uint256));
-        (string memory currentEnclaveIdentity,,,) = abi.decode(currentData, (string, bytes, uint256, uint256));
+        (uint256 prevIssueDate,,,) =
+            abi.decode(prevData, (uint256, uint256, string, bytes));
+        (uint256 currentIssueDate,,,) =
+            abi.decode(currentData, (uint256, uint256, string, bytes));
 
-        string memory prevIssueDate = EnclaveIdentityLib.getIssueDate(prevEnclaveIdentity);
-        string memory currentIssueDate = EnclaveIdentityLib.getIssueDate(currentEnclaveIdentity);
-
-        // Condition currentIssueDate > prevIssueDate
+        if (currentIssueDate < prevIssueDate) {
+            revert Invalid_Identity_Replacement();
+        }
     }
 
     function _onBulkReplace(

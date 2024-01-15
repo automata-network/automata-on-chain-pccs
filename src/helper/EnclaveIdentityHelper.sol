@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {JSONHelperBase, JSONParserLib, LibString} from "./base/JSONHelperBase.sol";
+import {DateTimeUtils} from "../utils/DateTimeUtils.sol";
 
 /**
  * @param identityStr The Identity JSON body
@@ -32,15 +33,28 @@ contract EnclaveIdentityHelper is JSONHelperBase {
     using JSONParserLib for JSONParserLib.Item;
     using LibString for string;
 
-    function getIssueDate(string calldata identityStr) external pure returns (string memory issueDate) {
+    function getIssueAndNextUpdateDates(string calldata identityStr) external pure returns (
+        uint256 issueDate,
+        uint256 nextUpdate
+    ) {
         JSONParserLib.Item memory root = JSONParserLib.parse(identityStr);
         JSONParserLib.Item[] memory identityObj = root.children();
+
+        bool issueDateFound;
+        bool nextUpdateFound;
 
         for (uint256 i = 0; i < root.size(); i++) {
             JSONParserLib.Item memory current = identityObj[i];
             string memory decodedKey = JSONParserLib.decodeString(current.key());
             if (decodedKey.eq("issueDate")) {
-                issueDate = JSONParserLib.decodeString(current.value());
+                issueDate = DateTimeUtils.fromISOToTimestamp(JSONParserLib.decodeString(current.value()));
+                issueDateFound = true;
+            }
+            if (decodedKey.eq("nextUpdate")) {
+                nextUpdate = DateTimeUtils.fromISOToTimestamp(JSONParserLib.decodeString(current.value()));
+                nextUpdateFound = true;
+            }
+            if (issueDateFound && nextUpdateFound) {
                 break;
             }
         }
