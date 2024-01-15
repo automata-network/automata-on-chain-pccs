@@ -4,15 +4,21 @@ pragma solidity ^0.8.0;
 import {CA, AttestationRequestData, AttestationRequest} from "../Common.sol";
 import {PcsDao} from "./PcsDao.sol";
 
+import {EnclaveIdentityHelper, EnclaveIdentityJsonObj} from "../helper/EnclaveIdentityHelper.sol";
+
 abstract contract EnclaveIdentityDao {
     PcsDao public Pcs;
+    EnclaveIdentityHelper public EnclaveIdentityLib;
 
     /// @notice retrieves the attested EnclaveIdentity from the registry
     /// key: keccak256(id ++ version)
+    /// NOTE: the "version" indicated here is taken from the input parameter (e.g. v3 vs v4);
+    /// NOT the "version" value found in the Enclave Identity JSON
     ///
     /// @notice the schema of the attested data is the following:
-    /// A tuple of (bytes, uint256, uint256)
-    /// - bytes identity json blob
+    /// A tuple of (string, bytes, uint256, uint256)
+    /// - string identity json blob
+    /// - bytes signature
     /// - uint256 createdAt
     /// - uint256 updatedAt
     mapping(bytes32 => bytes32) public enclaveIdentityAttestations;
@@ -21,25 +27,31 @@ abstract contract EnclaveIdentityDao {
 
     error Cert_Chain_Not_Verified();
 
-    constructor(address _pcs) {
+    constructor(address _pcs, address _enclaveIdentityHelper) {
         Pcs = PcsDao(_pcs);
+        EnclaveIdentityLib = EnclaveIdentityHelper(_enclaveIdentityHelper);
     }
 
-    function getEnclaveIdentity(uint256 id, uint256 version) external returns (bytes memory enclaveIdentity) {
+    function getEnclaveIdentity(uint256 id, uint256 version)
+        external
+        returns (string memory enclaveIdentity, bytes memory signature)
+    {
         bytes32 attestationId = _getAttestationId(id, version);
         if (attestationId == bytes32(0)) {
             emit EnclaveIdentityMissing(id, version);
         } else {
-            bytes memory attestedPckData = _getAttestedData(attestationId);
-            (enclaveIdentity,,) = abi.decode(attestedPckData, (bytes, uint256, uint256));
+            bytes memory attestedIdentityData = _getAttestedData(attestationId);
+            (enclaveIdentity, signature,,) = abi.decode(attestedIdentityData, (string, bytes, uint256, uint256));
         }
     }
 
     /// @dev Attestation Registry Entrypoint Contracts, such as Portals on Verax are responsible
     /// @dev for performing ECDSA verification on the provided Enclave Identity
     /// against the Signing CA key prior to attestations
-    function upsertEnclaveIdentity(uint256 id, uint256 version, bytes calldata identityBlob) external {
-        AttestationRequest memory req = _buildEnclaveIdentityAttestationRequest(id, version, identityBlob);
+    function upsertEnclaveIdentity(uint256 id, uint256 version, EnclaveIdentityJsonObj calldata enclaveIdentityObj)
+        external
+    {
+        AttestationRequest memory req = _buildEnclaveIdentityAttestationRequest(id, version, enclaveIdentityObj);
         bytes32 attestationId = _attestEnclaveIdentity(req);
         enclaveIdentityAttestations[keccak256(abi.encodePacked(id, version))] = attestationId;
     }
@@ -64,18 +76,19 @@ abstract contract EnclaveIdentityDao {
         attestationId = enclaveIdentityAttestations[keccak256(abi.encodePacked(id, version))];
     }
 
-    function _buildEnclaveIdentityAttestationRequest(uint256 id, uint256 version, bytes calldata identityBlob)
-        private
-        view
-        returns (AttestationRequest memory req)
-    {
+    function _buildEnclaveIdentityAttestationRequest(
+        uint256 id,
+        uint256 version,
+        EnclaveIdentityJsonObj calldata enclaveIdentityObj
+    ) private view returns (AttestationRequest memory req) {
         bytes32 predecessorAttestationId = _getAttestationId(id, version);
         uint256 createdAt;
         if (predecessorAttestationId != bytes32(0)) {
-            (, createdAt,) = abi.decode(_getAttestedData(predecessorAttestationId), (bytes, uint256, uint256));
+            (,, createdAt,) = abi.decode(_getAttestedData(predecessorAttestationId), (string, bytes, uint256, uint256));
         }
         uint256 updatedAt = block.timestamp;
-        bytes memory attestationData = abi.encode(identityBlob, createdAt, updatedAt);
+        bytes memory attestationData =
+            abi.encode(enclaveIdentityObj.identityStr, enclaveIdentityObj.signature, createdAt, updatedAt);
         AttestationRequestData memory reqData = AttestationRequestData({
             recipient: msg.sender,
             expirationTime: 0,

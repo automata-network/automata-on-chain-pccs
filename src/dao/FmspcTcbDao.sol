@@ -26,7 +26,6 @@ abstract contract FmspcTcbDao {
 
     event TCBInfoMissing(uint256 tcbType, string fmspc, uint256 version);
 
-    error TCBInfo_Invalid();
     error Cert_Chain_Not_Verified();
 
     constructor(address _pcs, address _fmspcHelper) {

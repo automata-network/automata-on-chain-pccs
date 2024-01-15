@@ -91,12 +91,10 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal {
     ) internal view override locked {
         bytes memory prevData = _getAttestedData(attestationId);
         bytes memory currentData = attestationPayload.attestationData;
-        (,,,, string memory prevTcbInfo, ,,) =
-                abi.decode(prevData, (uint256, uint256, string, string, string, bytes, uint256, uint256));
-        (,,,, string memory currentTcbInfo, ,,) =
-                abi.decode(currentData, (uint256, uint256, string, string, string, bytes, uint256, uint256));
-        (,,,string memory prevIssueDate,)= FmspcTcbLib.parseTcbString(prevTcbInfo);
-        (,,,string memory currentIssueDate,)= FmspcTcbLib.parseTcbString(currentTcbInfo);
+        (,, string memory prevIssueDate,,,,,) =
+            abi.decode(prevData, (uint256, uint256, string, string, string, bytes, uint256, uint256));
+        (,, string memory currentIssueDate,,,,,) =
+            abi.decode(currentData, (uint256, uint256, string, string, string, bytes, uint256, uint256));
 
         // Condition currentIssueDate > prevIssueDate
     }

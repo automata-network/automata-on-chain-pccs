@@ -78,4 +78,6 @@ contract FmspcTcbHelper is JSONHelperBase {
             revert TCBInfo_Invalid();
         }
     }
+
+    // TODO: Implement child library contracts to parse TCB by their specific type and version
 }

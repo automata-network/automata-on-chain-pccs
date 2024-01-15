@@ -17,9 +17,9 @@ contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal {
 
     bool private _unlock;
 
-    constructor(address[] memory modules, address router, address pcs)
+    constructor(address[] memory modules, address router, address pcs, address enclaveIdentityHelper)
         AbstractPortal(modules, router)
-        EnclaveIdentityDao(pcs)
+        EnclaveIdentityDao(pcs, enclaveIdentityHelper)
     {}
 
     modifier locked() {
@@ -33,8 +33,8 @@ contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal {
     function withdraw(address payable to, uint256 amount) external override {}
 
     function enclaveIdentitySchemaID() public pure override returns (bytes32 ENCLAVE_IDENTITY_SCHEMA_ID) {
-        // keccak256(bytes("bytes identity, uint256 createdAt, uint256 updatedAt"))
-        ENCLAVE_IDENTITY_SCHEMA_ID = 0x511889c99a8a4349fbf10fc80669ac4f742ca943acfdb9f39ace2697e0f4bfa7;
+        // keccak256(bytes("string identity, bytes signature, uint256 createdAt, uint256 updatedAt"))
+        ENCLAVE_IDENTITY_SCHEMA_ID = 0xe1df3bb5cfbb134ffce24c97834d856639afd53f4a67311e844dd307d7f05df2;
     }
 
     function _attestEnclaveIdentity(AttestationRequest memory req) internal override returns (bytes32 attestationId) {
@@ -83,12 +83,20 @@ contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal {
     ) internal override locked {}
 
     function _onReplace(
-        bytes32, /*attestationId*/
-        AttestationPayload memory, /*attestationPayload*/
+        bytes32 attestationId,
+        AttestationPayload memory attestationPayload,
         address, /*attester*/
         uint256 /*value*/
     ) internal override locked {
-        // TODO: Check prev identity.issueDate < current identity.issueDate
+        bytes memory prevData = _getAttestedData(attestationId);
+        bytes memory currentData = attestationPayload.attestationData;
+        (string memory prevEnclaveIdentity,,,) = abi.decode(prevData, (string, bytes, uint256, uint256));
+        (string memory currentEnclaveIdentity,,,) = abi.decode(currentData, (string, bytes, uint256, uint256));
+
+        string memory prevIssueDate = EnclaveIdentityLib.getIssueDate(prevEnclaveIdentity);
+        string memory currentIssueDate = EnclaveIdentityLib.getIssueDate(currentEnclaveIdentity);
+
+        // Condition currentIssueDate > prevIssueDate
     }
 
     function _onBulkReplace(
@@ -96,7 +104,7 @@ contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal {
         AttestationPayload[] memory, /*attestationsPayloads*/
         bytes[][] memory /*validationPayloads*/
     ) internal override locked {
-        // TODO: Check prev identity.issueDate < current identity.issueDate
+        /// @notice: external attestations not possible, therefore this code is unreachable
     }
 
     /**

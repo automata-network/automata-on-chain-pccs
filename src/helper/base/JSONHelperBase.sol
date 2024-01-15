@@ -9,7 +9,7 @@ import {P256} from "p256-verifier/P256.sol";
 abstract contract JSONHelperBase {
     using BytesUtils for bytes;
 
-    function verifyJsonBodySignature(string calldata tcbInfoStr, bytes calldata signature, bytes calldata signingCertBlob)
+    function verifyJsonBodySignature(string calldata body, bytes calldata signature, bytes calldata signingCertBlob)
         external
         view
         returns (bool verified)
@@ -18,7 +18,7 @@ abstract contract JSONHelperBase {
             return false;
         }
 
-        bytes32 digest = sha256(abi.encodePacked(tcbInfoStr));
+        bytes32 digest = sha256(abi.encodePacked(body));
 
         uint256 r = uint256(bytes32(signature.substring(0, 32)));
         uint256 s = uint256(bytes32(signature.substring(32, 32)));
