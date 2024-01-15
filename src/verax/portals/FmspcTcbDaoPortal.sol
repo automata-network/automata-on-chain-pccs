@@ -15,6 +15,7 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal {
     /// @notice Error thrown when trying to retrieve an attestation that has been revoked/replaced
     error Attestation_Revoked(bytes32 predecessor, bytes32 successor);
     /// @notice Error thrown when the replacement of TCBInfo is invalid
+    error Invalid_TCBInfo_Replacement();
 
     bool private _unlock;
 
@@ -34,8 +35,8 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal {
     function withdraw(address payable to, uint256 amount) external override {}
 
     function fmspcTcbSchemaID() public pure override returns (bytes32 FMSPC_TCB_SCHEMA_ID) {
-        // keccak256(bytes("uint256 tcbType, uint256 version, string issueDate, string nextUpdate, string tcbInfo, bytes signature, uint256 createdAt, uint256 updatedAt"))
-        FMSPC_TCB_SCHEMA_ID = 0x30771bf53b4616c77b73a9ce543e6c3810ce34116d194c591c2e0234377f7564;
+        // keccak256(bytes("uint256 tcbType, uint256 version, uint256 issueDateTimestamp, uint256 nextUpdateTimestamp, string tcbInfo, bytes signature"))
+        FMSPC_TCB_SCHEMA_ID = 0x46bd450c3c87d1c7842b1efb25c629c61fa188159f1e48326da497f28aef6757;
     }
 
     function _attestTcb(AttestationRequest memory req) internal override returns (bytes32 attestationId) {
@@ -91,12 +92,14 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal {
     ) internal view override locked {
         bytes memory prevData = _getAttestedData(attestationId);
         bytes memory currentData = attestationPayload.attestationData;
-        (,, string memory prevIssueDate,,,,,) =
-            abi.decode(prevData, (uint256, uint256, string, string, string, bytes, uint256, uint256));
-        (,, string memory currentIssueDate,,,,,) =
-            abi.decode(currentData, (uint256, uint256, string, string, string, bytes, uint256, uint256));
+        (,,uint256 prevIssueDate,,,) =
+            abi.decode(prevData, (uint256, uint256, uint256, uint256, string, bytes));
+        (,,uint256 currentIssueDate,,,) =
+            abi.decode(currentData, (uint256, uint256, uint256, uint256, string, bytes));
 
-        // Condition currentIssueDate > prevIssueDate
+        if (currentIssueDate < prevIssueDate) {
+            revert Invalid_TCBInfo_Replacement();
+        }
     }
 
     function _onBulkReplace(

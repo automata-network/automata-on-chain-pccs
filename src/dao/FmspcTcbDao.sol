@@ -13,15 +13,13 @@ abstract contract FmspcTcbDao {
     /// @notice retrieves the attested FMSPC TCBInfo from the registry
     /// key: keccak256(FMSPC ++ type ++ version)
     /// @notice the schema of the attested data is the following:
-    /// A tuple of (uint256, uint256, string, bytes, uint256, uint256)
+    /// A tuple of (uint256, uint256, uint256, uint256, string, bytes)
     /// - uint256 tcbType
     /// - uint256 version
-    /// - string issueDate
-    /// - string nextUpdate
+    /// - uint256 issueDateTimestamp
+    /// - uint256 nextUpdateTimestamp
     /// - string tcbInfo
     /// - bytes signature
-    /// - uint256 createdAt
-    /// - uint256 updatedAt
     mapping(bytes32 => bytes32) public fmspcTcbInfoAttestations;
 
     event TCBInfoMissing(uint256 tcbType, string fmspc, uint256 version);
@@ -42,8 +40,8 @@ abstract contract FmspcTcbDao {
             emit TCBInfoMissing(tcbType, fmspc, version);
         } else {
             bytes memory attestedTcbData = _getAttestedData(attestationId);
-            (,,,, tcbInfo, signature,,) =
-                abi.decode(attestedTcbData, (uint256, uint256, string, string, string, bytes, uint256, uint256));
+            (,,,, tcbInfo, signature) =
+                abi.decode(attestedTcbData, (uint256, uint256, uint256, uint256, string, bytes));
         }
     }
 
@@ -85,20 +83,12 @@ abstract contract FmspcTcbDao {
         view
         returns (AttestationRequest memory req, uint256 tcbType, string memory fmspc, uint256 version)
     {
-        string memory issueDate;
-        string memory nextUpdate;
+        uint256 issueDate;
+        uint256 nextUpdate;
         (tcbType, fmspc, version, issueDate, nextUpdate) = FmspcTcbLib.parseTcbString(tcbInfoObj.tcbInfoStr);
         bytes32 predecessorAttestationId = _getAttestationId(tcbType, fmspc, version);
-        uint256 createdAt;
-        if (predecessorAttestationId != bytes32(0)) {
-            (,,,,,, createdAt,) = abi.decode(
-                _getAttestedData(predecessorAttestationId),
-                (uint256, uint256, string, string, string, bytes, uint256, uint256)
-            );
-        }
-        uint256 updatedAt = block.timestamp;
         bytes memory attestationData = abi.encode(
-            tcbType, version, issueDate, nextUpdate, tcbInfoObj.tcbInfoStr, tcbInfoObj.signature, createdAt, updatedAt
+            tcbType, version, issueDate, nextUpdate, tcbInfoObj.tcbInfoStr, tcbInfoObj.signature
         );
         AttestationRequestData memory reqData = AttestationRequestData({
             recipient: msg.sender,

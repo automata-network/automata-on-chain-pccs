@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {JSONHelperBase, JSONParserLib, LibString} from "./base/JSONHelperBase.sol";
+import {DateTimeUtils} from "../utils/DateTimeUtils.sol";
 
 /**
  * @param tcbInfo: tcbInfoJson.tcbInfo JSON string
@@ -31,8 +32,8 @@ contract FmspcTcbHelper is JSONHelperBase {
             uint256 tcbType,
             string memory fmspc,
             uint256 version,
-            string memory issueDate,
-            string memory nextUpdate
+            uint256 issueDate,
+            uint256 nextUpdate
         )
     {
         JSONParserLib.Item memory root = JSONParserLib.parse(tcbInfoStr);
@@ -61,11 +62,11 @@ contract FmspcTcbHelper is JSONHelperBase {
                 versionFound = true;
             }
             if (decodedKey.eq("issueDate")) {
-                issueDate = JSONParserLib.decodeString(current.value());
+                issueDate = DateTimeUtils.fromISOToTimestamp(JSONParserLib.decodeString(current.value()));
                 issueDateFound = true;
             }
             if (decodedKey.eq("nextUpdate")) {
-                nextUpdate = JSONParserLib.decodeString(current.value());
+                nextUpdate = DateTimeUtils.fromISOToTimestamp(JSONParserLib.decodeString(current.value()));
                 nextUpdateFound = true;
             }
             allFound = (tcbTypeFound && fmspcFound && versionFound && issueDateFound && nextUpdateFound);
