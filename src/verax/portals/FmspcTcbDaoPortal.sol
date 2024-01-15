@@ -14,6 +14,7 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal {
     error No_External_Attestation();
     /// @notice Error thrown when trying to retrieve an attestation that has been revoked/replaced
     error Attestation_Revoked(bytes32 predecessor, bytes32 successor);
+    /// @notice Error thrown when the replacement of TCBInfo is invalid
 
     bool private _unlock;
 
@@ -83,12 +84,21 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal {
     ) internal override locked {}
 
     function _onReplace(
-        bytes32, /*attestationId*/
-        AttestationPayload memory, /*attestationPayload*/
+        bytes32 attestationId,
+        AttestationPayload memory attestationPayload,
         address, /*attester*/
         uint256 /*value*/
-    ) internal override locked {
-        // TODO: Check prev tcbInfo.issueDate < current tcbInfo.issueDate
+    ) internal view override locked {
+        bytes memory prevData = _getAttestedData(attestationId);
+        bytes memory currentData = attestationPayload.attestationData;
+        (,,,, string memory prevTcbInfo, ,,) =
+                abi.decode(prevData, (uint256, uint256, string, string, string, bytes, uint256, uint256));
+        (,,,, string memory currentTcbInfo, ,,) =
+                abi.decode(currentData, (uint256, uint256, string, string, string, bytes, uint256, uint256));
+        (,,,string memory prevIssueDate,)= FmspcTcbLib.parseTcbString(prevTcbInfo);
+        (,,,string memory currentIssueDate,)= FmspcTcbLib.parseTcbString(currentTcbInfo);
+
+        // Condition currentIssueDate > prevIssueDate
     }
 
     function _onBulkReplace(
@@ -96,7 +106,7 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal {
         AttestationPayload[] memory, /*attestationsPayloads*/
         bytes[][] memory /*validationPayloads*/
     ) internal override locked {
-        // TODO: Check prev tcbInfo.issueDate < current tcbInfo.issueDate
+        /// @notice: external attestations not possible, therefore this code is unreachable
     }
 
     /**

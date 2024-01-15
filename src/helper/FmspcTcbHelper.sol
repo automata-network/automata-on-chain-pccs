@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {JSONParserLib} from "solady/utils/JSONParserLib.sol";
-import {LibString} from "solady/utils/LibString.sol";
+import {JSONHelperBase, JSONParserLib, LibString} from "./base/JSONHelperBase.sol";
 
 /**
  * @param tcbInfo: tcbInfoJson.tcbInfo JSON string
@@ -19,19 +18,11 @@ struct TcbInfoJsonObj {
  * to parse TCBInfo Blob and perform ECDSA Signature verification
  */
 
-contract FmspcTcbHelper {
+contract FmspcTcbHelper is JSONHelperBase {
     using JSONParserLib for JSONParserLib.Item;
     using LibString for string;
 
     error TCBInfo_Invalid();
-
-    function verifyTcbSignature(bytes calldata tcbInfo, bytes calldata signature, bytes calldata signingCertBlob)
-        external
-        view
-        returns (bool verified)
-    {
-        // TODO
-    }
 
     function parseTcbString(string memory tcbInfoStr)
         external
