@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {JSONHelperBase, JSONParserLib, LibString} from "./base/JSONHelperBase.sol";
+import {JSONParserLib} from "solady/utils/JSONParserLib.sol";
+import {LibString} from "solady/utils/LibString.sol";
 import {DateTimeUtils} from "../utils/DateTimeUtils.sol";
 
 /**
@@ -29,11 +30,9 @@ struct IdentityObj {
     string tcbLevelsObjStr;
 }
 
-contract EnclaveIdentityHelper is JSONHelperBase {
+contract EnclaveIdentityHelper {
     using JSONParserLib for JSONParserLib.Item;
     using LibString for string;
-
-    constructor(address _x509helper) JSONHelperBase(_x509helper) {}
 
     function getIssueAndNextUpdateDates(string calldata identityStr)
         external
