@@ -38,6 +38,14 @@ contract X509Helper {
         sig = _getSignature(der, sigPtr);
     }
 
+    function getSerialNumber(bytes calldata der) external pure returns (uint256 serialNum) {
+        uint256 root = der.root();
+        uint256 tbsParentPtr = der.firstChildOf(root);
+        uint256 tbsPtr = der.firstChildOf(tbsParentPtr);
+        tbsPtr = der.nextSiblingOf(tbsPtr);
+        serialNum = _parseSerialNumber(der.bytesAt(tbsPtr));
+    }
+
     function getIssuerCommonName(bytes calldata der) external pure returns (string memory issuerCommonName) {
         uint256 root = der.root();
         uint256 tbsParentPtr = der.firstChildOf(root);
@@ -107,7 +115,7 @@ contract X509Helper {
 
         tbsPtr = der.nextSiblingOf(tbsPtr);
 
-        cert.serialNumber = uint256(bytes32(der.bytesAt(tbsPtr)));
+        cert.serialNumber = _parseSerialNumber(der.bytesAt(tbsPtr));
 
         tbsPtr = der.nextSiblingOf(tbsPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
@@ -163,6 +171,11 @@ contract X509Helper {
     {
         subjectPublicKeyInfoPtr = der.nextSiblingOf(subjectPublicKeyInfoPtr);
         pubKey = _trimBytes(der.bytesAt(subjectPublicKeyInfoPtr), 64);
+    }
+
+    function _parseSerialNumber(bytes memory serialBytes) private pure returns (uint256 serial) {
+        uint256 shift = 8 * (32 - serialBytes.length);
+        serial = uint256(bytes32(serialBytes) >> shift);
     }
 
     function _getSignature(bytes calldata der, uint256 sigPtr) private pure returns (bytes memory sig) {

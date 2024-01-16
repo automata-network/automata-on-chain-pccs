@@ -37,6 +37,13 @@ contract X509CRLHelper {
         sig = _getSignature(der, sigPtr);
     }
 
+    function getSerialNumber(bytes calldata der) external pure returns (uint256 serialNum) {
+        uint256 root = der.root();
+        uint256 tbsParentPtr = der.firstChildOf(root);
+        uint256 tbsPtr = der.firstChildOf(tbsParentPtr);
+        serialNum = _parseSerialNumber(der.bytesAt(tbsPtr));
+    }
+
     function getIssuerCommonName(bytes calldata der) external pure returns (string memory issuerCommonName) {
         uint256 root = der.root();
         uint256 tbsParentPtr = der.firstChildOf(root);
@@ -72,8 +79,8 @@ contract X509CRLHelper {
 
     /// x509 CRL generally contain a sequence of elements in the following order:
     /// 1. tbs
-    /// - 1a. version
-    /// - 1b. serial number
+    /// - 1a. serial number
+    /// - 1b. signature algorithm
     /// - 1c. issuer
     /// - - 1c(a). common name
     /// - - 1c(b). organization name
@@ -96,8 +103,6 @@ contract X509CRLHelper {
 
         uint256 tbsPtr = der.firstChildOf(tbsParentPtr);
 
-        tbsPtr = der.nextSiblingOf(tbsPtr);
-
         crl.serialNumber = uint256(bytes32(der.bytesAt(tbsPtr)));
 
         tbsPtr = der.nextSiblingOf(tbsPtr);
@@ -110,7 +115,6 @@ contract X509CRLHelper {
         tbsPtr = der.nextSiblingOf(tbsPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
 
-        // TODO: get a list of serial numbers
         crl.serialNumbersRevoked = _getRevokedSerialNumbers(der, tbsPtr, false, 0);
 
         // tbs iteration completed
@@ -149,14 +153,13 @@ contract X509CRLHelper {
         while (revokedPtr.ixl() < revokedParentPtr.ixl()) {
             uint256 serialPtr = der.firstChildOf(revokedPtr);
             bytes memory serialBytes = der.bytesAt(serialPtr);
-            uint256 shift = 8 * (32 - serialBytes.length);
-            bytes32 serialBytes32 = bytes32(serialBytes) >> shift;
-            if (breakIfFound && filter == uint256(serialBytes32)) {
+            uint256 serialNumber = _parseSerialNumber(serialBytes);
+            if (breakIfFound && filter == serialNumber) {
                 serialNumbers = new uint256[](1);
                 serialNumbers[0] = filter;
                 break;
             } else {
-                serials = abi.encodePacked(serials, serialBytes32);
+                serials = abi.encodePacked(serials, serialNumber);
                 revokedPtr = der.nextSiblingOf(revokedPtr);
             }
         }
@@ -167,6 +170,11 @@ contract X509CRLHelper {
             serialNumbers = new uint256[](count);
             serialNumbers = abi.decode(serials, (uint256[]));
         }
+    }
+
+    function _parseSerialNumber(bytes memory serialBytes) private pure returns (uint256 serial) {
+        uint256 shift = 8 * (32 - serialBytes.length);
+        serial = uint256(bytes32(serialBytes) >> shift);
     }
 
     function _getSignature(bytes calldata der, uint256 sigPtr) private pure returns (bytes memory sig) {
