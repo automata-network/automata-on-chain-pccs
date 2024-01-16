@@ -5,24 +5,24 @@ import {Asn1Decode, NodePtr} from "../utils/Asn1Decode.sol";
 import {BytesUtils} from "../utils/BytesUtils.sol";
 import {DateTimeUtils} from "../utils/DateTimeUtils.sol";
 
+struct X509CertObj {
+    uint256 serialNumber;
+    string issuerCommonName;
+    uint256 validityNotBefore;
+    uint256 validityNotAfter;
+    string subjectCommonName;
+    bytes subjectPublicKey;
+    // the extension needs to be parsed further for PCK Certificates
+    uint256 extensionPtr;
+    // for signature verification in the cert chain
+    bytes signature;
+    bytes tbs;
+}
+
 contract X509Helper {
     using Asn1Decode for bytes;
     using NodePtr for uint256;
     using BytesUtils for bytes;
-
-    struct X509CertObj {
-        uint256 serialNumber;
-        string issuerCommonName;
-        uint256 validityNotBefore;
-        uint256 validityNotAfter;
-        string subjectCommonName;
-        bytes subjectPublicKey;
-        // the extension needs to be parsed further for PCK Certificates
-        uint256 extensionPtr;
-        // for signature verification in the cert chain
-        bytes signature;
-        bytes tbs;
-    }
 
     /// =================================================================================
     /// USE THE GETTERS BELOW IF YOU DON'T WANT TO PARSE THE ENTIRE X509 CERTIFICATE
@@ -66,6 +66,18 @@ contract X509Helper {
         tbsPtr = der.nextSiblingOf(tbsPtr);
         (uint256 validityNotBefore, uint256 validityNotAfter) = _getValidity(der, tbsPtr);
         isValid = block.timestamp > validityNotBefore && block.timestamp < validityNotAfter;
+    }
+
+    function getSubjectCommonName(bytes calldata der) external pure returns (string memory subjectCommonName) {
+        uint256 root = der.root();
+        uint256 tbsParentPtr = der.firstChildOf(root);
+        uint256 tbsPtr = der.firstChildOf(tbsParentPtr);
+        tbsPtr = der.nextSiblingOf(tbsPtr);
+        tbsPtr = der.nextSiblingOf(tbsPtr);
+        tbsPtr = der.nextSiblingOf(tbsPtr);
+        tbsPtr = der.nextSiblingOf(tbsPtr);
+        tbsPtr = der.nextSiblingOf(tbsPtr);
+        subjectCommonName = _getCommonName(der, der.firstChildOf(tbsPtr));
     }
 
     function getSubjectPublicKey(bytes calldata der) external pure returns (bytes memory pubKey) {

@@ -59,11 +59,11 @@ abstract contract EnclaveIdentityDao {
     function getEnclaveIdentityIssuerChain() public view returns (bytes memory signingCert, bytes memory rootCert) {
         bytes32 signingCertAttestationId = Pcs.pcsCertAttestations(CA.SIGNING);
         bytes32 rootCertAttestationId = Pcs.pcsCertAttestations(CA.ROOT);
-        if (!Pcs.verifyCertchain(signingCertAttestationId, rootCertAttestationId)) {
-            revert Cert_Chain_Not_Verified();
-        }
-        (signingCert,,) = abi.decode(_getAttestedData(signingCertAttestationId), (bytes, uint256, uint256));
-        (rootCert,,) = abi.decode(_getAttestedData(rootCertAttestationId), (bytes, uint256, uint256));
+        // if (!Pcs.verifyCertchain(signingCertAttestationId, rootCertAttestationId)) {
+        //     revert Cert_Chain_Not_Verified();
+        // }
+        signingCert = _getAttestedData(signingCertAttestationId);
+        rootCert = _getAttestedData(rootCertAttestationId);
     }
 
     function enclaveIdentitySchemaID() public view virtual returns (bytes32 ENCLAVE_IDENTITY_SCHEMA_ID);

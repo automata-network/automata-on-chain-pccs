@@ -5,23 +5,21 @@ import {Asn1Decode, NodePtr} from "../utils/Asn1Decode.sol";
 import {BytesUtils} from "../utils/BytesUtils.sol";
 import {DateTimeUtils} from "../utils/DateTimeUtils.sol";
 
+struct X509CRLObj {
+    uint256 serialNumber;
+    string issuerCommonName;
+    uint256 validityNotBefore;
+    uint256 validityNotAfter;
+    uint256[] serialNumbersRevoked;
+    // for signature verification in the cert chain
+    bytes signature;
+    bytes tbs;
+}
+
 contract X509CRLHelper {
     using Asn1Decode for bytes;
     using NodePtr for uint256;
     using BytesUtils for bytes;
-
-    struct X509CRLObj {
-        uint256 serialNumber;
-        string issuerCommonName;
-        uint256 validityNotBefore;
-        uint256 validityNotAfter;
-        string subjectCommonName;
-        uint256[] serialNumbersRevoked;
-
-        // for signature verification in the cert chain
-        bytes signature;
-        bytes tbs;
-    }
 
     /// =================================================================================
     /// USE THE GETTERS BELOW IF YOU DON'T WANT TO PARSE THE ENTIRE X509 CRL
@@ -147,7 +145,11 @@ contract X509CRLHelper {
         notAfter = DateTimeUtils.fromDERToTimestamp(der.bytesAt(notAfterPtr));
     }
 
-    function _getRevokedSerialNumbers(bytes calldata der, uint256 revokedParentPtr, bool breakIfFound, uint256 filter) private pure returns (uint256[] memory serialNumbers) {
+    function _getRevokedSerialNumbers(bytes calldata der, uint256 revokedParentPtr, bool breakIfFound, uint256 filter)
+        private
+        pure
+        returns (uint256[] memory serialNumbers)
+    {
         uint256 revokedPtr = der.firstChildOf(revokedParentPtr);
         bytes memory serials;
         while (revokedPtr.ixl() < revokedParentPtr.ixl()) {

@@ -24,7 +24,7 @@ abstract contract FmspcTcbDao {
 
     event TCBInfoMissing(uint256 tcbType, string fmspc, uint256 version);
 
-    error Cert_Chain_Not_Verified();
+    // error Cert_Chain_Not_Verified();
 
     constructor(address _pcs, address _fmspcHelper) {
         Pcs = PcsDao(_pcs);
@@ -56,11 +56,11 @@ abstract contract FmspcTcbDao {
     function getTcbIssuerChain() public view returns (bytes memory signingCert, bytes memory rootCert) {
         bytes32 signingCertAttestationId = Pcs.pcsCertAttestations(CA.SIGNING);
         bytes32 rootCertAttestationId = Pcs.pcsCertAttestations(CA.ROOT);
-        if (!Pcs.verifyCertchain(signingCertAttestationId, rootCertAttestationId)) {
-            revert Cert_Chain_Not_Verified();
-        }
-        (signingCert,,) = abi.decode(_getAttestedData(signingCertAttestationId), (bytes, uint256, uint256));
-        (rootCert,,) = abi.decode(_getAttestedData(rootCertAttestationId), (bytes, uint256, uint256));
+        // if (!Pcs.verifyCertchain(signingCertAttestationId, rootCertAttestationId)) {
+        //     revert Cert_Chain_Not_Verified();
+        // }
+        signingCert = _getAttestedData(signingCertAttestationId);
+        rootCert = _getAttestedData(rootCertAttestationId);
     }
 
     function fmspcTcbSchemaID() public view virtual returns (bytes32 FMSPC_TCB_SCHEMA_ID);

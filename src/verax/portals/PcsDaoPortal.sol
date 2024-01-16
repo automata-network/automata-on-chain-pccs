@@ -30,19 +30,19 @@ contract PcsDaoPortal is PcsDao, AbstractPortal {
     function withdraw(address payable to, uint256 amount) external override {}
 
     function pcsCertSchemaID() public pure override returns (bytes32 PCS_CERT_SCHEMA_ID) {
-        // keccak256(bytes("bytes pcsCert"))
-        PCS_CERT_SCHEMA_ID = 0xe636510f39fcce1becac6265aeea289429c8ffaa4e37cf7d9a8269f49ab853b6;
+        // keccak256(bytes("uint8 ca, bytes pcsCert"))
+        PCS_CERT_SCHEMA_ID = 0xa5dd9ea626846139a00bf8107f573859ba67f5e9a1afd49ed46b68f653276a40;
     }
 
     function pcsCrlSchemaID() public pure override returns (bytes32 PCS_CRL_SCHEMA_ID) {
-        // keccak256(bytes("bytes pcsCrl"))
-        PCS_CRL_SCHEMA_ID = 0xca0446aabb4cf5f2ce35e983f5d0ff69a4cbe43c9740d8e83af54dbc3e4a884c;
+        // keccak256(bytes("uint8 ca, bytes pcsCrl"))
+        PCS_CRL_SCHEMA_ID = 0x934a822069030e1200f83fcb82353abee65dde383eab58d55f6833bb084aca78;
     }
 
-    function certificateChainSchemaID() public pure override returns (bytes32 CERTIFICATE_CHAIN_SCHEMA_ID) {
-        // https://docs.ver.ax/verax-documentation/developer-guides/for-attestation-issuers/link-attestations
-        CERTIFICATE_CHAIN_SCHEMA_ID = 0x89bd76e17fd84df8e1e448fa1b46dd8d97f7e8e806552b003f8386a5aebcb9f0;
-    }
+    // function certificateChainSchemaID() public pure override returns (bytes32 CERTIFICATE_CHAIN_SCHEMA_ID) {
+    //     // https://docs.ver.ax/verax-documentation/developer-guides/for-attestation-issuers/link-attestations
+    //     CERTIFICATE_CHAIN_SCHEMA_ID = 0x89bd76e17fd84df8e1e448fa1b46dd8d97f7e8e806552b003f8386a5aebcb9f0;
+    // }
 
     function _attestPcs(AttestationRequest memory req, CA ca, bool isCrl)
         internal
@@ -54,7 +54,9 @@ contract PcsDaoPortal is PcsDao, AbstractPortal {
         bytes[] memory validationPayload = new bytes[](1);
 
         if (isCrl) {
-            validationPayload[0] = _verifyCrlIssuerChain(ca);
+            validationPayload[0] = _getIssuer(ca);
+        } else {
+            validationPayload[0] = _getIssuer(CA.ROOT);
         }
 
         AttestationPayload memory attestationPayload =
@@ -73,28 +75,28 @@ contract PcsDaoPortal is PcsDao, AbstractPortal {
         _unlock = false;
     }
 
-    function _attestCertChain(AttestationRequest memory req) internal override returns (bytes32 attestationId) {
-        _unlock = true;
+    // function _attestCertChain(AttestationRequest memory req) internal override returns (bytes32 attestationId) {
+    //     _unlock = true;
 
-        bytes[] memory validationPayload = new bytes[](1);
+    //     bytes[] memory validationPayload = new bytes[](1);
 
-        (bytes32 certAttestationId,, bytes32 issuerAttestationId) =
-            abi.decode(req.data.data, (bytes32, string, bytes32));
+    //     (bytes32 certAttestationId,, bytes32 issuerAttestationId) =
+    //         abi.decode(req.data.data, (bytes32, string, bytes32));
 
-        bytes memory cert = _getAttestedData(certAttestationId);
-        bytes memory issuer = _getAttestedData(issuerAttestationId);
-        validationPayload[0] = abi.encode(cert, issuer);
+    //     bytes memory cert = _getAttestedData(certAttestationId);
+    //     bytes memory issuer = _getAttestedData(issuerAttestationId);
+    //     validationPayload[0] = abi.encode(cert, issuer);
 
-        AttestationPayload memory attestationPayload =
-            AttestationPayload(req.schema, req.data.expirationTime, abi.encodePacked(req.data.recipient), req.data.data);
+    //     AttestationPayload memory attestationPayload =
+    //         AttestationPayload(req.schema, req.data.expirationTime, abi.encodePacked(req.data.recipient), req.data.data);
 
-        uint32 attestationIdCounter = attestationRegistry.getAttestationIdCounter();
-        attestationId = bytes32(abi.encode(attestationIdCounter));
+    //     uint32 attestationIdCounter = attestationRegistry.getAttestationIdCounter();
+    //     attestationId = bytes32(abi.encode(attestationIdCounter));
 
-        super.attest(attestationPayload, validationPayload);
+    //     super.attest(attestationPayload, validationPayload);
 
-        _unlock = false;
-    }
+    //     _unlock = false;
+    // }
 
     function _getAttestedData(bytes32 attestationId) internal view override returns (bytes memory attestationData) {
         Attestation memory attestation = attestationRegistry.getAttestation(attestationId);
@@ -144,12 +146,16 @@ contract PcsDaoPortal is PcsDao, AbstractPortal {
         revert No_BulkRevocation();
     }
 
-    function _verifyCrlIssuerChain(CA ca) private view returns (bytes memory intermediateCert) {
+    function _getIssuer(CA ca) private view returns (bytes memory issuerCert) {
         bytes32 intermediateCertAttestationId = pcsCertAttestations[ca];
         bytes32 rootCertAttestationId = pcsCertAttestations[CA.ROOT];
-        if (!verifyCertchain(intermediateCertAttestationId, rootCertAttestationId)) {
-            revert("Unverified CRL Cert Chain");
+        if (ca != CA.ROOT) {
+            // if (!verifyCertchain(intermediateCertAttestationId, rootCertAttestationId)) {
+            //     revert("Unverified CRL Cert Chain");
+            // }
+            issuerCert = _getAttestedData(intermediateCertAttestationId);
+        } else {
+            issuerCert = _getAttestedData(rootCertAttestationId);
         }
-        (intermediateCert,,) = abi.decode(_getAttestedData(intermediateCertAttestationId), (bytes, uint256, uint256));
     }
 }

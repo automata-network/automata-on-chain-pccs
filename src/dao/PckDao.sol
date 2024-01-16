@@ -20,7 +20,7 @@ abstract contract PckDao {
     event PCKMissing(string qeid, string pceid, string cpusvn, string pcesvn);
 
     error Invalid_PCK_CA(CA ca);
-    error Cert_Chain_Not_Verified();
+    // error Cert_Chain_Not_Verified();
 
     constructor(address _pcs) {
         Pcs = PcsDao(_pcs);
@@ -60,11 +60,11 @@ abstract contract PckDao {
         }
         bytes32 intermediateCertAttestationId = Pcs.pcsCertAttestations(ca);
         bytes32 rootCertAttestationId = Pcs.pcsCertAttestations(CA.ROOT);
-        if (!Pcs.verifyCertchain(intermediateCertAttestationId, rootCertAttestationId)) {
-            revert Cert_Chain_Not_Verified();
-        }
-        (intermediateCert,,) = abi.decode(_getAttestedData(intermediateCertAttestationId), (bytes, uint256, uint256));
-        (rootCert,,) = abi.decode(_getAttestedData(rootCertAttestationId), (bytes, uint256, uint256));
+        // if (!Pcs.verifyCertchain(intermediateCertAttestationId, rootCertAttestationId)) {
+        //     revert Cert_Chain_Not_Verified();
+        // }
+        intermediateCert = _getAttestedData(intermediateCertAttestationId);
+        rootCert = _getAttestedData(rootCertAttestationId);
     }
 
     function pckSchemaID() public view virtual returns (bytes32 PCK_SCHEMA_ID);
