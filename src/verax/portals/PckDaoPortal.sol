@@ -76,7 +76,7 @@ contract PckDaoPortal is PckDao, AbstractPortal {
         AttestationPayload[] memory, /*attestationsPayloads*/
         bytes[][] memory /*validationPayloads*/
     ) internal override locked {
-        // TODO: Check serial number from CRL
+        /// @notice: external attestations not possible, therefore this code is unreachable
     }
 
     function _onReplace(
@@ -93,7 +93,7 @@ contract PckDaoPortal is PckDao, AbstractPortal {
         AttestationPayload[] memory, /*attestationsPayloads*/
         bytes[][] memory /*validationPayloads*/
     ) internal override locked {
-        // TODO: Check serial number from CRL
+        /// @notice: external attestations not possible, therefore this code is unreachable
     }
 
     function _onRevoke(bytes32 attestationId) internal override {

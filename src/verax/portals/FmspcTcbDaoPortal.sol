@@ -82,7 +82,9 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal {
     function _onBulkAttest(
         AttestationPayload[] memory, /*attestationsPayloads*/
         bytes[][] memory /*validationPayloads*/
-    ) internal override locked {}
+    ) internal override locked {
+        /// @notice: external attestations not possible, therefore this code is unreachable
+    }
 
     function _onReplace(
         bytes32 attestationId,
