@@ -30,13 +30,13 @@ contract PcsDaoPortal is PcsDao, AbstractPortal {
     function withdraw(address payable to, uint256 amount) external override {}
 
     function pcsCertSchemaID() public pure override returns (bytes32 PCS_CERT_SCHEMA_ID) {
-        // keccak256(bytes("bytes cert, uint256 createdAt, uint256 updatedAt"))
-        PCS_CERT_SCHEMA_ID = 0xd40b0e479454338b427175ced4a30fe673891ca9996a4f2856b9f167a4d5aea8;
+        // keccak256(bytes("bytes pcsCert"))
+        PCS_CERT_SCHEMA_ID = 0xe636510f39fcce1becac6265aeea289429c8ffaa4e37cf7d9a8269f49ab853b6;
     }
 
     function pcsCrlSchemaID() public pure override returns (bytes32 PCS_CRL_SCHEMA_ID) {
-        // keccak256(bytes("bytes crl, uint256 createdAt, uint256 updatedAt"))
-        PCS_CRL_SCHEMA_ID = 0x1be4440baf56d6a66f4e13f8698a629306ee55cd56f09e1989f2a6045a766559;
+        // keccak256(bytes("bytes pcsCrl"))
+        PCS_CRL_SCHEMA_ID = 0xca0446aabb4cf5f2ce35e983f5d0ff69a4cbe43c9740d8e83af54dbc3e4a884c;
     }
 
     function certificateChainSchemaID() public pure override returns (bytes32 CERTIFICATE_CHAIN_SCHEMA_ID) {
@@ -81,8 +81,8 @@ contract PcsDaoPortal is PcsDao, AbstractPortal {
         (bytes32 certAttestationId,, bytes32 issuerAttestationId) =
             abi.decode(req.data.data, (bytes32, string, bytes32));
 
-        (bytes memory cert,,) = abi.decode(_getAttestedData(certAttestationId), (bytes, uint256, uint256));
-        (bytes memory issuer,,) = abi.decode(_getAttestedData(issuerAttestationId), (bytes, uint256, uint256));
+        bytes memory cert = _getAttestedData(certAttestationId);
+        bytes memory issuer = _getAttestedData(issuerAttestationId);
         validationPayload[0] = abi.encode(cert, issuer);
 
         AttestationPayload memory attestationPayload =

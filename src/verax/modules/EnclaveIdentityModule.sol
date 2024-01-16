@@ -10,8 +10,6 @@ import {
 contract EnclaveIdentityModule is SigVerifyModuleBase, AbstractModule {
     constructor(address _x509helper) SigVerifyModuleBase(_x509helper) {}
 
-    error Invalid_Signature();
-
     function run(
         AttestationPayload memory attestationPayload,
         bytes memory validationPayload,
@@ -20,7 +18,8 @@ contract EnclaveIdentityModule is SigVerifyModuleBase, AbstractModule {
     ) public view override {
         (,, string memory enclaveIdentity, bytes memory signature) =
             abi.decode(attestationPayload.attestationData, (uint256, uint256, string, bytes));
-        bool sigVerified = verifyJsonBodySignature(enclaveIdentity, signature, validationPayload);
+        bytes32 digest = sha256(abi.encodePacked(enclaveIdentity));
+        bool sigVerified = verifySignature(digest, signature, validationPayload);
         if (!sigVerified) {
             revert Invalid_Signature();
         }

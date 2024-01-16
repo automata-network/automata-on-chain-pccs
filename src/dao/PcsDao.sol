@@ -18,8 +18,6 @@ abstract contract PcsDao {
     /// @notice the schema of the attested data is the following:
     /// A tuple of (bytes, uint256, uint256)
     /// - bytes pcsCert
-    /// - uint256 createdAt timestamp
-    /// - uint256 updatedAt timestamp
     mapping(CA => bytes32) public pcsCertAttestations;
 
     /// @notice PCS CRLs mapping
@@ -30,8 +28,6 @@ abstract contract PcsDao {
     /// @notice the schema of the attested data is the following:
     /// A tuple of (bytes, uint256, uint256)
     /// - bytes pcsCrl
-    /// - uint256 createdAt timestamp
-    /// - uint256 updatedAt timestamp
     mapping(CA => bytes32) public pcsCrlAttestations;
 
     /// @notice PCS Certificate Chain mapping
@@ -69,12 +65,12 @@ abstract contract PcsDao {
         if (pcsCertAttestationId == bytes32(0)) {
             revert Missing_Certificate(ca);
         }
-        (bytes memory cert,,) = abi.decode(_getAttestedData(pcsCertAttestationId), (bytes, uint256, uint256));
+        bytes memory cert = _getAttestedData(pcsCertAttestationId);
 
         bytes memory crl;
         bytes32 pcsCrlAttestationId = pcsCrlAttestations[ca];
         if (pcsCrlAttestationId != bytes32(0)) {
-            (crl,,) = abi.decode(_getAttestedData(pcsCrlAttestationId), (bytes, uint256, uint256));
+            crl = _getAttestedData(pcsCrlAttestationId);
         }
 
         return (cert, crl);
@@ -157,18 +153,12 @@ abstract contract PcsDao {
         returns (AttestationRequest memory req)
     {
         bytes32 predecessorAttestationId = isCrl ? pcsCrlAttestations[ca] : pcsCertAttestations[ca];
-        uint256 createdAt;
-        if (predecessorAttestationId != bytes32(0)) {
-            (, createdAt,) = abi.decode(_getAttestedData(predecessorAttestationId), (bytes, uint256, uint256));
-        }
-        uint256 updatedAt = block.timestamp;
-        bytes memory attestationData = abi.encode(blob, createdAt, updatedAt);
         AttestationRequestData memory reqData = AttestationRequestData({
             recipient: msg.sender,
             expirationTime: 0,
             revocable: true,
             refUID: predecessorAttestationId,
-            data: attestationData,
+            data: blob,
             value: 0
         });
         bytes32 schemaId = isCrl ? pcsCrlSchemaID() : pcsCertSchemaID();

@@ -10,8 +10,6 @@ import {
 contract FmspcTcbModule is SigVerifyModuleBase, AbstractModule {
     constructor(address _x509helper) SigVerifyModuleBase(_x509helper) {}
 
-    error Invalid_Signature();
-
     function run(
         AttestationPayload memory attestationPayload,
         bytes memory validationPayload,
@@ -20,7 +18,8 @@ contract FmspcTcbModule is SigVerifyModuleBase, AbstractModule {
     ) public view override {
         (,,,, string memory tcbInfo, bytes memory signature) =
             abi.decode(attestationPayload.attestationData, (uint256, uint256, uint256, uint256, string, bytes));
-        bool sigVerified = verifyJsonBodySignature(tcbInfo, signature, validationPayload);
+        bytes32 digest = sha256(abi.encodePacked(tcbInfo));
+        bool sigVerified = verifySignature(digest, signature, validationPayload);
         if (!sigVerified) {
             revert Invalid_Signature();
         }
