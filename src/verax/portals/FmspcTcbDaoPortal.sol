@@ -55,8 +55,9 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal, SigVerifyModuleBase {
 
         _validate(attestationPayload, signingCert);
 
-        uint32 attestationIdCounter = attestationRegistry.getAttestationIdCounter();
-        attestationId = bytes32(abi.encode(attestationIdCounter));
+        uint32 attestationIdCounter = attestationRegistry.getAttestationIdCounter() + 1;
+        uint256 chainPrefix = attestationRegistry.getChainPrefix();
+        attestationId = bytes32(abi.encode(chainPrefix + attestationIdCounter));
 
         bytes32 predecessor = req.data.refUID;
         if (predecessor == bytes32(0)) {
@@ -69,11 +70,13 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal, SigVerifyModuleBase {
     }
 
     function _getAttestedData(bytes32 attestationId) internal view override returns (bytes memory attestationData) {
-        Attestation memory attestation = attestationRegistry.getAttestation(attestationId);
-        if (attestation.revoked) {
-            revert Attestation_Revoked(attestationId, attestation.replacedBy);
+        if (attestationRegistry.isRegistered(attestationId)) {
+            Attestation memory attestation = attestationRegistry.getAttestation(attestationId);
+            if (attestation.revoked) {
+                revert Attestation_Revoked(attestationId, attestation.replacedBy);
+            }
+            attestationData = attestation.attestationData;
         }
-        attestationData = attestation.attestationData;
     }
 
     function _onAttest(AttestationPayload memory, /*attestationPayload*/ address, /*attester*/ uint256 /*value*/ )

@@ -18,7 +18,7 @@ contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase {
     error Invalid_Issuer_Name();
     error Invalid_Subject_Name();
     error Expired_Certificates();
-    error Revocation_Forbidden();
+    error Forbidden();
 
     string constant PCK_PLATFORM_CA_COMMON_NAME = "Intel SGX PCK Platform CA";
     string constant PCK_PROCESSOR_CA_COMMON_NAME = "Intel SGX PCK Processor CA";
@@ -62,8 +62,9 @@ contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase {
 
         _validate(attestationPayload, ca);
 
-        uint32 attestationIdCounter = attestationRegistry.getAttestationIdCounter();
-        attestationId = bytes32(abi.encode(attestationIdCounter));
+        uint32 attestationIdCounter = attestationRegistry.getAttestationIdCounter() + 1;
+        uint256 chainPrefix = attestationRegistry.getChainPrefix();
+        attestationId = bytes32(abi.encode(chainPrefix + attestationIdCounter));
 
         bytes32 predecessor = req.data.refUID;
         if (predecessor == bytes32(0)) {
@@ -76,11 +77,13 @@ contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase {
     }
 
     function _getAttestedData(bytes32 attestationId) internal view override returns (bytes memory attestationData) {
-        Attestation memory attestation = attestationRegistry.getAttestation(attestationId);
-        if (attestation.revoked) {
-            revert Attestation_Revoked(attestationId, attestation.replacedBy);
+        if (attestationRegistry.isRegistered(attestationId)) {
+            Attestation memory attestation = attestationRegistry.getAttestation(attestationId);
+            if (attestation.revoked) {
+                revert Attestation_Revoked(attestationId, attestation.replacedBy);
+            }
+            attestationData = attestation.attestationData;
         }
-        attestationData = attestation.attestationData;
     }
 
     function _onRevoke(bytes32 attestationId) internal view override {
@@ -100,10 +103,10 @@ contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase {
             uint256 serialNum = x509Helper.getSerialNumber(cert);
             bool revoked = x509CrlHelper.serialNumberIsRevoked(serialNum, crl);
             if (!revoked) {
-                revert Revocation_Forbidden();
+                revert Forbidden();
             }
         } else {
-            revert Revocation_Forbidden();
+            revert Forbidden();
         }
     }
 
@@ -148,8 +151,8 @@ contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase {
     function _validate(AttestationPayload memory attestationPayload, CA ca) private view {
         bytes memory cert = attestationPayload.attestationData;
         {
-            bool expired = x509Helper.certIsNotExpired(cert);
-            if (expired) {
+            bool valid = x509Helper.certIsNotExpired(cert);
+            if (!valid) {
                 revert Expired_Certificates();
             }
         }
@@ -180,11 +183,15 @@ contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase {
                 }
             }
 
-            (bytes memory tbs, bytes memory signature) = x509Helper.getTbsAndSig(cert);
-            bytes32 digest = sha256(tbs);
-            bool sigVerified = verifySignature(digest, signature, issuerCert);
-            if (!sigVerified) {
-                revert Invalid_Signature();
+            if (issuerCert.length > 0) {
+                (bytes memory tbs, bytes memory signature) = x509Helper.getTbsAndSig(cert);
+                bytes32 digest = sha256(tbs);
+                bool sigVerified = verifySignature(digest, signature, issuerCert);
+                if (!sigVerified) {
+                    revert Invalid_Signature();
+                }
+            } else {
+                revert Forbidden();
             }
         }
     }

@@ -1,0 +1,50 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.0;
+
+import {VeraxTestBase} from "../VeraxTestBase.t.sol";
+import {PcsDaoPortal} from "../../src/verax/portals/PcsDaoPortal.sol";
+import {PCSConstants} from "./PCSConstants.t.sol";
+import {CA} from "../../src/Common.sol";
+
+import {Attestation} from "@consensys/linea-attestation-registry-contracts/types/Structs.sol";
+
+import "forge-std/console.sol";
+
+contract VeraxPcsSetupBase is VeraxTestBase, PCSConstants {
+    PcsDaoPortal pcs;
+    bytes32 rootAttestation;
+
+    function setUp() public virtual override {
+        super.setUp();
+
+        vm.startPrank(admin);
+        // Set Up PCSDaoPortal
+        address[] memory blank;
+        pcs = new PcsDaoPortal(blank, address(router), address(x509Lib), address(x509CrlLib));
+
+        // register the portal
+        portalRegistry.register(
+            address(pcs),
+            "Intel On Chain PCS Data Access Object Portal", // name
+            "some-description", // description
+            true, // isRevocable
+            "some-owner" // ownerName
+        );
+        vm.stopPrank();
+
+        // insert root CA
+        rootAttestation = pcs.upsertPcsCertificates(CA.ROOT, rootDer);
+    }
+
+    function testPcsSetup() public {
+        assertTrue(portalRegistry.isRegistered(address(pcs)));
+
+        // validate attestations
+        assertTrue(attestationRegistry.isRegistered(rootAttestation));
+        // console.logBytes32(rootAttestation);
+        Attestation memory rootCaAttestation = attestationRegistry.getAttestation(rootAttestation);
+        bytes32 expectedHash = keccak256(rootDer);
+        bytes32 actualHash = keccak256(rootCaAttestation.attestationData);
+        assertEq(actualHash, expectedHash);
+    }
+}
