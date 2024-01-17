@@ -157,7 +157,7 @@ contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase {
             }
         }
         {
-            string memory issuerName = x509Helper.getSubjectCommonName(cert);
+            string memory issuerName = x509Helper.getIssuerCommonName(cert);
             string memory subjectName = x509Helper.getSubjectCommonName(cert);
             string memory expectedIssuer;
             if (ca == CA.PLATFORM) {

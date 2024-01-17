@@ -29,6 +29,9 @@ abstract contract SigVerifyModuleBase {
         uint256 s = uint256(bytes32(signature.substring(32, 32)));
 
         bytes memory pubKey = x509Helper.getSubjectPublicKey(signingCertBlob);
+        if (pubKey.length != 64) {
+            return false;
+        }
         uint256 x = uint256(bytes32(pubKey.substring(0, 32)));
         uint256 y = uint256(bytes32(pubKey.substring(32, 32)));
 

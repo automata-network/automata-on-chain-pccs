@@ -248,7 +248,7 @@ contract PcsDaoPortal is PcsDao, AbstractPortal, SigVerifyModuleBase {
                 }
             }
             {
-                string memory issuerName = x509Helper.getSubjectCommonName(cert);
+                string memory issuerName = x509Helper.getIssuerCommonName(cert);
                 string memory subjectName = x509Helper.getSubjectCommonName(cert);
                 string memory expectedIssuer = ROOT_CA_COMMON_NAME;
                 string memory expectedSubject;

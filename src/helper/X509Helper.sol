@@ -34,7 +34,7 @@ contract X509Helper {
         uint256 sigPtr = der.nextSiblingOf(tbsParentPtr);
         sigPtr = der.nextSiblingOf(sigPtr);
 
-        tbs = der.bytesAt(tbsParentPtr);
+        tbs = der.allBytesAt(tbsParentPtr);
         sig = _getSignature(der, sigPtr);
     }
 
@@ -121,7 +121,7 @@ contract X509Helper {
         uint256 root = der.root();
 
         uint256 tbsParentPtr = der.firstChildOf(root);
-        cert.tbs = der.bytesAt(tbsParentPtr);
+        cert.tbs = der.allBytesAt(tbsParentPtr);
 
         uint256 tbsPtr = der.firstChildOf(tbsParentPtr);
 
