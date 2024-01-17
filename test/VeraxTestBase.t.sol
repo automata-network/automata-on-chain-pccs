@@ -8,10 +8,10 @@ import {PortalRegistry} from "@consensys/linea-attestation-registry-contracts/Po
 import {ModuleRegistry} from "@consensys/linea-attestation-registry-contracts/ModuleRegistry.sol";
 import {AttestationRegistry} from "@consensys/linea-attestation-registry-contracts/AttestationRegistry.sol";
 
-import {EnclaveIdentityHelper} from "../src/helper/EnclaveIdentityHelper.sol";
-import {FmspcTcbHelper} from "../src/helper/FmspcTcbHelper.sol";
-import {X509CRLHelper} from "../src/helper/X509CRLHelper.sol";
-import {X509Helper} from "../src/helper/X509Helper.sol";
+import {EnclaveIdentityHelper, EnclaveIdentityJsonObj} from "../src/helper/EnclaveIdentityHelper.sol";
+import {FmspcTcbHelper, TcbInfoJsonObj} from "../src/helper/FmspcTcbHelper.sol";
+import {X509CRLHelper, X509CRLObj} from "../src/helper/X509CRLHelper.sol";
+import {X509Helper, X509CertObj} from "../src/helper/X509Helper.sol";
 
 abstract contract VeraxTestBase is Test {
     EnclaveIdentityHelper enclaveIdentityLib;

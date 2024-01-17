@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import {VeraxTestBase} from "../VeraxTestBase.t.sol";
+import "../VeraxTestBase.t.sol";
 import {PcsDaoPortal} from "../../src/verax/portals/PcsDaoPortal.sol";
 import {PCSConstants} from "./PCSConstants.t.sol";
 import {CA} from "../../src/Common.sol";
