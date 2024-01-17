@@ -17,7 +17,7 @@ struct TcbInfoJsonObj {
 /**
  * @title FMSPC TCB Helper Contract
  * @notice This is a standalone contract that can be used by off-chain applications and smart contracts
- * to parse TCBInfo Blob and perform ECDSA Signature verification
+ * to parse TCBInfo Blob
  */
 
 contract FmspcTcbHelper {

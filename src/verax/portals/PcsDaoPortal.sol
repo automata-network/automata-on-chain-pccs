@@ -53,13 +53,13 @@ contract PcsDaoPortal is PcsDao, AbstractPortal, SigVerifyModuleBase {
     function withdraw(address payable to, uint256 amount) external override {}
 
     function pcsCertSchemaID() public pure override returns (bytes32 PCS_CERT_SCHEMA_ID) {
-        // keccak256(bytes("uint8 ca, bytes pcsCert"))
-        PCS_CERT_SCHEMA_ID = 0xa5dd9ea626846139a00bf8107f573859ba67f5e9a1afd49ed46b68f653276a40;
+        // keccak256(bytes("bytes pcsCert"))
+        PCS_CERT_SCHEMA_ID = 0xe636510f39fcce1becac6265aeea289429c8ffaa4e37cf7d9a8269f49ab853b6;
     }
 
     function pcsCrlSchemaID() public pure override returns (bytes32 PCS_CRL_SCHEMA_ID) {
-        // keccak256(bytes("uint8 ca, bytes pcsCrl"))
-        PCS_CRL_SCHEMA_ID = 0x934a822069030e1200f83fcb82353abee65dde383eab58d55f6833bb084aca78;
+        // keccak256(bytes("bytes pcsCrl"))
+        PCS_CRL_SCHEMA_ID = 0xca0446aabb4cf5f2ce35e983f5d0ff69a4cbe43c9740d8e83af54dbc3e4a884c;
     }
 
     // function certificateChainSchemaID() public pure override returns (bytes32 CERTIFICATE_CHAIN_SCHEMA_ID) {
@@ -67,13 +67,13 @@ contract PcsDaoPortal is PcsDao, AbstractPortal, SigVerifyModuleBase {
     //     CERTIFICATE_CHAIN_SCHEMA_ID = 0x89bd76e17fd84df8e1e448fa1b46dd8d97f7e8e806552b003f8386a5aebcb9f0;
     // }
 
-    function _attestPcs(AttestationRequest memory req) internal override returns (bytes32 attestationId) {
+    function _attestPcs(AttestationRequest memory req, CA ca) internal override returns (bytes32 attestationId) {
         _unlock = true;
 
         AttestationPayload memory attestationPayload =
             AttestationPayload(req.schema, req.data.expirationTime, abi.encodePacked(req.data.recipient), req.data.data);
 
-        _validate(attestationPayload);
+        _validate(attestationPayload, ca);
 
         uint32 attestationIdCounter = attestationRegistry.getAttestationIdCounter();
         attestationId = bytes32(abi.encode(attestationIdCounter));
@@ -120,6 +120,37 @@ contract PcsDaoPortal is PcsDao, AbstractPortal, SigVerifyModuleBase {
         attestationData = attestation.attestationData;
     }
 
+    function _onRevoke(bytes32 attestationId) internal view override {
+        Attestation memory attestation = attestationRegistry.getAttestation(attestationId);
+        bytes memory cert = attestation.attestationData;
+        bytes memory rootCrl = _getAttestedData(pcsCrlAttestations[CA.ROOT]);
+        CA ca;
+        string memory subjectCommonName = x509Helper.getSubjectCommonName(cert);
+        if (LibString.eq(subjectCommonName, PCK_PLATFORM_CA_COMMON_NAME)) {
+            ca = CA.PLATFORM;
+        } else if (LibString.eq(subjectCommonName, PCK_PROCESSOR_CA_COMMON_NAME)) {
+            ca = CA.PROCESSOR;
+        } else {
+            revert Invalid_Subject_Name();
+        }
+        bytes32 schemaId = attestation.schemaId;
+        if (schemaId == pcsCertSchemaID() && (ca == CA.PROCESSOR || ca == CA.PLATFORM) && rootCrl.length > 0) {
+            uint256 serialNum = x509Helper.getSerialNumber(cert);
+            bool revoked = x509CrlHelper.serialNumberIsRevoked(serialNum, rootCrl);
+            if (!revoked) {
+                revert Revocation_Forbidden();
+            }
+        } else {
+            revert Revocation_Forbidden();
+        }
+    }
+
+    function _onBulkRevoke(bytes32[] memory attestationIds) internal view override {
+        for (uint256 i = 0; i < attestationIds.length; i++) {
+            _onRevoke(attestationIds[i]);
+        }
+    }
+
     function _onAttest(AttestationPayload memory attestationPayload, address, /*attester*/ uint256 /*value*/ )
         internal
         override
@@ -152,28 +183,6 @@ contract PcsDaoPortal is PcsDao, AbstractPortal, SigVerifyModuleBase {
         /// @notice: external attestations not possible, therefore this code is unreachable
     }
 
-    function _onRevoke(bytes32 attestationId) internal view override {
-        Attestation memory attestation = attestationRegistry.getAttestation(attestationId);
-        (CA ca, bytes memory cert) = abi.decode(attestation.attestationData, (CA, bytes));
-        bytes memory rootCrl = _getAttestedData(pcsCrlAttestations[CA.ROOT]);
-        bytes32 schemaId = attestation.schemaId;
-        if (schemaId == pcsCertSchemaID() && (ca == CA.PROCESSOR || ca == CA.PLATFORM) && rootCrl.length > 0) {
-            uint256 serialNum = x509Helper.getSerialNumber(cert);
-            bool revoked = x509CrlHelper.serialNumberIsRevoked(serialNum, rootCrl);
-            if (!revoked) {
-                revert Revocation_Forbidden();
-            }
-        } else {
-            revert Revocation_Forbidden();
-        }
-    }
-
-    function _onBulkRevoke(bytes32[] memory attestationIds) internal view override {
-        for (uint256 i = 0; i < attestationIds.length; i++) {
-            _onRevoke(attestationIds[i]);
-        }
-    }
-
     function _getIssuer(CA ca) private view returns (bytes memory issuerCert) {
         bytes32 intermediateCertAttestationId = pcsCertAttestations[ca];
         bytes32 rootCertAttestationId = pcsCertAttestations[CA.ROOT];
@@ -187,9 +196,9 @@ contract PcsDaoPortal is PcsDao, AbstractPortal, SigVerifyModuleBase {
         }
     }
 
-    function _validate(AttestationPayload memory attestationPayload) private view {
+    function _validate(AttestationPayload memory attestationPayload, CA ca) private view {
         if (attestationPayload.schemaId == pcsCrlSchemaID()) {
-            (CA ca, bytes memory encodedCrl) = abi.decode(attestationPayload.attestationData, (CA, bytes));
+            bytes memory encodedCrl = attestationPayload.attestationData;
             {
                 bool expired = x509CrlHelper.crlIsNotExpired(encodedCrl);
                 if (expired) {
@@ -227,7 +236,7 @@ contract PcsDaoPortal is PcsDao, AbstractPortal, SigVerifyModuleBase {
         //     }
         // }
         else if (attestationPayload.schemaId == pcsCertSchemaID()) {
-            (CA ca, bytes memory cert) = abi.decode(attestationPayload.attestationData, (CA, bytes));
+            bytes memory cert = attestationPayload.attestationData;
             {
                 bool expired = x509Helper.certIsNotExpired(cert);
                 if (expired) {

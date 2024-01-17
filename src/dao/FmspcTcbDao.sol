@@ -33,14 +33,15 @@ abstract contract FmspcTcbDao {
 
     function getTcbInfo(uint256 tcbType, string calldata fmspc, uint256 version)
         external
-        returns (string memory tcbInfo, bytes memory signature)
+        returns (TcbInfoJsonObj memory tcbObj)
     {
         bytes32 attestationId = _getAttestationId(tcbType, fmspc, version);
         if (attestationId == bytes32(0)) {
             emit TCBInfoMissing(tcbType, fmspc, version);
         } else {
             bytes memory attestedTcbData = _getAttestedData(attestationId);
-            (,,,, tcbInfo, signature) = abi.decode(attestedTcbData, (uint256, uint256, uint256, uint256, string, bytes));
+            (,,,, tcbObj.tcbInfoStr, tcbObj.signature) =
+                abi.decode(attestedTcbData, (uint256, uint256, uint256, uint256, string, bytes));
         }
     }
 

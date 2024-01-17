@@ -25,7 +25,7 @@ abstract contract EnclaveIdentityDao {
 
     event EnclaveIdentityMissing(uint256 id, uint256 version);
 
-    error Cert_Chain_Not_Verified();
+    // error Cert_Chain_Not_Verified();
 
     constructor(address _pcs, address _enclaveIdentityHelper) {
         Pcs = PcsDao(_pcs);
@@ -34,14 +34,15 @@ abstract contract EnclaveIdentityDao {
 
     function getEnclaveIdentity(uint256 id, uint256 version)
         external
-        returns (string memory enclaveIdentity, bytes memory signature)
+        returns (EnclaveIdentityJsonObj memory enclaveIdObj)
     {
         bytes32 attestationId = _getAttestationId(id, version);
         if (attestationId == bytes32(0)) {
             emit EnclaveIdentityMissing(id, version);
         } else {
             bytes memory attestedIdentityData = _getAttestedData(attestationId);
-            (,, enclaveIdentity, signature) = abi.decode(attestedIdentityData, (uint256, uint256, string, bytes));
+            (,, enclaveIdObj.identityStr, enclaveIdObj.signature) =
+                abi.decode(attestedIdentityData, (uint256, uint256, string, bytes));
         }
     }
 

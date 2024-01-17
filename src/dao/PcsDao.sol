@@ -5,7 +5,6 @@ import {CA, AttestationRequestData, AttestationRequest} from "../Common.sol";
 
 abstract contract PcsDao {
     /// @notice PCS Certificates mapping
-    /// @dev A setter for this mapping must be ACCESS-CONTROLLED
     ///
     /// @dev PCS Certificates are being submitted on-chain as is,
     /// @dev To ensure its validity, an explicit relationship attestation must be submitted
@@ -16,8 +15,6 @@ abstract contract PcsDao {
     /// @dev the Intel source code at: https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/39989a42bbbb0c968153a47254b6de79a27eb603/QuoteVerification/QvE/Enclave/qve.cpp#L92-L100
     ///
     /// @notice the schema of the attested data is the following:
-    /// A tuple of (uint8, bytes)
-    /// - uint8 ca
     /// - bytes pcsCert
     mapping(CA => bytes32) public pcsCertAttestations;
 
@@ -27,8 +24,6 @@ abstract contract PcsDao {
     /// @dev Portal and a Module from the Verax Protocol.
     ///
     /// @notice the schema of the attested data is the following:
-    /// A tuple of (uint8, bytes)
-    /// - uint8 ca
     /// - bytes pcsCrl
     mapping(CA => bytes32) public pcsCrlAttestations;
 
@@ -45,9 +40,10 @@ abstract contract PcsDao {
     // mapping(bytes32 => bytes32) public pcsCertchains;
 
     error Missing_Certificate(CA ca);
-    error Missing_CRL(CA ca);
     error Invalid_PCK_CA(CA ca);
-    error Cert_Chain_Configured();
+
+    // error Missing_CRL(CA ca);
+    // error Cert_Chain_Configured();
 
     modifier pckCACheck(CA ca) {
         if (ca == CA.ROOT || ca == CA.SIGNING) {
@@ -80,19 +76,19 @@ abstract contract PcsDao {
 
     function upsertPcsCertificates(CA ca, bytes calldata cert) external {
         AttestationRequest memory req = _buildPcsAttestationRequest(false, ca, cert);
-        bytes32 attestationId = _attestPcs(req);
+        bytes32 attestationId = _attestPcs(req, ca);
         pcsCertAttestations[ca] = attestationId;
     }
 
     function upsertPckCrl(CA ca, bytes calldata crl) external pckCACheck(ca) {
         AttestationRequest memory req = _buildPcsAttestationRequest(true, ca, crl);
-        bytes32 attestationId = _attestPcs(req);
+        bytes32 attestationId = _attestPcs(req, ca);
         pcsCertAttestations[ca] = attestationId;
     }
 
     function upsertRootCACrl(bytes calldata rootcacrl) external {
         AttestationRequest memory req = _buildPcsAttestationRequest(true, CA.ROOT, rootcacrl);
-        bytes32 attestationId = _attestPcs(req);
+        bytes32 attestationId = _attestPcs(req, CA.ROOT);
         pcsCertAttestations[CA.ROOT] = attestationId;
     }
 
@@ -141,7 +137,7 @@ abstract contract PcsDao {
 
     function _getAttestedData(bytes32 attestationId) internal view virtual returns (bytes memory attestationData);
 
-    function _attestPcs(AttestationRequest memory req) internal virtual returns (bytes32 attestationId);
+    function _attestPcs(AttestationRequest memory req, CA ca) internal virtual returns (bytes32 attestationId);
 
     // function _attestCertChain(AttestationRequest memory req) internal virtual returns (bytes32 attestationId);
 
@@ -156,7 +152,7 @@ abstract contract PcsDao {
             expirationTime: 0,
             revocable: true,
             refUID: predecessorAttestationId,
-            data: abi.encode(ca, blob),
+            data: blob,
             value: 0
         });
         bytes32 schemaId = isCrl ? pcsCrlSchemaID() : pcsCertSchemaID();
