@@ -38,10 +38,9 @@ library DateTimeUtils {
         return DateTimeLib.dateTimeToTimestamp(yrs, mnths, dys, hrs, mins, secs);
     }
 
-    /// @dev iso follows pattern: "YYYY-MM-DDTHH:mm:ss.sssZ"
-    /// @dev milliseconds are rounded down
+    /// @dev iso follows pattern: "YYYY-MM-DDTHH:mm:ssZ"
     function fromISOToTimestamp(string memory iso) internal pure returns (uint256) {
-        require(bytes(iso).length == 24, "invalid iso string length");
+        require(bytes(iso).length == 20, "invalid iso string length");
         uint256 y = stringToUint(iso.slice(0, 4));
         uint256 m = stringToUint(iso.slice(5, 7));
         uint256 d = stringToUint(iso.slice(8, 10));

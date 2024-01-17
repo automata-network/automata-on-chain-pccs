@@ -34,6 +34,7 @@ contract EnclaveIdentityHelper {
     using JSONParserLib for JSONParserLib.Item;
     using LibString for string;
 
+    // 213k gas
     function getIssueAndNextUpdateDates(string calldata identityStr)
         external
         pure
