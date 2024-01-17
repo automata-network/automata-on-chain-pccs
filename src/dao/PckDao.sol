@@ -11,16 +11,20 @@ abstract contract PckDao {
     /// key: keccak256(qeid ++ pceid ++ cpuSvn ++ pceSvn)
     ///
     /// @notice the schema of the attested data is the following:
-    /// A tuple of (bytes, uint256, uint256)
     /// - bytes pckCert
-    /// - uint256 createdAt timestamp
-    /// - uint256 updatedAt timestamp
     mapping(bytes32 => bytes32) public pckCertAttestations;
 
     event PCKMissing(string qeid, string pceid, string cpusvn, string pcesvn);
 
     error Invalid_PCK_CA(CA ca);
     // error Cert_Chain_Not_Verified();
+
+    modifier pckCACheck(CA ca) {
+        if (ca == CA.ROOT || ca == CA.SIGNING) {
+            revert Invalid_PCK_CA(ca);
+        }
+        _;
+    }
 
     constructor(address _pcs) {
         Pcs = PcsDao(_pcs);
@@ -34,8 +38,7 @@ abstract contract PckDao {
         if (attestationId == bytes32(0)) {
             emit PCKMissing(qeid, pceid, cpusvn, pcesvn);
         } else {
-            bytes memory attestedPckData = _getAttestedData(attestationId);
-            (pckCert,,) = abi.decode(attestedPckData, (bytes, uint64, uint64));
+            pckCert = _getAttestedData(attestationId);
         }
     }
 
@@ -48,16 +51,18 @@ abstract contract PckDao {
         string calldata cpusvn,
         string calldata pcesvn,
         bytes calldata cert
-    ) external {
+    ) external pckCACheck(ca) {
         AttestationRequest memory req = _buildPckCertAttestationRequest(qeid, pceid, cpusvn, pcesvn, cert);
         bytes32 attestationId = _attestPck(req, ca);
         pckCertAttestations[keccak256(abi.encodePacked(qeid, pceid, cpusvn, pcesvn))] = attestationId;
     }
 
-    function getPckCertChain(CA ca) public view returns (bytes memory intermediateCert, bytes memory rootCert) {
-        if (ca == CA.ROOT || ca == CA.SIGNING) {
-            revert Invalid_PCK_CA(ca);
-        }
+    function getPckCertChain(CA ca)
+        public
+        view
+        pckCACheck(ca)
+        returns (bytes memory intermediateCert, bytes memory rootCert)
+    {
         bytes32 intermediateCertAttestationId = Pcs.pcsCertAttestations(ca);
         bytes32 rootCertAttestationId = Pcs.pcsCertAttestations(CA.ROOT);
         // if (!Pcs.verifyCertchain(intermediateCertAttestationId, rootCertAttestationId)) {
@@ -90,18 +95,12 @@ abstract contract PckDao {
         bytes calldata cert
     ) private view returns (AttestationRequest memory req) {
         bytes32 predecessorAttestationId = _getAttestationId(qeid, pceid, cpusvn, pcesvn);
-        uint256 createdAt;
-        if (predecessorAttestationId != bytes32(0)) {
-            (, createdAt,) = abi.decode(_getAttestedData(predecessorAttestationId), (bytes, uint256, uint256));
-        }
-        uint256 updatedAt = block.timestamp;
-        bytes memory attestationData = abi.encode(cert, createdAt, updatedAt);
         AttestationRequestData memory reqData = AttestationRequestData({
             recipient: msg.sender,
             expirationTime: 0,
             revocable: true,
             refUID: predecessorAttestationId,
-            data: attestationData,
+            data: cert,
             value: 0
         });
         req = AttestationRequest({schema: pckSchemaID(), data: reqData});

@@ -6,6 +6,6 @@ libs = ["lib"]
 solc = "0.8.21"
 optimizer = true
 optimizer_runs = 999999
-via_ir = true
+# via_ir = true
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
