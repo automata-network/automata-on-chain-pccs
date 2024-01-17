@@ -6,7 +6,7 @@ import {AttestationPayload, Attestation} from "@consensys/linea-attestation-regi
 import {LibString} from "solady/utils/LibString.sol";
 import {PcsDao, AttestationRequest, CA} from "../../dao/PcsDao.sol";
 import {X509CRLHelper} from "../../helper/X509CRLHelper.sol";
-import {SigVerifyModuleBase} from "../modules/base/SigVerifyModuleBase.sol";
+import {SigVerifyModuleBase} from "../base/SigVerifyModuleBase.sol";
 
 contract PcsDaoPortal is PcsDao, AbstractPortal, SigVerifyModuleBase {
     /// @notice Error thrown when trying to improperly make attestations

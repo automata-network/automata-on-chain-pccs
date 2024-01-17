@@ -4,8 +4,9 @@ pragma solidity ^0.8.0;
 import {AbstractPortal} from "@consensys/linea-attestation-registry-contracts/abstracts/AbstractPortal.sol";
 import {AttestationPayload, Attestation} from "@consensys/linea-attestation-registry-contracts/types/Structs.sol";
 import {EnclaveIdentityDao, AttestationRequest} from "../../dao/EnclaveIdentityDao.sol";
+import {SigVerifyModuleBase} from "../base/SigVerifyModuleBase.sol";
 
-contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal {
+contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal, SigVerifyModuleBase {
     /// @notice Error thrown when trying to revoke an attestation
     error No_Revocation();
     /// @notice Error thrown when trying to bulk revoke attestations
@@ -19,10 +20,14 @@ contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal {
 
     bool private _unlock;
 
-    constructor(address[] memory modules, address router, address pcs, address enclaveIdentityHelper)
+    constructor(address[] memory modules, address router, address pcs, address enclaveIdentityHelper, address x509)
         AbstractPortal(modules, router)
         EnclaveIdentityDao(pcs, enclaveIdentityHelper)
-    {}
+        SigVerifyModuleBase(x509)
+    {
+        // validation is done here. No need for a module.
+        require(modules.length == 0);
+    }
 
     modifier locked() {
         if (!_unlock) {
@@ -42,24 +47,22 @@ contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal {
     function _attestEnclaveIdentity(AttestationRequest memory req) internal override returns (bytes32 attestationId) {
         _unlock = true;
 
-        // Generate the Validation payload
-        // The validation payload simply contains the Signing CA Certificate
-        // used for verifying the Identity Signature
-        bytes[] memory validationPayload = new bytes[](1);
+        bytes[] memory empty = new bytes[](0);
         (bytes memory signingCert,) = getEnclaveIdentityIssuerChain();
-        validationPayload[0] = signingCert;
 
         AttestationPayload memory attestationPayload =
             AttestationPayload(req.schema, req.data.expirationTime, abi.encodePacked(req.data.recipient), req.data.data);
+
+        _validate(attestationPayload, signingCert);
 
         uint32 attestationIdCounter = attestationRegistry.getAttestationIdCounter();
         attestationId = bytes32(abi.encode(attestationIdCounter));
 
         bytes32 predecessor = req.data.refUID;
         if (predecessor == bytes32(0)) {
-            super.attest(attestationPayload, validationPayload);
+            super.attest(attestationPayload, empty);
         } else {
-            super.replace(predecessor, attestationPayload, validationPayload);
+            super.replace(predecessor, attestationPayload, empty);
         }
 
         _unlock = false;
@@ -124,5 +127,15 @@ contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal {
      */
     function _onBulkRevoke(bytes32[] memory /*attestationIds*/ ) internal pure override {
         revert No_BulkRevocation();
+    }
+
+    function _validate(AttestationPayload memory attestationPayload, bytes memory issuer) private view {
+        (,, string memory enclaveIdentity, bytes memory signature) =
+            abi.decode(attestationPayload.attestationData, (uint256, uint256, string, bytes));
+        bytes32 digest = sha256(abi.encodePacked(enclaveIdentity));
+        bool sigVerified = verifySignature(digest, signature, issuer);
+        if (!sigVerified) {
+            revert Invalid_Signature();
+        }
     }
 }

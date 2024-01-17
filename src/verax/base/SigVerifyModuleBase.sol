@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {BytesUtils} from "../../../utils/BytesUtils.sol";
-import {X509Helper} from "../../../helper/X509Helper.sol";
+import {BytesUtils} from "../../utils/BytesUtils.sol";
+import {X509Helper} from "../../helper/X509Helper.sol";
 import {P256} from "p256-verifier/P256.sol";
 
 abstract contract SigVerifyModuleBase {
