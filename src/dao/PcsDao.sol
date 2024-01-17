@@ -74,21 +74,21 @@ abstract contract PcsDao {
         return (cert, crl);
     }
 
-    function upsertPcsCertificates(CA ca, bytes calldata cert) external {
+    function upsertPcsCertificates(CA ca, bytes calldata cert) external returns (bytes32 attestationId) {
         AttestationRequest memory req = _buildPcsAttestationRequest(false, ca, cert);
-        bytes32 attestationId = _attestPcs(req, ca);
+        attestationId = _attestPcs(req, ca);
         pcsCertAttestations[ca] = attestationId;
     }
 
-    function upsertPckCrl(CA ca, bytes calldata crl) external pckCACheck(ca) {
+    function upsertPckCrl(CA ca, bytes calldata crl) external pckCACheck(ca) returns (bytes32 attestationId) {
         AttestationRequest memory req = _buildPcsAttestationRequest(true, ca, crl);
-        bytes32 attestationId = _attestPcs(req, ca);
+        attestationId = _attestPcs(req, ca);
         pcsCertAttestations[ca] = attestationId;
     }
 
-    function upsertRootCACrl(bytes calldata rootcacrl) external {
+    function upsertRootCACrl(bytes calldata rootcacrl) external returns (bytes32 attestationId) {
         AttestationRequest memory req = _buildPcsAttestationRequest(true, CA.ROOT, rootcacrl);
-        bytes32 attestationId = _attestPcs(req, CA.ROOT);
+        attestationId = _attestPcs(req, CA.ROOT);
         pcsCertAttestations[CA.ROOT] = attestationId;
     }
 

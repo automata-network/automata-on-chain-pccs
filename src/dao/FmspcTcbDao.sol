@@ -47,10 +47,10 @@ abstract contract FmspcTcbDao {
 
     /// @dev Attestation Registry Entrypoint Contracts, such as Portals on Verax are responsible
     /// @dev for performing ECDSA verification on the provided TCBInfo against the Signing CA key prior to attestations
-    function upsertFmspcTcb(TcbInfoJsonObj calldata tcbInfoObj) external {
+    function upsertFmspcTcb(TcbInfoJsonObj calldata tcbInfoObj) external returns (bytes32 attestationId) {
         (AttestationRequest memory req, uint256 tcbType, string memory fmspc, uint256 version) =
             _buildTcbAttestationRequest(tcbInfoObj);
-        bytes32 attestationId = _attestTcb(req);
+        attestationId = _attestTcb(req);
         fmspcTcbInfoAttestations[keccak256(abi.encodePacked(tcbType, fmspc, version))] = attestationId;
     }
 

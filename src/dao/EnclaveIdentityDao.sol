@@ -51,9 +51,10 @@ abstract contract EnclaveIdentityDao {
     /// against the Signing CA key prior to attestations
     function upsertEnclaveIdentity(uint256 id, uint256 version, EnclaveIdentityJsonObj calldata enclaveIdentityObj)
         external
+        returns (bytes32 attestationId)
     {
         AttestationRequest memory req = _buildEnclaveIdentityAttestationRequest(id, version, enclaveIdentityObj);
-        bytes32 attestationId = _attestEnclaveIdentity(req);
+        attestationId = _attestEnclaveIdentity(req);
         enclaveIdentityAttestations[keccak256(abi.encodePacked(id, version))] = attestationId;
     }
 

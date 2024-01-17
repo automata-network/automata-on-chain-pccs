@@ -51,9 +51,9 @@ abstract contract PckDao {
         string calldata cpusvn,
         string calldata pcesvn,
         bytes calldata cert
-    ) external pckCACheck(ca) {
+    ) external pckCACheck(ca) returns (bytes32 attestationId) {
         AttestationRequest memory req = _buildPckCertAttestationRequest(qeid, pceid, cpusvn, pcesvn, cert);
-        bytes32 attestationId = _attestPck(req, ca);
+        attestationId = _attestPck(req, ca);
         pckCertAttestations[keccak256(abi.encodePacked(qeid, pceid, cpusvn, pcesvn))] = attestationId;
     }
 
