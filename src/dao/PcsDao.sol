@@ -83,14 +83,15 @@ abstract contract PcsDao {
     function upsertPckCrl(CA ca, bytes calldata crl) external pckCACheck(ca) returns (bytes32 attestationId) {
         AttestationRequest memory req = _buildPcsAttestationRequest(true, ca, crl);
         attestationId = _attestPcs(req, ca);
-        pcsCertAttestations[ca] = attestationId;
+        pcsCrlAttestations[ca] = attestationId;
     }
 
-    function upsertRootCACrl(bytes calldata rootcacrl) external returns (bytes32 attestationId) {
-        AttestationRequest memory req = _buildPcsAttestationRequest(true, CA.ROOT, rootcacrl);
-        attestationId = _attestPcs(req, CA.ROOT);
-        pcsCertAttestations[CA.ROOT] = attestationId;
-    }
+    // TODO: Implement RootCRL parser. ASN.1 Structure is different from PCK CRL
+    // function upsertRootCACrl(bytes calldata rootcacrl) external returns (bytes32 attestationId) {
+    //     AttestationRequest memory req = _buildPcsAttestationRequest(true, CA.ROOT, rootcacrl);
+    //     attestationId = _attestPcs(req, CA.ROOT);
+    //     pcsCrlAttestations[CA.ROOT] = attestationId;
+    // }
 
     // function upsertPckCertificateIssuerChain(CA ca) external pckCACheck(ca) {
     //     bytes32 pckIntermediateCertAttestationId = pcsCertAttestations[ca];
