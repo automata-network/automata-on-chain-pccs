@@ -26,6 +26,7 @@ contract FmspcTcbHelper {
 
     error TCBInfo_Invalid();
 
+    // 1.1M gas
     function parseTcbString(string memory tcbInfoStr)
         external
         pure

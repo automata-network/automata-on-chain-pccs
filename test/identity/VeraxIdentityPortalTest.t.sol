@@ -35,13 +35,13 @@ contract VeraxIdentityPortalTest is VeraxPcsSetupBase, IdentityConstants {
         uint256 id = 1;
         uint256 version = 4;
 
-        EnclaveIdentityJsonObj memory enclaveIdentityObj = EnclaveIdentityJsonObj({
-            identityStr: string(identityStr),
-            signature: signature
-        });
+        EnclaveIdentityJsonObj memory enclaveIdentityObj =
+            EnclaveIdentityJsonObj({identityStr: string(identityStr), signature: signature});
 
         bytes32 attestationId = enclaveIdentityPortal.upsertEnclaveIdentity(id, version, enclaveIdentityObj);
         assertTrue(attestationRegistry.isRegistered(attestationId));
-        assertEq(enclaveIdentityPortal.enclaveIdentityAttestations(keccak256(abi.encodePacked(id, version))), attestationId);
+        assertEq(
+            enclaveIdentityPortal.enclaveIdentityAttestations(keccak256(abi.encodePacked(id, version))), attestationId
+        );
     }
 }
