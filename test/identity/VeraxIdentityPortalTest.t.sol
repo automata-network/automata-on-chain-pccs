@@ -5,7 +5,7 @@ import {EnclaveIdentityDaoPortal} from "../../src/verax/portals/EnclaveIdentityD
 import {IdentityConstants} from "./IdentityConstants.t.sol";
 import "../pcs/VeraxPcsSetupBase.t.sol";
 
-contract VeraxIdentityPortalTest is VeraxPcsSetupBase, IdentityConstants {
+contract VeraxIdentityPortalTest is IdentityConstants, VeraxPcsSetupBase {
     EnclaveIdentityDaoPortal enclaveIdentityPortal;
 
     function setUp() public override {
@@ -43,5 +43,15 @@ contract VeraxIdentityPortalTest is VeraxPcsSetupBase, IdentityConstants {
         assertEq(
             enclaveIdentityPortal.enclaveIdentityAttestations(keccak256(abi.encodePacked(id, version))), attestationId
         );
+
+        EnclaveIdentityJsonObj memory fetched = enclaveIdentityPortal.getEnclaveIdentity(id, version);
+        assertEq(fetched.signature, enclaveIdentityObj.signature);
+        assertEq(keccak256(bytes(fetched.identityStr)), keccak256(bytes(enclaveIdentityObj.identityStr)));
+    }
+
+    function testGetEnclaveIdentityIssuerChain() public {
+        (bytes memory fetchedSigning, bytes memory fetchedRoot) = enclaveIdentityPortal.getEnclaveIdentityIssuerChain();
+        assertEq(keccak256(signingDer), keccak256(fetchedSigning));
+        assertEq(keccak256(rootDer), keccak256(fetchedRoot));
     }
 }

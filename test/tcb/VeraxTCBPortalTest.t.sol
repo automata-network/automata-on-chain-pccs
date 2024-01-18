@@ -41,5 +41,15 @@ contract VeraxIdentityPortalTest is VeraxPcsSetupBase, TCBConstants {
         assertEq(
             fmspcTcbPortal.fmspcTcbInfoAttestations(keccak256(abi.encodePacked(tcbType, fmspc, version))), attestationId
         );
+
+        TcbInfoJsonObj memory fetched = fmspcTcbPortal.getTcbInfo(tcbType, fmspc, version);
+        assertEq(fetched.signature, tcbInfoObj.signature);
+        assertEq(keccak256(bytes(fetched.tcbInfoStr)), keccak256(bytes(tcbInfoObj.tcbInfoStr)));
+    }
+
+    function testTcbIssuerChain() public {
+        (bytes memory fetchedSigning, bytes memory fetchedRoot) = fmspcTcbPortal.getTcbIssuerChain();
+        assertEq(keccak256(signingDer), keccak256(fetchedSigning));
+        assertEq(keccak256(rootDer), keccak256(fetchedRoot));
     }
 }
