@@ -16,6 +16,7 @@ abstract contract VeraxPcsSetupBase is VeraxTestBase, PCSConstants {
     bytes32 rootCrlAttestation;
     bytes32 signingAttestation;
     bytes32 platformAttestation;
+    bytes32 platformCrlAttestation;
 
     function setUp() public virtual override {
         super.setUp();
@@ -46,6 +47,9 @@ abstract contract VeraxPcsSetupBase is VeraxTestBase, PCSConstants {
 
         // insert Platform CA
         platformAttestation = pcs.upsertPcsCertificates(CA.PLATFORM, platformDer);
+
+        // insert PCK CRL
+        platformCrlAttestation = pcs.upsertPckCrl(CA.PLATFORM, pckCrlDer);
     }
 
     function testPcsSetup() public {
@@ -77,6 +81,13 @@ abstract contract VeraxPcsSetupBase is VeraxTestBase, PCSConstants {
         Attestation memory platformCaAttestation = attestationRegistry.getAttestation(platformAttestation);
         expectedHash = keccak256(platformDer);
         actualHash = keccak256(platformCaAttestation.attestationData);
+        assertEq(actualHash, expectedHash);
+
+        // validate PlatformCRL attestations
+        assertTrue(attestationRegistry.isRegistered(platformCrlAttestation));
+        Attestation memory platformCrl = attestationRegistry.getAttestation(platformCrlAttestation);
+        expectedHash = keccak256(pckCrlDer);
+        actualHash = keccak256(platformCrl.attestationData);
         assertEq(actualHash, expectedHash);
     }
 }

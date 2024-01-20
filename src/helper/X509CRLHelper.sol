@@ -97,12 +97,12 @@ contract X509CRLHelper {
         uint256 root = der.root();
 
         uint256 tbsParentPtr = der.firstChildOf(root);
-        crl.tbs = der.allBytesAt(tbsParentPtr);
 
         uint256 tbsPtr = der.firstChildOf(tbsParentPtr);
 
         crl.serialNumber = uint256(bytes32(der.bytesAt(tbsPtr)));
 
+        tbsPtr = der.nextSiblingOf(tbsPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
 
         crl.issuerCommonName = _getCommonName(der, der.firstChildOf(tbsPtr));
@@ -152,26 +152,23 @@ contract X509CRLHelper {
     {
         uint256 revokedPtr = der.firstChildOf(revokedParentPtr);
         bytes memory serials;
-        while (revokedPtr.ixl() < revokedParentPtr.ixl()) {
+        while (revokedPtr.ixl() <= revokedParentPtr.ixl()) {
             uint256 serialPtr = der.firstChildOf(revokedPtr);
             bytes memory serialBytes = der.bytesAt(serialPtr);
             uint256 serialNumber = _parseSerialNumber(serialBytes);
+            serials = abi.encodePacked(serials, serialNumber);
             if (breakIfFound && filter == serialNumber) {
                 serialNumbers = new uint256[](1);
                 serialNumbers[0] = filter;
-                break;
-            } else {
-                serials = abi.encodePacked(serials, serialNumber);
-                revokedPtr = der.nextSiblingOf(revokedPtr);
+                return serialNumbers;
             }
+            revokedPtr = der.nextSiblingOf(revokedPtr);
         }
-        if (!breakIfFound) {
-            uint256 count = serials.length / 32;
-            // ABI encoding format for a dynamic uint256[] value
-            serials = abi.encodePacked(abi.encode(0x20), abi.encode(count), serials);
-            serialNumbers = new uint256[](count);
-            serialNumbers = abi.decode(serials, (uint256[]));
-        }
+        uint256 count = serials.length / 32;
+        // ABI encoding format for a dynamic uint256[] value
+        serials = abi.encodePacked(abi.encode(0x20), abi.encode(count), serials);
+        serialNumbers = new uint256[](count);
+        serialNumbers = abi.decode(serials, (uint256[]));
     }
 
     function _parseSerialNumber(bytes memory serialBytes) private pure returns (uint256 serial) {

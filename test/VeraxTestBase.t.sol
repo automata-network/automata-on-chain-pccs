@@ -42,6 +42,9 @@ abstract contract VeraxTestBase is Test {
         vm.selectFork(fork);
         vm.deal(admin, 100 ether);
 
+        // pinned January 20th, 2024 - 061323h UTC
+        vm.warp(1705644803);
+
         // assign issuer role
         vm.prank(registryOwner);
         portalRegistry.setIssuer(admin);
