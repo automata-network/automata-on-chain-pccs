@@ -22,7 +22,7 @@ abstract contract FmspcTcbDao {
     /// key: keccak256(FMSPC ++ type ++ version)
     /// @notice the schema of the attested data is the following:
     /// A tuple of (uint256, uint256, uint256, uint256, string, bytes)
-    /// - uint256 teeType
+    /// - uint256 tcbType
     /// - uint256 version
     /// - uint256 issueDateTimestamp
     /// - uint256 nextUpdateTimestamp
@@ -30,7 +30,7 @@ abstract contract FmspcTcbDao {
     /// - bytes signature
     mapping(bytes32 => bytes32) public fmspcTcbInfoAttestations;
 
-    event TCBInfoMissing(uint256 teeType, string fmspc, uint256 version);
+    event TCBInfoMissing(uint256 tcbType, string fmspc, uint256 version);
 
     constructor(address _pcs, address _fmspcHelper) {
         Pcs = PcsDao(_pcs);
@@ -40,19 +40,19 @@ abstract contract FmspcTcbDao {
     /**
      * @notice Section 4.2.3 (getTcbInfo)
      * @notice Queries TCB Info for the given FMSPC
-     * @param teeType 0: SGX, 1: TDX
+     * @param tcbType 0: SGX, 1: TDX
      * https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/39989a42bbbb0c968153a47254b6de79a27eb603/QuoteVerification/QVL/Src/AttestationParsers/src/Json/TcbInfo.cpp#L46-L47
      * @param fmspc FMSPC
      * @param version v3 or v4
      * @return tcbObj See {FmspcTcbHelper.sol} to learn more about the structure definition
      */
-    function getTcbInfo(uint256 teeType, string calldata fmspc, uint256 version)
+    function getTcbInfo(uint256 tcbType, string calldata fmspc, uint256 version)
         external
         returns (TcbInfoJsonObj memory tcbObj)
     {
-        bytes32 attestationId = _getAttestationId(teeType, fmspc, version);
+        bytes32 attestationId = _getAttestationId(tcbType, fmspc, version);
         if (attestationId == bytes32(0)) {
-            emit TCBInfoMissing(teeType, fmspc, version);
+            emit TCBInfoMissing(tcbType, fmspc, version);
         } else {
             bytes memory attestedTcbData = _getAttestedData(attestationId);
             (,,,, tcbObj.tcbInfoStr, tcbObj.signature) =
@@ -68,10 +68,10 @@ abstract contract FmspcTcbDao {
      * @param tcbInfoObj See {FmspcTcbHelper.sol} to learn more about the structure definition
      */
     function upsertFmspcTcb(TcbInfoJsonObj calldata tcbInfoObj) external returns (bytes32 attestationId) {
-        (AttestationRequest memory req, uint256 teeType, string memory fmspc, uint256 version) =
+        (AttestationRequest memory req, uint256 tcbType, string memory fmspc, uint256 version) =
             _buildTcbAttestationRequest(tcbInfoObj);
         attestationId = _attestTcb(req);
-        fmspcTcbInfoAttestations[keccak256(abi.encodePacked(teeType, fmspc, version))] = attestationId;
+        fmspcTcbInfoAttestations[keccak256(abi.encodePacked(tcbType, fmspc, version))] = attestationId;
     }
 
     /**
@@ -108,12 +108,12 @@ abstract contract FmspcTcbDao {
     /**
      * @notice computes the key that maps to the corresponding attestation ID
      */
-    function _getAttestationId(uint256 teeType, string memory fmspc, uint256 version)
+    function _getAttestationId(uint256 tcbType, string memory fmspc, uint256 version)
         private
         view
         returns (bytes32 attestationId)
     {
-        attestationId = fmspcTcbInfoAttestations[keccak256(abi.encodePacked(teeType, fmspc, version))];
+        attestationId = fmspcTcbInfoAttestations[keccak256(abi.encodePacked(tcbType, fmspc, version))];
     }
 
     /**
@@ -122,14 +122,14 @@ abstract contract FmspcTcbDao {
     function _buildTcbAttestationRequest(TcbInfoJsonObj calldata tcbInfoObj)
         private
         view
-        returns (AttestationRequest memory req, uint256 teeType, string memory fmspc, uint256 version)
+        returns (AttestationRequest memory req, uint256 tcbType, string memory fmspc, uint256 version)
     {
         uint256 issueDate;
         uint256 nextUpdate;
-        (teeType, fmspc, version, issueDate, nextUpdate) = FmspcTcbLib.parseTcbString(tcbInfoObj.tcbInfoStr);
-        bytes32 predecessorAttestationId = _getAttestationId(teeType, fmspc, version);
+        (tcbType, fmspc, version, issueDate, nextUpdate) = FmspcTcbLib.parseTcbString(tcbInfoObj.tcbInfoStr);
+        bytes32 predecessorAttestationId = _getAttestationId(tcbType, fmspc, version);
         bytes memory attestationData =
-            abi.encode(teeType, version, issueDate, nextUpdate, tcbInfoObj.tcbInfoStr, tcbInfoObj.signature);
+            abi.encode(tcbType, version, issueDate, nextUpdate, tcbInfoObj.tcbInfoStr, tcbInfoObj.signature);
         AttestationRequestData memory reqData = AttestationRequestData({
             recipient: msg.sender,
             expirationTime: 0,
