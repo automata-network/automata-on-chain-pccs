@@ -3,6 +3,15 @@ pragma solidity ^0.8.0;
 
 import {CA, AttestationRequestData, AttestationRequest} from "../Common.sol";
 
+/**
+ * @title Intel PCS Data Access Object
+ * @notice This is a core contract of our on-chain PCCS implementation as it provides methods
+ * @notice to read/write essential collaterals such as the RootCA, Intermediate CAs and CRLs.
+ * @notice All other DAOs are expected to configure and make external calls to this contract to fetch those collaterals.
+ * @notice This contract is heavily inspired by Sections 4.2.5 and 4.2.6 in the Intel SGX PCCS Design Guideline
+ * https://download.01.org/intel-sgx/sgx-dcap/1.19/linux/docs/SGX_DCAP_Caching_Service_Design_Guide.pdf
+ */
+
 abstract contract PcsDao {
     /// @notice PCS Certificates mapping
     ///
@@ -27,23 +36,8 @@ abstract contract PcsDao {
     /// - bytes pcsCrl
     mapping(CA => bytes32) public pcsCrlAttestations;
 
-    // /// @notice PCS Certificate Chain mapping
-    // /// key: keccak256(certAttestationId ++ issuerCertAttestationId)
-    // ///
-    // /// A tuple of (bytes32, string, bytes32)
-    // /// bytes32 certAttestationId
-    // /// string message = "is issuedBy"
-    // /// bytes32 issuerCertAttestationId
-    // ///
-    // /// @notice On the Verax protocol, the certificate chain attestation will comform to the Relationship Schema
-    // /// https://docs.ver.ax/verax-documentation/developer-guides/for-attestation-issuers/link-attestations
-    // mapping(bytes32 => bytes32) public pcsCertchains;
-
     error Missing_Certificate(CA ca);
     error Invalid_PCK_CA(CA ca);
-
-    // error Missing_CRL(CA ca);
-    // error Cert_Chain_Configured();
 
     modifier pckCACheck(CA ca) {
         if (ca == CA.ROOT || ca == CA.SIGNING) {
@@ -52,34 +46,40 @@ abstract contract PcsDao {
         _;
     }
 
-    // function verifyCertchain(bytes32 certAttestationId, bytes32 issuerAttestationId) public view returns (bool) {
-    //     return pcsCertchains[_getCertchainKey(certAttestationId, issuerAttestationId)] != bytes32(0);
-    // }
-
-    /// @dev the return value comforms with the pcs_certificates schema as defined in the Intel PCCS Design Guide
-    /// @return a tuple of (cert, crl)
-    function getCertificateById(CA ca) external view returns (bytes memory, bytes memory) {
+    /**
+     * @param ca see {Common.sol} for definition
+     * @return cert - DER encoded certificate
+     * @return crl - DER-encoded CRLs that is signed by the provided cert
+     */
+    function getCertificateById(CA ca) external view returns (bytes memory cert, bytes memory crl) {
         bytes32 pcsCertAttestationId = pcsCertAttestations[ca];
         if (pcsCertAttestationId == bytes32(0)) {
             revert Missing_Certificate(ca);
         }
-        bytes memory cert = _getAttestedData(pcsCertAttestationId);
+        cert = _getAttestedData(pcsCertAttestationId);
 
-        bytes memory crl;
         bytes32 pcsCrlAttestationId = pcsCrlAttestations[ca];
         if (pcsCrlAttestationId != bytes32(0)) {
             crl = _getAttestedData(pcsCrlAttestationId);
         }
-
-        return (cert, crl);
     }
 
+    /**
+     * Section 4.2.6 (upsertPcsCertificates)
+     * @param ca replaces the "id" value with the ca_id
+     * @param cert the DER-encoded certificate
+     */
     function upsertPcsCertificates(CA ca, bytes calldata cert) external returns (bytes32 attestationId) {
         AttestationRequest memory req = _buildPcsAttestationRequest(false, ca, cert);
         attestationId = _attestPcs(req, ca);
         pcsCertAttestations[ca] = attestationId;
     }
 
+    /**
+     * Section 4.2.5 (upsertPckCrl)
+     * @param ca either CA.PROCESSOR or CA.PLATFORM
+     * @param crl the DER-encoded CRL
+     */
     function upsertPckCrl(CA ca, bytes calldata crl) external pckCACheck(ca) returns (bytes32 attestationId) {
         AttestationRequest memory req = _buildPcsAttestationRequest(true, ca, crl);
         attestationId = _attestPcs(req, ca);
@@ -93,55 +93,29 @@ abstract contract PcsDao {
     //     pcsCrlAttestations[CA.ROOT] = attestationId;
     // }
 
-    // function upsertPckCertificateIssuerChain(CA ca) external pckCACheck(ca) {
-    //     bytes32 pckIntermediateCertAttestationId = pcsCertAttestations[ca];
-    //     if (pckIntermediateCertAttestationId == bytes32(0)) {
-    //         revert Missing_Certificate(ca);
-    //     }
-    //     bytes32 issuerCertAttestationId = pcsCertAttestations[CA.ROOT];
-    //     if (issuerCertAttestationId == bytes32(0)) {
-    //         revert Missing_Certificate(CA.ROOT);
-    //     }
-    //     _upsertCertChain(pckIntermediateCertAttestationId, issuerCertAttestationId);
-    // }
-
-    // function upsertPckCrlCertchain(CA ca) external pckCACheck(ca) {
-    //     bytes32 pckCrlAttestationId = pcsCrlAttestations[ca];
-    //     if (pckCrlAttestationId == bytes32(0)) {
-    //         revert Missing_CRL(ca);
-    //     }
-    //     bytes32 issuerCertAttestationId = pcsCertAttestations[ca];
-    //     if (issuerCertAttestationId == bytes32(0)) {
-    //         revert Missing_Certificate(ca);
-    //     }
-    //     _upsertCertChain(pckCrlAttestationId, issuerCertAttestationId);
-    // }
-
-    // /// @dev Both TCBInfo and Enclave Identity are signed by the Intel Signing CA
-    // function upsertSignerChain() external {
-    //     bytes32 signingCertAttestationId = pcsCrlAttestations[CA.SIGNING];
-    //     if (signingCertAttestationId == bytes32(0)) {
-    //         revert Missing_Certificate(CA.SIGNING);
-    //     }
-    //     bytes32 issuerCertAttestationId = pcsCertAttestations[CA.ROOT];
-    //     if (issuerCertAttestationId == bytes32(0)) {
-    //         revert Missing_Certificate(CA.ROOT);
-    //     }
-    //     _upsertCertChain(signingCertAttestationId, issuerCertAttestationId);
-    // }
-
     function pcsCertSchemaID() public view virtual returns (bytes32 PCS_CERT_SCHEMA_ID);
 
     function pcsCrlSchemaID() public view virtual returns (bytes32 PCS_CRL_SCHEMA_ID);
 
-    // function certificateChainSchemaID() public view virtual returns (bytes32 CERTIFICATE_CHAIN_SCHEMA_ID);
-
+    /**
+     * @dev implement getter logic to retrieve attestation data
+     * @param attestationId maps to the data
+     */
     function _getAttestedData(bytes32 attestationId) internal view virtual returns (bytes memory attestationData);
 
+    /**
+     * @dev implement logic to validate and attest PCS Certificates or CRLs
+     * @param req structure as defined by EAS
+     * https://github.com/ethereum-attestation-service/eas-contracts/blob/52af661748bde9b40ae782907702f885852bc149/contracts/IEAS.sol#L9C1-L23C2
+     * @return attestationId
+     */
     function _attestPcs(AttestationRequest memory req, CA ca) internal virtual returns (bytes32 attestationId);
 
-    // function _attestCertChain(AttestationRequest memory req) internal virtual returns (bytes32 attestationId);
-
+    /**
+     * @notice builds an EAS compliant attestation request
+     * @param isCrl - true only if the attested data is a CRL
+     * @param blob represents the corresponding DER-encoded value, specified by isCrl and CA
+     */
     function _buildPcsAttestationRequest(bool isCrl, CA ca, bytes calldata blob)
         private
         view
@@ -159,31 +133,4 @@ abstract contract PcsDao {
         bytes32 schemaId = isCrl ? pcsCrlSchemaID() : pcsCertSchemaID();
         req = AttestationRequest({schema: schemaId, data: reqData});
     }
-
-    // function _getCertchainKey(bytes32 certAttestationId, bytes32 issuerAttestationId)
-    //     private
-    //     pure
-    //     returns (bytes32 key)
-    // {
-    //     key = keccak256(abi.encodePacked(certAttestationId, issuerAttestationId));
-    // }
-
-    // function _upsertCertChain(bytes32 certAttestationId, bytes32 issuerAttestationId) private {
-    //     bytes32 key = _getCertchainKey(certAttestationId, issuerAttestationId);
-    //     if (pcsCertchains[key] != bytes32(0)) {
-    //         revert Cert_Chain_Configured();
-    //     }
-    //     bytes memory attestationData = abi.encode(certAttestationId, "is issued by", issuerAttestationId);
-    //     AttestationRequestData memory reqData = AttestationRequestData({
-    //         recipient: msg.sender,
-    //         expirationTime: 0,
-    //         revocable: false,
-    //         refUID: bytes32(0),
-    //         data: attestationData,
-    //         value: 0
-    //     });
-    //     AttestationRequest memory req = AttestationRequest({schema: certificateChainSchemaID(), data: reqData});
-    //     bytes32 attestationId = _attestCertChain(req);
-    //     pcsCertchains[key] = attestationId;
-    // }
 }

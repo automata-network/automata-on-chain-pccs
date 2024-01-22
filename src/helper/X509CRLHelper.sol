@@ -5,6 +5,10 @@ import {Asn1Decode, NodePtr} from "../utils/Asn1Decode.sol";
 import {BytesUtils} from "../utils/BytesUtils.sol";
 import {DateTimeUtils} from "../utils/DateTimeUtils.sol";
 
+/**
+ * @title Solidity Structure representing X509 CRL
+ * @notice This is a simplified structure of a DER-decoded X509 CRL
+ */
 struct X509CRLObj {
     uint256 serialNumber;
     string issuerCommonName;
@@ -15,6 +19,12 @@ struct X509CRLObj {
     bytes signature;
     bytes tbs;
 }
+
+/**
+ * @title X509 CRL Helper Contract
+ * @notice This is a standalone contract that can be used by off-chain applications and smart contracts
+ * to parse DER-encoded CRLs.
+ */
 
 contract X509CRLHelper {
     using Asn1Decode for bytes;

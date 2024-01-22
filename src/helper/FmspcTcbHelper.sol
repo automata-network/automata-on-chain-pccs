@@ -6,7 +6,8 @@ import {LibString} from "solady/utils/LibString.sol";
 import {DateTimeUtils} from "../utils/DateTimeUtils.sol";
 
 /**
- * @param tcbInfo: tcbInfoJson.tcbInfo JSON string
+ * @title Solidity Object representing the TCBInfo JSON 
+ * @param tcbInfo: tcbInfoJson.tcbInfo string object body
  * @param signature The signature to be passed as bytes array
  */
 struct TcbInfoJsonObj {
@@ -18,6 +19,11 @@ struct TcbInfoJsonObj {
  * @title FMSPC TCB Helper Contract
  * @notice This is a standalone contract that can be used by off-chain applications and smart contracts
  * to parse TCBInfo Blob
+ * @notice The TCBInfo Object itself may vary by their version and type.
+ * @notice This contract only provides a simple parser that could only extract basic info about the TCBInfo
+ * such as, its version, type, fmspc, issue date and next update.
+ * @dev should consider extending this contract to implement parsers that could extract detailed TCBInfo
+ * using logic that complies to the specific version and type.
  */
 
 contract FmspcTcbHelper {
@@ -75,6 +81,4 @@ contract FmspcTcbHelper {
             revert TCBInfo_Invalid();
         }
     }
-
-    // TODO: Implement child library contracts to parse TCB by their specific type and version
 }

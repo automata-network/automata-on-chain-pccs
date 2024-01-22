@@ -6,7 +6,8 @@ import {LibString} from "solady/utils/LibString.sol";
 import {DateTimeUtils} from "../utils/DateTimeUtils.sol";
 
 /**
- * @param identityStr The Identity JSON body
+ * @title Solidity Structure representing the EnclaveIdentity JSON
+ * @param identityStr Identity string object body
  * @param signature The signature to be passed as bytes array
  */
 struct EnclaveIdentityJsonObj {
@@ -29,6 +30,12 @@ struct IdentityObj {
     string isvprodid;
     string tcbLevelsObjStr;
 }
+
+/**
+ * @title Enclave Identity Helper Contract
+ * @notice This is a standalone contract that can be used by off-chain applications and smart contracts
+ * to parse Enclave Identity Blob
+ */
 
 contract EnclaveIdentityHelper {
     using JSONParserLib for JSONParserLib.Item;

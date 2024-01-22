@@ -40,8 +40,8 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal, SigVerifyModuleBase {
     function withdraw(address payable to, uint256 amount) external override {}
 
     function fmspcTcbSchemaID() public pure override returns (bytes32 FMSPC_TCB_SCHEMA_ID) {
-        // keccak256(bytes("uint256 tcbType, uint256 version, uint256 issueDateTimestamp, uint256 nextUpdateTimestamp, string tcbInfo, bytes signature"))
-        FMSPC_TCB_SCHEMA_ID = 0x46bd450c3c87d1c7842b1efb25c629c61fa188159f1e48326da497f28aef6757;
+        // keccak256(bytes("uint256 teeType, uint256 version, uint256 issueDateTimestamp, uint256 nextUpdateTimestamp, string tcbInfo, bytes signature"))
+        FMSPC_TCB_SCHEMA_ID = 0x5542f97f1acf1f3e18bbe847f4aaa322acfeb8e3f06a9bf14f456faa1bcac978;
     }
 
     function _attestTcb(AttestationRequest memory req) internal override returns (bytes32 attestationId) {

@@ -4,6 +4,12 @@ pragma solidity ^0.8.0;
 import {CA, AttestationRequestData, AttestationRequest} from "../Common.sol";
 import {PcsDao} from "./PcsDao.sol";
 
+/**
+ * @title Intel PCK Certificate Data Access Object
+ * @notice This contract is heavily inspired by Sections 4.2.2 and 4.2.4 in the Intel SGX PCCS Design Guideline
+ * https://download.01.org/intel-sgx/sgx-dcap/1.19/linux/docs/SGX_DCAP_Caching_Service_Design_Guide.pdf
+ */
+
 abstract contract PckDao {
     PcsDao public Pcs;
 
@@ -16,8 +22,8 @@ abstract contract PckDao {
 
     event PCKMissing(string qeid, string pceid, string cpusvn, string pcesvn);
 
+    /// @notice the input CA parameter can only be either PROCESSOR or PLATFORM
     error Invalid_PCK_CA(CA ca);
-    // error Cert_Chain_Not_Verified();
 
     modifier pckCACheck(CA ca) {
         if (ca == CA.ROOT || ca == CA.SIGNING) {
@@ -30,6 +36,10 @@ abstract contract PckDao {
         Pcs = PcsDao(_pcs);
     }
 
+    /**
+     * @notice Section 4.2.2 (getCert(qe_id, cpu_svn, pce_svn, pce_id))
+     * @notice The ordering of arguments is slightly different from the interface specified in the design guideline
+     */
     function getCert(string calldata qeid, string calldata pceid, string calldata cpusvn, string calldata pcesvn)
         external
         returns (bytes memory pckCert)
@@ -42,8 +52,16 @@ abstract contract PckDao {
         }
     }
 
-    /// @dev Attestation Registry Entrypoint Contracts, such as Portals on Verax are responsible
-    /// @dev for performing ECDSA verification on the provided PCK Certs prior to attestations
+    /**
+     * @notice Modified from Section 4.2.2 (upsertPckCert)
+     * @notice This method requires an additional CA parameter, because the on-chain PCCS does not
+     * store any data that is contained in the PLATFORMS table.
+     * @notice Therefore, there is no way to form a mapping between (qeid, pceid) to its corresponding CA.
+     * @notice Hence, it is explicitly required to be stated here.
+     * @param cert DER-encoded PCK Leaf Certificate
+     * @dev Attestation Registry Entrypoint Contracts, such as Portals on Verax are responsible
+     * @dev for performing ECDSA verification on the provided PCK Certs prior to attestations
+     */
     function upsertPckCert(
         CA ca,
         string calldata qeid,
@@ -57,6 +75,12 @@ abstract contract PckDao {
         pckCertAttestations[keccak256(abi.encodePacked(qeid, pceid, cpusvn, pcesvn))] = attestationId;
     }
 
+    /**
+     * Queries PCK Certificate issuer chain for the input ca.
+     * @param ca is either CA.PROCESSOR (uint8(1)) or CA.PLATFORM ((uint8(2)))
+     * @return intermediateCert - the corresponding intermediate PCK CA (DER-encoded)
+     * @return rootCert - Intel SGX Root CA (DER-encoded)
+     */
     function getPckCertChain(CA ca)
         public
         view
@@ -65,19 +89,32 @@ abstract contract PckDao {
     {
         bytes32 intermediateCertAttestationId = Pcs.pcsCertAttestations(ca);
         bytes32 rootCertAttestationId = Pcs.pcsCertAttestations(CA.ROOT);
-        // if (!Pcs.verifyCertchain(intermediateCertAttestationId, rootCertAttestationId)) {
-        //     revert Cert_Chain_Not_Verified();
-        // }
         intermediateCert = _getAttestedData(intermediateCertAttestationId);
         rootCert = _getAttestedData(rootCertAttestationId);
     }
 
+    /**
+     * @dev overwrite this method to define the schemaID for the attestation of PCK Certificates
+     */
     function pckSchemaID() public view virtual returns (bytes32 PCK_SCHEMA_ID);
 
+     /**
+     * @dev implement logic to validate and attest PCK Certificates
+     * @param req structure as defined by EAS
+     * https://github.com/ethereum-attestation-service/eas-contracts/blob/52af661748bde9b40ae782907702f885852bc149/contracts/IEAS.sol#L9C1-L23C2
+     * @return attestationId
+     */
     function _attestPck(AttestationRequest memory req, CA ca) internal virtual returns (bytes32 attestationId);
 
+    /**
+     * @dev implement getter logic to retrieve attestation data
+     * @param attestationId maps to the data
+     */
     function _getAttestedData(bytes32 attestationId) internal view virtual returns (bytes memory attestationData);
 
+    /**
+     * @notice computes the key that maps to the corresponding attestation ID
+     */
     function _getAttestationId(
         string calldata qeid,
         string calldata pceid,
@@ -87,6 +124,9 @@ abstract contract PckDao {
         attestationId = pckCertAttestations[keccak256(abi.encodePacked(qeid, pceid, cpusvn, pcesvn))];
     }
 
+    /**
+     * @notice builds an EAS compliant attestation request
+     */
     function _buildPckCertAttestationRequest(
         string calldata qeid,
         string calldata pceid,

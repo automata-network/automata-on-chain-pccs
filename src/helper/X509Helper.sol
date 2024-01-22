@@ -5,6 +5,10 @@ import {Asn1Decode, NodePtr} from "../utils/Asn1Decode.sol";
 import {BytesUtils} from "../utils/BytesUtils.sol";
 import {DateTimeUtils} from "../utils/DateTimeUtils.sol";
 
+/**
+ * @title Solidity Structure representing X509 Certificates
+ * @notice This is a simplified structure of a DER-decoded X509 Certificate
+ */
 struct X509CertObj {
     uint256 serialNumber;
     string issuerCommonName;
@@ -19,6 +23,13 @@ struct X509CertObj {
     bytes tbs;
 }
 
+/**
+ * @title X509 Certificates Helper Contract
+ * @notice This is a standalone contract that can be used by off-chain applications and smart contracts
+ * to parse DER-encoded X509 certificates.
+ * @dev The Extension sequence in Intel PCK Certificates is a custom ASN.1 Sequence that needs to be 
+ * @dev parsed further in a more specialized PCKHelper contract.
+ */
 contract X509Helper {
     using Asn1Decode for bytes;
     using NodePtr for uint256;
