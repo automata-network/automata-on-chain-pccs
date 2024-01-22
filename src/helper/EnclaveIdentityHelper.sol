@@ -15,6 +15,12 @@ struct EnclaveIdentityJsonObj {
     bytes signature;
 }
 
+enum EnclaveId {
+    QE,
+    QVE,
+    TD_QE
+}
+
 /// @dev Parsed IdentityStr to an object, except for TCBLevels
 struct IdentityObj {
     string id;
@@ -41,17 +47,20 @@ contract EnclaveIdentityHelper {
     using JSONParserLib for JSONParserLib.Item;
     using LibString for string;
 
-    // 213k gas
-    function getIssueAndNextUpdateDates(string calldata identityStr)
+    error Invalid_ID();
+
+    // 245k gas
+    function getIdentitySummary(string calldata identityStr)
         external
         pure
-        returns (uint256 issueDate, uint256 nextUpdate)
+        returns (uint256 issueDate, uint256 nextUpdate, EnclaveId id)
     {
         JSONParserLib.Item memory root = JSONParserLib.parse(identityStr);
         JSONParserLib.Item[] memory identityObj = root.children();
 
         bool issueDateFound;
         bool nextUpdateFound;
+        bool idFound;
 
         for (uint256 i = 0; i < root.size(); i++) {
             JSONParserLib.Item memory current = identityObj[i];
@@ -64,7 +73,19 @@ contract EnclaveIdentityHelper {
                 nextUpdate = DateTimeUtils.fromISOToTimestamp(JSONParserLib.decodeString(current.value()));
                 nextUpdateFound = true;
             }
-            if (issueDateFound && nextUpdateFound) {
+            if (decodedKey.eq("id")) {
+                string memory idStr = JSONParserLib.decodeString(current.value());
+                if (LibString.eq(idStr, "QE")) {
+                    id = EnclaveId.QE;
+                } else if (LibString.eq(idStr, "QVE")) {
+                    id = EnclaveId.QVE;
+                } else if (LibString.eq(idStr, "TD_QE")) {
+                    id = EnclaveId.TD_QE;
+                } else {
+                    revert Invalid_ID();
+                }
+            }
+            if (issueDateFound && nextUpdateFound && idFound) {
                 break;
             }
         }

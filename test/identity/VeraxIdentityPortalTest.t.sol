@@ -31,9 +31,8 @@ contract VeraxIdentityPortalTest is IdentityConstants, VeraxPcsSetupBase {
     }
 
     function testAttestEnclaveIdentity() public {
-        // I am actually not sure what ID is here, need to circle back on this
-        uint256 id = 1;
-        uint256 version = 4;
+        uint256 id = 0; // QE
+        uint256 version = 2;
 
         EnclaveIdentityJsonObj memory enclaveIdentityObj =
             EnclaveIdentityJsonObj({identityStr: string(identityStr), signature: signature});

@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {CA, AttestationRequestData, AttestationRequest} from "../Common.sol";
 import {PcsDao} from "./PcsDao.sol";
 
-import {EnclaveIdentityHelper, EnclaveIdentityJsonObj} from "../helper/EnclaveIdentityHelper.sol";
+import {EnclaveIdentityHelper, EnclaveIdentityJsonObj, EnclaveId} from "../helper/EnclaveIdentityHelper.sol";
 
 /**
  * @title Enclave Identity Data Access Object
@@ -22,6 +22,9 @@ abstract contract EnclaveIdentityDao {
     /// key: keccak256(id ++ version)
     /// NOTE: the "version" indicated here is taken from the input parameter (e.g. v3 vs v4);
     /// NOT the "version" value found in the Enclave Identity JSON
+    /// TEMP: Currently, there is no way to distinguish between QuoteV3 vs QuoteV4 Enclave Identity
+    /// TODO: The JSON schema for the tcbLevel object is different between V3 and V4, so we might need
+    /// to implement methods to "detect" the JSON schema, as a way of determining whether to assign for V3 or V4 quotes.
     ///
     /// @notice the schema of the attested data is the following:
     /// A tuple of (uint256, uint256, string, bytes)
@@ -32,6 +35,8 @@ abstract contract EnclaveIdentityDao {
     mapping(bytes32 => bytes32) public enclaveIdentityAttestations;
 
     event EnclaveIdentityMissing(uint256 id, uint256 version);
+    
+    error Enclave_Id_Mismatch();
 
     constructor(address _pcs, address _enclaveIdentityHelper) {
         Pcs = PcsDao(_pcs);
@@ -126,8 +131,11 @@ abstract contract EnclaveIdentityDao {
         EnclaveIdentityJsonObj calldata enclaveIdentityObj
     ) private view returns (AttestationRequest memory req) {
         bytes32 predecessorAttestationId = _getAttestationId(id, version);
-        (uint256 issueDate, uint256 nextUpdate) =
-            EnclaveIdentityLib.getIssueAndNextUpdateDates(enclaveIdentityObj.identityStr);
+        (uint256 issueDate, uint256 nextUpdate, EnclaveId retId) =
+            EnclaveIdentityLib.getIdentitySummary(enclaveIdentityObj.identityStr);
+        if (id != uint256(retId)) {
+            revert Enclave_Id_Mismatch();
+        }
         bytes memory attestationData =
             abi.encode(issueDate, nextUpdate, enclaveIdentityObj.identityStr, enclaveIdentityObj.signature);
         AttestationRequestData memory reqData = AttestationRequestData({
