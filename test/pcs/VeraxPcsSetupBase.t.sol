@@ -39,8 +39,8 @@ abstract contract VeraxPcsSetupBase is VeraxTestBase, PCSConstants {
         // insert root CA
         rootAttestation = pcs.upsertPcsCertificates(CA.ROOT, rootDer);
 
-        // // insert root CRL
-        // rootCrlAttestation = pcs.upsertRootCACrl(rootCrlDer);
+        // insert root CRL
+        rootCrlAttestation = pcs.upsertRootCACrl(rootCrlDer);
 
         // insert Signing CA
         signingAttestation = pcs.upsertPcsCertificates(CA.SIGNING, signingDer);
@@ -62,12 +62,12 @@ abstract contract VeraxPcsSetupBase is VeraxTestBase, PCSConstants {
         bytes32 actualHash = keccak256(rootCaAttestation.attestationData);
         assertEq(actualHash, expectedHash);
 
-        // // validate RootCA attestations
-        // assertTrue(attestationRegistry.isRegistered(rootCrlAttestation));
-        // Attestation memory rootCrl = attestationRegistry.getAttestation(rootCrlAttestation);
-        // expectedHash = keccak256(rootCrlDer);
-        // actualHash = keccak256(rootCrl.attestationData);
-        // assertEq(actualHash, expectedHash);
+        // validate RootCA attestations
+        assertTrue(attestationRegistry.isRegistered(rootCrlAttestation));
+        Attestation memory rootCrl = attestationRegistry.getAttestation(rootCrlAttestation);
+        expectedHash = keccak256(rootCrlDer);
+        actualHash = keccak256(rootCrl.attestationData);
+        assertEq(actualHash, expectedHash);
 
         // validate SigningCA attestations
         assertTrue(attestationRegistry.isRegistered(signingAttestation));

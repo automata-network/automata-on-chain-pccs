@@ -86,12 +86,11 @@ abstract contract PcsDao {
         pcsCrlAttestations[ca] = attestationId;
     }
 
-    // TODO: Implement RootCRL parser. ASN.1 Structure is different from PCK CRL
-    // function upsertRootCACrl(bytes calldata rootcacrl) external returns (bytes32 attestationId) {
-    //     AttestationRequest memory req = _buildPcsAttestationRequest(true, CA.ROOT, rootcacrl);
-    //     attestationId = _attestPcs(req, CA.ROOT);
-    //     pcsCrlAttestations[CA.ROOT] = attestationId;
-    // }
+    function upsertRootCACrl(bytes calldata rootcacrl) external returns (bytes32 attestationId) {
+        AttestationRequest memory req = _buildPcsAttestationRequest(true, CA.ROOT, rootcacrl);
+        attestationId = _attestPcs(req, CA.ROOT);
+        pcsCrlAttestations[CA.ROOT] = attestationId;
+    }
 
     function pcsCertSchemaID() public view virtual returns (bytes32 PCS_CERT_SCHEMA_ID);
 
