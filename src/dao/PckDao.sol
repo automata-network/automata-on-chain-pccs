@@ -52,6 +52,7 @@ abstract contract PckDao {
         }
     }
 
+    /// @question is there a way we can validate the qeid and pceid inputs?
     /**
      * @notice Modified from Section 4.2.2 (upsertPckCert)
      * @notice This method requires an additional CA parameter, because the on-chain PCCS does not
@@ -98,7 +99,7 @@ abstract contract PckDao {
      */
     function pckSchemaID() public view virtual returns (bytes32 PCK_SCHEMA_ID);
 
-     /**
+    /**
      * @dev implement logic to validate and attest PCK Certificates
      * @param req structure as defined by EAS
      * https://github.com/ethereum-attestation-service/eas-contracts/blob/52af661748bde9b40ae782907702f885852bc149/contracts/IEAS.sol#L9C1-L23C2

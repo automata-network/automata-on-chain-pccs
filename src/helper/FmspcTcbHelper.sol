@@ -6,7 +6,7 @@ import {LibString} from "solady/utils/LibString.sol";
 import {DateTimeUtils} from "../utils/DateTimeUtils.sol";
 
 /**
- * @title Solidity Object representing the TCBInfo JSON 
+ * @title Solidity Object representing the TCBInfo JSON
  * @param tcbInfo: tcbInfoJson.tcbInfo string object body
  * @param signature The signature to be passed as bytes array
  */

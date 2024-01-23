@@ -27,7 +27,7 @@ struct X509CertObj {
  * @title X509 Certificates Helper Contract
  * @notice This is a standalone contract that can be used by off-chain applications and smart contracts
  * to parse DER-encoded X509 certificates.
- * @dev The Extension sequence in Intel PCK Certificates is a custom ASN.1 Sequence that needs to be 
+ * @dev The Extension sequence in Intel PCK Certificates is a custom ASN.1 Sequence that needs to be
  * @dev parsed further in a more specialized PCKHelper contract.
  */
 contract X509Helper {
@@ -123,7 +123,7 @@ contract X509Helper {
     /// - 1g. subject public key info
     /// - - 1g(a). algorithm
     /// - - 1g(b). subject public key
-    /// - - 1h. Extensions
+    /// - 1h. Extensions
     /// 2. Signature Algorithm
     /// 3. Signature
     /// - 3a. X value

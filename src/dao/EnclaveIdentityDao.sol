@@ -22,9 +22,6 @@ abstract contract EnclaveIdentityDao {
     /// key: keccak256(id ++ version)
     /// NOTE: the "version" indicated here is taken from the input parameter (e.g. v3 vs v4);
     /// NOT the "version" value found in the Enclave Identity JSON
-    /// TEMP: Currently, there is no way to distinguish between QuoteV3 vs QuoteV4 Enclave Identity
-    /// TODO: The JSON schema for the tcbLevel object is different between V3 and V4, so we might need
-    /// to implement methods to "detect" the JSON schema, as a way of determining whether to assign for V3 or V4 quotes.
     ///
     /// @notice the schema of the attested data is the following:
     /// A tuple of (uint256, uint256, string, bytes)
@@ -35,7 +32,7 @@ abstract contract EnclaveIdentityDao {
     mapping(bytes32 => bytes32) public enclaveIdentityAttestations;
 
     event EnclaveIdentityMissing(uint256 id, uint256 version);
-    
+
     error Enclave_Id_Mismatch();
 
     constructor(address _pcs, address _enclaveIdentityHelper) {
@@ -46,7 +43,7 @@ abstract contract EnclaveIdentityDao {
     /**
      * @notice Section 4.2.9 (getEnclaveIdentity)
      * @notice Gets the enclave identity.
-     * @param id 0: QE; 1: QVE; 2: TD_QE 
+     * @param id 0: QE; 1: QVE; 2: TD_QE
      * https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/39989a42bbbb0c968153a47254b6de79a27eb603/QuoteVerification/QVL/Src/AttestationLibrary/src/Verifiers/EnclaveIdentityV2.h#L49-L52
      * @param version the input version parameter
      * @return enclaveIdObj See {EnclaveIdentityHelper.sol} to learn more about the structure definition
@@ -64,6 +61,11 @@ abstract contract EnclaveIdentityDao {
                 abi.decode(attestedIdentityData, (uint256, uint256, string, bytes));
         }
     }
+
+    /// @question is there a way we can validate the version input?
+    /// TEMP: Currently, there is no way to quickly distinguish between QuoteV3 vs QuoteV4 Enclave Identity
+    /// TODO: The JSON schema for the tcbLevel object is different between V3 and V4, so we might need
+    /// to implement methods to "detect" the JSON schema, as a way of determining whether to assign for V3 or V4 quotes.
 
     /**
      * @notice Section 4.2.9 (upsertEnclaveIdentity)
@@ -102,7 +104,7 @@ abstract contract EnclaveIdentityDao {
     function enclaveIdentitySchemaID() public view virtual returns (bytes32 ENCLAVE_IDENTITY_SCHEMA_ID);
 
     /**
-     * @dev implement logic to validate and attest the enclave identity 
+     * @dev implement logic to validate and attest the enclave identity
      * @param req structure as defined by EAS
      * https://github.com/ethereum-attestation-service/eas-contracts/blob/52af661748bde9b40ae782907702f885852bc149/contracts/IEAS.sol#L9C1-L23C2
      * @return attestationId

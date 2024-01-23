@@ -7,10 +7,10 @@ import {PcsDao} from "./PcsDao.sol";
 import {FmspcTcbHelper, TcbInfoJsonObj} from "../helper/FmspcTcbHelper.sol";
 
 /**
- * @title FMSPC TCB Data Access Object 
+ * @title FMSPC TCB Data Access Object
  * @notice This contract is heavily inspired by Section 4.2.3 in the Intel SGX PCCS Design Guidelines
  * https://download.01.org/intel-sgx/sgx-dcap/1.19/linux/docs/SGX_DCAP_Caching_Service_Design_Guide.pdf
- * @dev should extends this contract and use the provided read/write methods to interact with TCBInfo JSON 
+ * @dev should extends this contract and use the provided read/write methods to interact with TCBInfo JSON
  * data published on-chain.
  */
 
@@ -43,7 +43,8 @@ abstract contract FmspcTcbDao {
      * @param tcbType 0: SGX, 1: TDX
      * https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/39989a42bbbb0c968153a47254b6de79a27eb603/QuoteVerification/QVL/Src/AttestationParsers/src/Json/TcbInfo.cpp#L46-L47
      * @param fmspc FMSPC
-     * @param version v3 or v4
+     * @param version v2 or v3
+     * https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/39989a42bbbb0c968153a47254b6de79a27eb603/QuoteVerification/QVL/Src/AttestationParsers/include/SgxEcdsaAttestation/AttestationParsers.h#L241-L248
      * @return tcbObj See {FmspcTcbHelper.sol} to learn more about the structure definition
      */
     function getTcbInfo(uint256 tcbType, string calldata fmspc, uint256 version)
