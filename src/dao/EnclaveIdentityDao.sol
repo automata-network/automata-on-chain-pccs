@@ -64,8 +64,6 @@ abstract contract EnclaveIdentityDao {
 
     /// @question is there a way we can validate the version input?
     /// TEMP: Currently, there is no way to quickly distinguish between QuoteV3 vs QuoteV4 Enclave Identity
-    /// TODO: The JSON schema for the tcbLevel object is different between V3 and V4, so we might need
-    /// to implement methods to "detect" the JSON schema, as a way of determining whether to assign for V3 or V4 quotes.
 
     /**
      * @notice Section 4.2.9 (upsertEnclaveIdentity)
