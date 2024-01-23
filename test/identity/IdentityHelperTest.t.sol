@@ -14,7 +14,8 @@ contract IdentityHelperTest is IdentityConstants, Test {
     }
 
     function testIdentitySummary() public {
-        (uint256 issueDate, uint256 nextUpdate, EnclaveId id) = enclaveIdentityLib.getIdentitySummary(string(identityStr));
+        (uint256 issueDate, uint256 nextUpdate, EnclaveId id) =
+            enclaveIdentityLib.getIdentitySummary(string(identityStr));
         assertEq(issueDate, 1705288015);
         assertEq(nextUpdate, 1707880015);
         assertEq(uint256(id), 0);

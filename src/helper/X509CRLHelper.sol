@@ -31,6 +31,9 @@ contract X509CRLHelper {
     using NodePtr for uint256;
     using BytesUtils for bytes;
 
+    // 2.5.29.20
+    bytes constant CRL_NUMBER_OID = hex"551d14";
+
     /// =================================================================================
     /// USE THE GETTERS BELOW IF YOU DON'T WANT TO PARSE THE ENTIRE X509 CRL
     /// =================================================================================
@@ -97,8 +100,11 @@ contract X509CRLHelper {
     /// - - 1c(e). country name
     /// - 1d. not before
     /// - 1e. not after
-    /// - 1f. subject
+    /// - 1f. revoked certificates
     /// - - A list consists of revoked serial numbers and reasons.
+    /// - 1g. CRL extensions
+    /// - - 1g(a) CRL number
+    /// - - 1g(b) Authority Key Identifier
     /// 2. Signature Algorithm
     /// 3. Signature
     /// - 3a. X value
@@ -161,24 +167,30 @@ contract X509CRLHelper {
         returns (uint256[] memory serialNumbers)
     {
         uint256 revokedPtr = der.firstChildOf(revokedParentPtr);
-        bytes memory serials;
-        while (revokedPtr.ixl() <= revokedParentPtr.ixl()) {
-            uint256 serialPtr = der.firstChildOf(revokedPtr);
-            bytes memory serialBytes = der.bytesAt(serialPtr);
-            uint256 serialNumber = _parseSerialNumber(serialBytes);
-            serials = abi.encodePacked(serials, serialNumber);
-            if (breakIfFound && filter == serialNumber) {
-                serialNumbers = new uint256[](1);
-                serialNumbers[0] = filter;
-                return serialNumbers;
+
+        if (der[revokedPtr.ixs()] == 0xA0) {
+            uint256 crlExtensionPtr = der.firstChildOf(revokedPtr);
+            require(BytesUtils.compareBytes(der.bytesAt(crlExtensionPtr), CRL_NUMBER_OID), "invalid CRL");
+        } else {
+            bytes memory serials;
+            while (revokedPtr.ixl() <= revokedParentPtr.ixl()) {
+                uint256 serialPtr = der.firstChildOf(revokedPtr);
+                bytes memory serialBytes = der.bytesAt(serialPtr);
+                uint256 serialNumber = _parseSerialNumber(serialBytes);
+                serials = abi.encodePacked(serials, serialNumber);
+                if (breakIfFound && filter == serialNumber) {
+                    serialNumbers = new uint256[](1);
+                    serialNumbers[0] = filter;
+                    return serialNumbers;
+                }
+                revokedPtr = der.nextSiblingOf(revokedPtr);
             }
-            revokedPtr = der.nextSiblingOf(revokedPtr);
+            uint256 count = serials.length / 32;
+            // ABI encoding format for a dynamic uint256[] value
+            serials = abi.encodePacked(abi.encode(0x20), abi.encode(count), serials);
+            serialNumbers = new uint256[](count);
+            serialNumbers = abi.decode(serials, (uint256[]));
         }
-        uint256 count = serials.length / 32;
-        // ABI encoding format for a dynamic uint256[] value
-        serials = abi.encodePacked(abi.encode(0x20), abi.encode(count), serials);
-        serialNumbers = new uint256[](count);
-        serialNumbers = abi.decode(serials, (uint256[]));
     }
 
     function _parseSerialNumber(bytes memory serialBytes) private pure returns (uint256 serial) {
