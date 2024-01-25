@@ -62,11 +62,6 @@ contract PcsDaoPortal is PcsDao, AbstractPortal, SigVerifyModuleBase {
         PCS_CRL_SCHEMA_ID = 0xca0446aabb4cf5f2ce35e983f5d0ff69a4cbe43c9740d8e83af54dbc3e4a884c;
     }
 
-    // function certificateChainSchemaID() public pure override returns (bytes32 CERTIFICATE_CHAIN_SCHEMA_ID) {
-    //     // https://docs.ver.ax/verax-documentation/developer-guides/for-attestation-issuers/link-attestations
-    //     CERTIFICATE_CHAIN_SCHEMA_ID = 0x89bd76e17fd84df8e1e448fa1b46dd8d97f7e8e806552b003f8386a5aebcb9f0;
-    // }
-
     function _attestPcs(AttestationRequest memory req, CA ca) internal override returns (bytes32 attestationId) {
         _unlock = true;
 
@@ -90,29 +85,6 @@ contract PcsDaoPortal is PcsDao, AbstractPortal, SigVerifyModuleBase {
 
         _unlock = false;
     }
-
-    // function _attestCertChain(AttestationRequest memory req) internal override returns (bytes32 attestationId) {
-    //     _unlock = true;
-
-    //     bytes[] memory validationPayload = new bytes[](1);
-
-    //     (bytes32 certAttestationId,, bytes32 issuerAttestationId) =
-    //         abi.decode(req.data.data, (bytes32, string, bytes32));
-
-    //     bytes memory cert = _getAttestedData(certAttestationId);
-    //     bytes memory issuer = _getAttestedData(issuerAttestationId);
-    //     validationPayload[0] = abi.encode(cert, issuer);
-
-    //     AttestationPayload memory attestationPayload =
-    //         AttestationPayload(req.schema, req.data.expirationTime, abi.encodePacked(req.data.recipient), req.data.data);
-
-    //     uint32 attestationIdCounter = attestationRegistry.getAttestationIdCounter();
-    //     attestationId = bytes32(abi.encode(attestationIdCounter));
-
-    //     super.attest(attestationPayload, validationPayload);
-
-    //     _unlock = false;
-    // }
 
     function _getAttestedData(bytes32 attestationId) internal view override returns (bytes memory attestationData) {
         if (attestationRegistry.isRegistered(attestationId)) {
@@ -191,9 +163,6 @@ contract PcsDaoPortal is PcsDao, AbstractPortal, SigVerifyModuleBase {
         bytes32 intermediateCertAttestationId = pcsCertAttestations[ca];
         bytes32 rootCertAttestationId = pcsCertAttestations[CA.ROOT];
         if (ca != CA.ROOT) {
-            // if (!verifyCertchain(intermediateCertAttestationId, rootCertAttestationId)) {
-            //     revert("Unverified CRL Cert Chain");
-            // }
             issuerCert = _getAttestedData(intermediateCertAttestationId);
         } else {
             issuerCert = _getAttestedData(rootCertAttestationId);
@@ -230,15 +199,6 @@ contract PcsDaoPortal is PcsDao, AbstractPortal, SigVerifyModuleBase {
                 }
             }
         }
-        // else if (attestationPayload.schemaId == CERTIFICATE_CHAIN_SCHEMA_ID) {
-        //     (bytes memory cert, bytes memory issuer) = abi.decode(validationPayload, (bytes, bytes));
-        //     (bytes memory tbs, bytes memory signature) = x509Helper.getTbsAndSig(cert);
-        //     bytes32 digest = sha256(tbs);
-        //     bool sigVerified = verifySignature(digest, signature, issuer);
-        //     if (!sigVerified) {
-        //         revert Invalid_Signature();
-        //     }
-        // }
         else if (attestationPayload.schemaId == pcsCertSchemaID()) {
             bytes memory cert = attestationPayload.attestationData;
             {
