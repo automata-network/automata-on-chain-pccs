@@ -33,7 +33,7 @@ function parseEnclaveIdentity(data) {
 
 /// To upsert, run the command: node identity.js -u <id> <version> <path>
 /// The upsert commmand generates the individual function arguments to be passed to the contract.
-/// To parse the returned identity, node identity.js -p <data>
+/// To parse the returned identity, node identity.js -p <solidity-returned-data>
 /// The get command retrieves the Identity from the contract and returns the output as a JSON
 /// To save a local copy of the JSON file, append the -s flag at the end.
 function main() {

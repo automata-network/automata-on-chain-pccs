@@ -1,4 +1,5 @@
 const fs = require('fs');
+const { AbiCoder } = require('ethers'); 
 
 const X509_FOOTER = '-----END CERTIFICATE-----';
 const X509_CRL_FOOTER = '-----END X509 CRL-----';
@@ -35,8 +36,8 @@ function splitPemCertchain(pem) {
 
 /// The following command converts a PEM (can be an individual certificate or a certificate chain) to DER
 /// node x509base64.js --decode <pem-path>
-/// The following command converts (one or multiple) DER hexstrings and returns an array of Base64 encoded string
-/// node x509base64.js --encode [...DER hexstring]
+/// The following command converts the returned DER-encoded tuple to an array of Base64 encoded string
+/// node x509base64.js --encode <solidity-returned-data>
 /// each hexstrings are separated by a space
 function main() {
     const flag = process.argv[2];
@@ -54,11 +55,13 @@ function main() {
             console.log('\n');
         }
     } else if (flag === '--encode' || flag === '-e') {
-        const count = process.argv.length - 3; // data begins at index 3
-        const derArr = process.argv.slice(3, process.argv.length);
-        for (let i = 0; i < count; i++) {
-            console.log(`=== Printing Base64 ${i + 1} of ${count} ===`);
-            console.log(convertDerHexToPem(derArr[i]));
+        const data = process.argv[3];
+        const derArr = AbiCoder.defaultAbiCoder().decode([
+            'bytes', 'bytes'
+        ], data);
+        for (let i = 0; i < 2; i++) {
+            console.log(`=== Printing Base64 ${i + 1} of 2 ===`);
+            console.log(convertDerHexToPem(derArr[i].substring(2))); // remove prefix
             console.log('\n');
         }
     } else {

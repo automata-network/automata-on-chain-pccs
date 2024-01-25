@@ -20,7 +20,7 @@ function upsertFmspcTcb(tcbInfo, signature) {
         signature: checkPrefix(signature)
     };
     return [
-        "upsertFmspcTcb", tcbInfoObj
+        "upsertFmspcTcb()", tcbInfoObj
     ]
 }
 
@@ -33,7 +33,7 @@ function parseTcbInfo(data) {
 
 /// To upsert, run the command: node tcbinfo.js -u <path>
 /// The upsert commmand generates the individual function arguments to be passed to the contract.
-/// To parse the returned TCBInfo, node tcbinfo.js -p <data>
+/// To parse the returned TCBInfo, node tcbinfo.js -p <solidity-returned-data>
 /// The get command retrieves the TCBInfo from the contract and returns the output as a JSON
 /// To save a local copy of the JSON file, append the -s flag at the end.
 function main() {
