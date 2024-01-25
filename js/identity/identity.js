@@ -77,6 +77,7 @@ function main() {
         }
     } else {
         console.error("Unknown or missing instruction");
+        process.exit(1);
     }
 }
 
