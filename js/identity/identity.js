@@ -39,7 +39,6 @@ function parseEnclaveIdentity(data) {
 function main() {
     const flag = process.argv[2];
     if (flag === '-u' || flag === '--upsert') {
-        const { enclaveIdentity, signature } = require(path);
         const id = process.argv[3];
         if (!id || isNaN(id)) {
             console.error("Missing or invalid ID");
@@ -51,6 +50,7 @@ function main() {
             process.exit(1);
         }
         const path = process.argv[5];
+        const { enclaveIdentity, signature } = require(path);
         if (!path) {
             console.error("Missing Identity Path");
             process.exit(1);
