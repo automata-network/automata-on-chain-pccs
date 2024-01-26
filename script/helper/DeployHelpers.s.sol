@@ -27,7 +27,7 @@ contract DeployHelpers is Script {
     function deployPckHelper() public {
         vm.startBroadcast(privateKey);
         PCKHelper pckHelper = new PCKHelper();
-        console.log("[LOG] PCKHelper: ", address(pckHelper));
+        console.log("[LOG] PCKHelper/X509Helper: ", address(pckHelper));
         vm.stopBroadcast();
     }
 
