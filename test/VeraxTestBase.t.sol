@@ -22,12 +22,12 @@ abstract contract VeraxTestBase is Test {
 
     address internal constant registryOwner = 0x39241A22eA7162C206409aAA2E4a56f9a79c15AB;
     string internal forkUrl = vm.envString("FORK_URL");
-    address internal router = vm.envAddress("ROUTER_ADDRESS");
-    PortalRegistry internal portalRegistry = PortalRegistry(vm.envAddress("PORTAL_REGISTRY_ADDRESS"));
-    SchemaRegistry internal schemaRegistry = SchemaRegistry(vm.envAddress("SCHEMA_REGISTRY_ADDRESS"));
-    ModuleRegistry internal moduleRegistry = ModuleRegistry(vm.envAddress("MODULE_REGISTRY_ADDRESS"));
+    address internal router = vm.envAddress("TEST_ROUTER_ADDRESS");
+    PortalRegistry internal portalRegistry = PortalRegistry(vm.envAddress("TEST_PORTAL_REGISTRY_ADDRESS"));
+    SchemaRegistry internal schemaRegistry = SchemaRegistry(vm.envAddress("TEST_SCHEMA_REGISTRY_ADDRESS"));
+    ModuleRegistry internal moduleRegistry = ModuleRegistry(vm.envAddress("TEST_MODULE_REGISTRY_ADDRESS"));
     AttestationRegistry internal attestationRegistry =
-        AttestationRegistry(vm.envAddress("ATTESTATION_REGISTRY_ADDRESS"));
+        AttestationRegistry(vm.envAddress("TEST_ATTESTATION_REGISTRY_ADDRESS"));
 
     bytes32 internal constant ENCLAVE_IDENTITY_SCHEMA_ID =
         0x97b41ea5b7cea14d9f50d4b8f09b6fff7744522db6e340e18fbc324810ab9152;
