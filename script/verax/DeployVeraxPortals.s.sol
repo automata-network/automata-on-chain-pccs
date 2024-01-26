@@ -42,7 +42,7 @@ contract DeployVeraxPortal is Script {
         address[] memory blank;
         EnclaveIdentityDaoPortal enclaveIdentity =
             new EnclaveIdentityDaoPortal(blank, router, pcs, enclaveIdentityHelper, x509);
-        console.log("[LOG] PcsDaoPortal: ", address(enclaveIdentity));
+        console.log("[LOG] EnclaveIdentityDaoPortal: ", address(enclaveIdentity));
 
         vm.stopBroadcast();
     }
