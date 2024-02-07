@@ -4,13 +4,12 @@ pragma solidity ^0.8.0;
 import {AbstractPortal} from "@consensys/linea-attestation-registry-contracts/abstracts/AbstractPortal.sol";
 import {AttestationPayload, Attestation} from "@consensys/linea-attestation-registry-contracts/types/Structs.sol";
 import {LibString} from "solady/utils/LibString.sol";
-import {OwnableRoles} from "solady/auth/OwnableRoles.sol";
 import {PckDao, AttestationRequest, CA} from "../../dao/PckDao.sol";
 import {X509CRLHelper} from "../../helper/X509CRLHelper.sol";
 import {PCKHelper, X509CertObj} from "../../helper/PCKHelper.sol";
 import {SigVerifyModuleBase} from "../base/SigVerifyModuleBase.sol";
 
-contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase, OwnableRoles {
+contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase {
     /// @notice Error thrown when trying to improperly make attestations
     error No_External_Attestation();
     /// @notice Error thrown when trying to retrieve an attestation that has been revoked/replaced
@@ -20,14 +19,12 @@ contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase, OwnableRol
     error Invalid_Issuer_Name();
     error Invalid_Subject_Name();
     error Expired_Certificates();
+    error TCB_Mismatch();
     error Forbidden();
 
     string constant PCK_PLATFORM_CA_COMMON_NAME = "Intel SGX PCK Platform CA";
     string constant PCK_PROCESSOR_CA_COMMON_NAME = "Intel SGX PCK Processor CA";
     string constant PCK_COMMON_NAME = "Intel SGX PCK Certificate";
-
-    // keccak256(bytes("ATTESTOR_ROLE"))
-    uint256 constant ATTESTOR_ROLE = 0xa7e0cd0f2772b23ee4c329892293a6bd99d48c306b094d6d008c9a8bb8b731e4;
 
     bool private _unlock;
     X509CRLHelper public x509CrlHelper;
@@ -40,7 +37,6 @@ contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase, OwnableRol
         // validation is done here. No need for a module.
         require(modules.length == 0);
         x509CrlHelper = X509CRLHelper(x509crl);
-        _setRoles(msg.sender, ATTESTOR_ROLE);
     }
 
     modifier locked() {
@@ -189,10 +185,6 @@ contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase, OwnableRol
         /// @notice: external attestations not possible, therefore this code is unreachable
     }
 
-    function _adminOnly(address caller) internal view override returns (bool) {
-        return hasAnyRole(caller, ATTESTOR_ROLE);
-    }
-
     function _validate(AttestationPayload memory attestationPayload, CA ca, string calldata pceid, string calldata tcbm)
         private
         view
@@ -222,13 +214,16 @@ contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase, OwnableRol
                 revert Invalid_Subject_Name();
             }
         }
-        // {
-        //     // validate pceid and tcbm
-        //     (uint256 pcesvn, uint256[] memory cpusvns,, bytes memory pceidBytes) =
-        //         PCKHelper(address(x509Helper)).parsePckExtension(cert, pck.extensionPtr);
-        //     bool pceidMatched = LibString.eq(pceid, LibString.toHexString(pceidBytes));
-
-        // }
+        {
+            // validate pceid and tcbm
+            (uint16 pcesvn, uint8[] memory cpusvns,, bytes memory pceidBytes) =
+                PCKHelper(address(x509Helper)).parsePckExtension(cert, pck.extensionPtr);
+            bool pceidMatched = LibString.eq(pceid, LibString.toHexStringNoPrefix(pceidBytes));
+            bool tcbIsValid = _validateTcb(tcbm, pcesvn, cpusvns);
+            if (!pceidMatched || !tcbIsValid) {
+                revert TCB_Mismatch();
+            }
+        }
         (bytes memory issuerCert,) = getPckCertChain(ca);
         bytes memory crl = _getAttestedData(Pcs.pcsCrlAttestations(ca));
         {
@@ -240,7 +235,6 @@ contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase, OwnableRol
                     revert Certificate_Revoked(serialNum);
                 }
             }
-
             if (issuerCert.length > 0) {
                 bytes32 digest = sha256(pck.tbs);
                 bool sigVerified = verifySignature(digest, pck.signature, issuerCert);
@@ -249,6 +243,27 @@ contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase, OwnableRol
                 }
             } else {
                 revert Forbidden();
+            }
+        }
+    }
+
+    function _validateTcb(string memory tcbm, uint16 pcesvn, uint8[] memory cpusvns) private pure returns (bool) {
+        bytes memory encodedPceSvn = _littleEndianEncode(abi.encodePacked(pcesvn));
+        bytes memory encodedCpuSvn;
+        for (uint256 i = 0; i < cpusvns.length; i++) {
+            encodedCpuSvn = abi.encodePacked(encodedCpuSvn, cpusvns[i]);
+        }
+        bytes memory encodedTcbmBytes = abi.encodePacked(encodedCpuSvn, encodedPceSvn);
+        string memory encodedTcbmHex = LibString.toHexStringNoPrefix(encodedTcbmBytes);
+        return LibString.eq(tcbm, encodedTcbmHex);
+    }
+
+    function _littleEndianEncode(bytes memory input) private pure returns (bytes memory encoded) {
+        uint256 n = input.length;
+        for (uint256 i = n; i > 0;) {
+            encoded = abi.encodePacked(encoded, input[i - 1]);
+            unchecked {
+                i--;
             }
         }
     }

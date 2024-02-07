@@ -32,7 +32,7 @@ contract PCKHelper is X509Helper {
     function parsePckExtension(bytes memory der, uint256 extensionPtr)
         external
         pure
-        returns (uint256 pcesvn, uint256[] memory cpusvns, bytes memory fmspcBytes, bytes memory pceidBytes)
+        returns (uint16 pcesvn, uint8[] memory cpusvns, bytes memory fmspcBytes, bytes memory pceidBytes)
     {
         if (der[extensionPtr.ixs()] != 0xA3) {
             revert("Not an extension");
@@ -47,13 +47,7 @@ contract PCKHelper is X509Helper {
     function _findPckTcbInfo(bytes memory der, uint256 ptr, uint256 parentPtr)
         private
         pure
-        returns (
-            bool success,
-            uint256 pcesvn,
-            uint256[] memory cpusvns,
-            bytes memory fmspcBytes,
-            bytes memory pceidBytes
-        )
+        returns (bool success, uint16 pcesvn, uint8[] memory cpusvns, bytes memory fmspcBytes, bytes memory pceidBytes)
     {
         // iterate through the elements in the Extension sequence
         // until we locate the SGX Extension OID
@@ -115,13 +109,13 @@ contract PCKHelper is X509Helper {
     function _findTcb(bytes memory der, uint256 oidPtr)
         private
         pure
-        returns (bool success, uint256 pcesvn, uint256[] memory cpusvns)
+        returns (bool success, uint16 pcesvn, uint8[] memory cpusvns)
     {
         // sibiling of tcbOid
         uint256 tcbPtr = der.nextSiblingOf(oidPtr);
         // get the first svn object in the sequence
         uint256 svnParentPtr = der.firstChildOf(tcbPtr);
-        cpusvns = new uint256[](SGX_TCB_CPUSVN_SIZE);
+        cpusvns = new uint8[](SGX_TCB_CPUSVN_SIZE);
         for (uint256 i = 0; i < SGX_TCB_CPUSVN_SIZE + 1; i++) {
             uint256 svnPtr = der.firstChildOf(svnParentPtr); // OID
             uint256 svnValuePtr = der.nextSiblingOf(svnPtr); // value
@@ -130,10 +124,9 @@ contract PCKHelper is X509Helper {
                 svnValueBytes.length < 2 ? uint16(bytes2(svnValueBytes)) / 256 : uint16(bytes2(svnValueBytes));
             if (BytesUtils.compareBytes(der.bytesAt(svnPtr), PCESVN_OID)) {
                 // pcesvn is 4 bytes in size
-                pcesvn = uint256(svnValue);
+                pcesvn = uint16(svnValue);
             } else {
-                // each cpusvn is at maximum two bytes in size
-                uint256 cpusvn = uint256(svnValue);
+                uint8 cpusvn = uint8(svnValue);
                 cpusvns[i] = cpusvn;
             }
 

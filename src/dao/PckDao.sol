@@ -44,7 +44,6 @@ abstract contract PckDao {
 
     /// @notice the input CA parameter can only be either PROCESSOR or PLATFORM
     error Invalid_PCK_CA(CA ca);
-    error Not_An_Admin(address caller);
     /// @notice The corresponding PCK Certificate cannot be found for the given platform
     error Pck_Not_Found();
 
@@ -136,9 +135,6 @@ abstract contract PckDao {
         string calldata tcbm,
         bytes calldata cert
     ) external pckCACheck(ca) returns (bytes32 attestationId) {
-        if (!_adminOnly(msg.sender)) {
-            revert Not_An_Admin(msg.sender);
-        }
         AttestationRequest memory req = _buildPckCertAttestationRequest(qeid, pceid, tcbm, cert);
         attestationId = _attestPck(req, ca, pceid, tcbm);
         pckCertAttestations[keccak256(abi.encodePacked(qeid, pceid, tcbm))] = attestationId;
@@ -212,12 +208,6 @@ abstract contract PckDao {
      * @param attestationId maps to the data
      */
     function _getAttestedData(bytes32 attestationId) internal view virtual returns (bytes memory attestationData);
-
-    /**
-     * @dev must implement their own access-control mechanism
-     * @param caller address
-     */
-    function _adminOnly(address caller) internal view virtual returns (bool);
 
     /**
      * @notice computes the key that maps to the corresponding attestation ID
