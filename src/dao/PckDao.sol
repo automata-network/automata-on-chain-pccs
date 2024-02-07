@@ -18,9 +18,10 @@ abstract contract PckDao {
     PcsDao public Pcs;
     PlatformTcbsDao public PlatformTcbs;
 
+    /// K = keccak256(qeid ++ pceid)
     /// H = keccak256(qeid ++ pceid ++ tcbm)
-    /// Enumerable H Set
-    EnumerableSet.Bytes32Set private _tcbmHSet;
+    /// K => Enumerable H Set
+    mapping(bytes32 => EnumerableSet.Bytes32Set) private _tcbmHSets;
     /// H => tcbm
     mapping(bytes32 => string) private _tcbmStrMap;
 
@@ -36,7 +37,7 @@ abstract contract PckDao {
 
     /// @notice the input CA parameter can only be either PROCESSOR or PLATFORM
     error Invalid_PCK_CA(CA ca);
-    error Unauthorized();
+    error Not_An_Admin(address caller);
 
     modifier pckCACheck(CA ca) {
         if (ca == CA.ROOT || ca == CA.SIGNING) {
@@ -54,10 +55,12 @@ abstract contract PckDao {
      * @notice Section 4.2.2 (getCert(qe_id, cpu_svn, pce_svn, pce_id))
      * @notice The ordering of arguments is slightly different from the interface specified in the design guideline
      */
-    function getCert(string calldata qeid, string calldata platformCpuSvn, string calldata platformPceSvn, string calldata pceid)
-        external
-        returns (bytes memory pckCert)
-    {
+    function getCert(
+        string calldata qeid,
+        string calldata platformCpuSvn,
+        string calldata platformPceSvn,
+        string calldata pceid
+    ) external returns (bytes memory pckCert) {
         string memory tcbm = _getTcbm(qeid, platformCpuSvn, platformPceSvn, pceid);
         bytes32 attestationId = _getAttestationId(qeid, pceid, tcbm);
         if (attestationId == bytes32(0)) {
@@ -71,14 +74,15 @@ abstract contract PckDao {
         external
         returns (string[] memory tcbms, bytes[] memory pckCerts)
     {
-        uint256 n = _tcbmHSet.length();
+        bytes32 k = keccak256(abi.encodePacked(qeid, pceid));
+        uint256 n = _tcbmHSets[k].length();
         if (n == 0) {
             emit PCKsMissing(qeid, pceid);
         } else {
             tcbms = new string[](n);
             pckCerts = new bytes[](n);
             for (uint256 i = 0; i < n; i++) {
-                tcbms[i] = _tcbmStrMap[_tcbmHSet.at(i)];
+                tcbms[i] = _tcbmStrMap[_tcbmHSets[k].at(i)];
                 bytes32 attestationId = _getAttestationId(qeid, pceid, tcbms[i]);
                 pckCerts[i] = _getAttestedData(attestationId);
             }
@@ -103,7 +107,7 @@ abstract contract PckDao {
         bytes calldata cert
     ) external pckCACheck(ca) returns (bytes32 attestationId) {
         if (!_adminOnly(msg.sender)) {
-            revert Unauthorized();
+            revert Not_An_Admin(msg.sender);
         }
         AttestationRequest memory req = _buildPckCertAttestationRequest(qeid, pceid, tcbm, cert);
         attestationId = _attestPck(req, ca);
@@ -186,17 +190,20 @@ abstract contract PckDao {
         req = AttestationRequest({schema: pckSchemaID(), data: reqData});
     }
 
-    function _getTcbm(string calldata qeid, string calldata platformCpuSvn, string calldata platformPceSvn, string calldata pceid)
-        private
-        returns (string memory tcbm)
-    {
+    function _getTcbm(
+        string calldata qeid,
+        string calldata platformCpuSvn,
+        string calldata platformPceSvn,
+        string calldata pceid
+    ) private returns (string memory tcbm) {
         tcbm = PlatformTcbs.getPlatformTcbByIdAndSvns(qeid, pceid, platformCpuSvn, platformPceSvn);
     }
 
     function _upsertTcbm(string calldata qeid, string calldata pceid, string calldata tcbm) private {
+        bytes32 k = keccak256(abi.encodePacked(qeid, pceid));
         bytes32 h = keccak256(abi.encodePacked(qeid, pceid, tcbm));
-        if (!_tcbmHSet.contains(h)) {
-            _tcbmHSet.add(h);
+        if (!_tcbmHSets[k].contains(h)) {
+            _tcbmHSets[k].add(h);
             _tcbmStrMap[h] = tcbm;
         }
     }
