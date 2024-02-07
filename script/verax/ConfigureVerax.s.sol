@@ -70,30 +70,37 @@ contract ConfigureVerax is Script {
             "", // Context
             "bytes pcsCrl" // Schema
         );
+        // Platform TCBs Schema
+        schemaRegistry.createSchema(
+            "Intel On-Chain PCCS Platform TCBs", // name
+            "", // Description
+            "", // Context
+            "string tcbm" // Schema
+        );
     }
 
     function _registerPortals() private {
-        portalRegistry.register(
-            address(pcs),
-            "Intel On Chain PCS Data Access Object Portal", // name
-            "some-description", // description
-            true, // isRevocable
-            "some-owner" // ownerName
-        );
-        portalRegistry.register(
-            address(enclaveIdentity),
-            "Intel On Chain Enclave Identity Data Access Object Portal", // name
-            "some-description", // description
-            true, // isRevocable
-            "some-owner" // ownerName
-        );
-        portalRegistry.register(
-            address(fmspcTcb),
-            "Intel On Chain FMPSC TCB Data Access Object Portal", // name
-            "some-description", // description
-            true, // isRevocable
-            "some-owner" // ownerName
-        );
+        // portalRegistry.register(
+        //     address(pcs),
+        //     "Intel On Chain PCS Data Access Object Portal", // name
+        //     "some-description", // description
+        //     true, // isRevocable
+        //     "some-owner" // ownerName
+        // );
+        // portalRegistry.register(
+        //     address(enclaveIdentity),
+        //     "Intel On Chain Enclave Identity Data Access Object Portal", // name
+        //     "some-description", // description
+        //     true, // isRevocable
+        //     "some-owner" // ownerName
+        // );
+        // portalRegistry.register(
+        //     address(fmspcTcb),
+        //     "Intel On Chain FMPSC TCB Data Access Object Portal", // name
+        //     "some-description", // description
+        //     true, // isRevocable
+        //     "some-owner" // ownerName
+        // );
         portalRegistry.register(
             address(pck),
             "Intel On Chain PCK Data Access Object Portal", // name
