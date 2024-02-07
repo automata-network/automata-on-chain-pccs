@@ -4,11 +4,13 @@ pragma solidity ^0.8.0;
 import {AbstractPortal} from "@consensys/linea-attestation-registry-contracts/abstracts/AbstractPortal.sol";
 import {AttestationPayload, Attestation} from "@consensys/linea-attestation-registry-contracts/types/Structs.sol";
 import {LibString} from "solady/utils/LibString.sol";
+import {OwnableRoles} from "solady/auth/OwnableRoles.sol";
 import {PckDao, AttestationRequest, CA} from "../../dao/PckDao.sol";
 import {X509CRLHelper} from "../../helper/X509CRLHelper.sol";
+import {PCKHelper} from "../../helper/PCKHelper.sol";
 import {SigVerifyModuleBase} from "../base/SigVerifyModuleBase.sol";
 
-contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase {
+contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase, OwnableRoles {
     /// @notice Error thrown when trying to improperly make attestations
     error No_External_Attestation();
     /// @notice Error thrown when trying to retrieve an attestation that has been revoked/replaced
@@ -24,17 +26,24 @@ contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase {
     string constant PCK_PROCESSOR_CA_COMMON_NAME = "Intel SGX PCK Processor CA";
     string constant PCK_COMMON_NAME = "Intel SGX PCK Certificate";
 
+    // keccak256(bytes("ATTESTOR_ROLE"))
+    uint256 constant ATTESTOR_ROLE = 0xa7e0cd0f2772b23ee4c329892293a6bd99d48c306b094d6d008c9a8bb8b731e4;
+
     bool private _unlock;
     X509CRLHelper public x509CrlHelper;
 
-    constructor(address[] memory modules, address router, address pcs, address x509, address x509crl)
-        AbstractPortal(modules, router)
-        PckDao(pcs)
-        SigVerifyModuleBase(x509)
-    {
+    constructor(
+        address[] memory modules,
+        address router,
+        address pcs,
+        address platformTcbs,
+        address x509,
+        address x509crl
+    ) AbstractPortal(modules, router) PckDao(pcs, platformTcbs) SigVerifyModuleBase(x509) {
         // validation is done here. No need for a module.
         require(modules.length == 0);
         x509CrlHelper = X509CRLHelper(x509crl);
+        _setRoles(msg.sender, ATTESTOR_ROLE);
     }
 
     modifier locked() {
@@ -146,6 +155,10 @@ contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase {
         bytes[][] memory /*validationPayloads*/
     ) internal override locked {
         /// @notice: external attestations not possible, therefore this code is unreachable
+    }
+
+    function _adminOnly(address caller) internal view override returns (bool) {
+        return hasAnyRole(caller, ATTESTOR_ROLE);
     }
 
     function _validate(AttestationPayload memory attestationPayload, CA ca) private view {

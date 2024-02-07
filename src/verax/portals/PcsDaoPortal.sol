@@ -198,8 +198,7 @@ contract PcsDaoPortal is PcsDao, AbstractPortal, SigVerifyModuleBase {
                     revert Invalid_Signature();
                 }
             }
-        }
-        else if (attestationPayload.schemaId == pcsCertSchemaID()) {
+        } else if (attestationPayload.schemaId == pcsCertSchemaID()) {
             bytes memory cert = attestationPayload.attestationData;
             {
                 bool valid = x509Helper.certIsNotExpired(cert);

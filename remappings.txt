@@ -1,3 +1,4 @@
 solady/=lib/solady/src/
 @consensys/linea-attestation-registry-contracts/=lib/linea-attestation-registry/contracts/src/
 p256-verifier/=lib/p256-verifier/src/
+@openzeppelin/contracts/=lib/linea-attestation-registry/contracts/lib/openzeppelin-contracts/contracts/
