@@ -3,9 +3,10 @@ cache/
 out/
 
 # Ignores development broadcast logs
-!/broadcast
-/broadcast/*/31337/
-/broadcast/**/dry-run/
+broadcast/**/31337/
+broadcast/**/run-*.json
+broadcast/**/dry-run/
+!broadcast/**/*-latest.json
 
 # Docs
 docs/
@@ -14,3 +15,5 @@ docs/
 .env
 
 **/.DS_Store
+
+**/node_modules/

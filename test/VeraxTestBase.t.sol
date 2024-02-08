@@ -11,23 +11,23 @@ import {AttestationRegistry} from "@consensys/linea-attestation-registry-contrac
 import {EnclaveIdentityHelper, EnclaveIdentityJsonObj} from "../src/helper/EnclaveIdentityHelper.sol";
 import {FmspcTcbHelper, TcbInfoJsonObj} from "../src/helper/FmspcTcbHelper.sol";
 import {X509CRLHelper, X509CRLObj} from "../src/helper/X509CRLHelper.sol";
-import {X509Helper, X509CertObj} from "../src/helper/X509Helper.sol";
+import {PCKHelper, X509CertObj} from "../src/helper/PCKHelper.sol";
 
 abstract contract VeraxTestBase is Test {
     EnclaveIdentityHelper enclaveIdentityLib;
     FmspcTcbHelper fsmpcTcbLib;
     X509CRLHelper x509CrlLib;
-    X509Helper x509Lib;
+    PCKHelper x509Lib;
     address admin = address(1);
 
     address internal constant registryOwner = 0x39241A22eA7162C206409aAA2E4a56f9a79c15AB;
     string internal forkUrl = vm.envString("FORK_URL");
-    address internal router = vm.envAddress("ROUTER_ADDRESS");
-    PortalRegistry internal portalRegistry = PortalRegistry(vm.envAddress("PORTAL_REGISTRY_ADDRESS"));
-    SchemaRegistry internal schemaRegistry = SchemaRegistry(vm.envAddress("SCHEMA_REGISTRY_ADDRESS"));
-    ModuleRegistry internal moduleRegistry = ModuleRegistry(vm.envAddress("MODULE_REGISTRY_ADDRESS"));
+    address internal router = vm.envAddress("TEST_ROUTER_ADDRESS");
+    PortalRegistry internal portalRegistry = PortalRegistry(vm.envAddress("TEST_PORTAL_REGISTRY_ADDRESS"));
+    SchemaRegistry internal schemaRegistry = SchemaRegistry(vm.envAddress("TEST_SCHEMA_REGISTRY_ADDRESS"));
+    ModuleRegistry internal moduleRegistry = ModuleRegistry(vm.envAddress("TEST_MODULE_REGISTRY_ADDRESS"));
     AttestationRegistry internal attestationRegistry =
-        AttestationRegistry(vm.envAddress("ATTESTATION_REGISTRY_ADDRESS"));
+        AttestationRegistry(vm.envAddress("TEST_ATTESTATION_REGISTRY_ADDRESS"));
 
     bytes32 internal constant ENCLAVE_IDENTITY_SCHEMA_ID =
         0x97b41ea5b7cea14d9f50d4b8f09b6fff7744522db6e340e18fbc324810ab9152;
@@ -55,7 +55,7 @@ abstract contract VeraxTestBase is Test {
         enclaveIdentityLib = new EnclaveIdentityHelper();
         fsmpcTcbLib = new FmspcTcbHelper();
         x509CrlLib = new X509CRLHelper();
-        x509Lib = new X509Helper();
+        x509Lib = new PCKHelper();
 
         // registers schemas
 
@@ -93,6 +93,13 @@ abstract contract VeraxTestBase is Test {
             "", // Description
             "", // Context
             "bytes pcsCrl" // Schema
+        );
+        // Platform TCBs Schema
+        schemaRegistry.createSchema(
+            "Intel On-Chain Platform TCBs", // name
+            "", // Description
+            "", // Context
+            "string tcbm" // Schema
         );
 
         vm.stopPrank();
