@@ -23,18 +23,18 @@ enum EnclaveId {
 
 /// @dev Parsed IdentityStr to an object, except for TCBLevels
 struct IdentityObj {
-    string id;
+    EnclaveId id;
     uint256 version;
-    string issueDate;
-    string nextUpdate;
+    uint256 issueDateTimestamp; // UNIX Epoch Timestamp in seconds
+    uint256 nextUpdateTimestamp; // UNIX Epoch Timestamp in seconds
     uint256 tcbEvaluationDataNumber;
-    string miscselect;
-    string miscselectMask;
-    string attributes;
-    string attributesMask;
-    string mrSigner;
-    string isvprodid;
-    string tcbLevelsObjStr;
+    bytes4 miscselect;
+    bytes4 miscselectMask;
+    bytes16 attributes;
+    bytes16 attributesMask;
+    bytes32 mrsigner;
+    uint16 isvprodid;
+    string rawTcbLevelsObjStr;
 }
 
 /**
@@ -42,7 +42,6 @@ struct IdentityObj {
  * @notice This is a standalone contract that can be used by off-chain applications and smart contracts
  * to parse Enclave Identity Blob
  */
-
 contract EnclaveIdentityHelper {
     using JSONParserLib for JSONParserLib.Item;
     using LibString for string;
@@ -55,41 +54,93 @@ contract EnclaveIdentityHelper {
         pure
         returns (uint256 issueDate, uint256 nextUpdate, EnclaveId id)
     {
+        IdentityObj memory identity = _parseIdentity(identityStr, false);
+        issueDate = identity.issueDateTimestamp;
+        nextUpdate = identity.nextUpdateTimestamp;
+        id = identity.id;
+    }
+
+    function parseIdentityString(string calldata identityStr) external pure returns (IdentityObj memory identity) {
+        identity = _parseIdentity(identityStr, true);
+    }
+
+    function _parseIdentity(string calldata identityStr, bool parseFully)
+        private
+        pure
+        returns (IdentityObj memory identity)
+    {
         JSONParserLib.Item memory root = JSONParserLib.parse(identityStr);
         JSONParserLib.Item[] memory identityObj = root.children();
-
-        bool issueDateFound;
-        bool nextUpdateFound;
-        bool idFound;
 
         for (uint256 i = 0; i < root.size(); i++) {
             JSONParserLib.Item memory current = identityObj[i];
             string memory decodedKey = JSONParserLib.decodeString(current.key());
+
+            // gas-saving: break the loop as long as the three conditions below have met
+            // only used by getIdentitySummary()
+            bool issueDateFound;
+            bool nextUpdateFound;
+            bool idFound;
+
             if (decodedKey.eq("issueDate")) {
-                issueDate = DateTimeUtils.fromISOToTimestamp(JSONParserLib.decodeString(current.value()));
+                identity.issueDateTimestamp =
+                    DateTimeUtils.fromISOToTimestamp(JSONParserLib.decodeString(current.value()));
                 issueDateFound = true;
             }
             if (decodedKey.eq("nextUpdate")) {
-                nextUpdate = DateTimeUtils.fromISOToTimestamp(JSONParserLib.decodeString(current.value()));
+                identity.nextUpdateTimestamp =
+                    DateTimeUtils.fromISOToTimestamp(JSONParserLib.decodeString(current.value()));
                 nextUpdateFound = true;
             }
             if (decodedKey.eq("id")) {
                 string memory idStr = JSONParserLib.decodeString(current.value());
+                idFound = true;
                 if (LibString.eq(idStr, "QE")) {
-                    id = EnclaveId.QE;
+                    identity.id = EnclaveId.QE;
                 } else if (LibString.eq(idStr, "QVE")) {
-                    id = EnclaveId.QVE;
+                    identity.id = EnclaveId.QVE;
                 } else if (LibString.eq(idStr, "TD_QE")) {
-                    id = EnclaveId.TD_QE;
+                    identity.id = EnclaveId.TD_QE;
                 } else {
                     revert Invalid_ID();
                 }
             }
-            if (issueDateFound && nextUpdateFound && idFound) {
+            if (parseFully) {
+                if (decodedKey.eq("version")) {
+                    identity.version = JSONParserLib.parseUint(current.value());
+                }
+                if (decodedKey.eq("tcbEvaluationDataNumber")) {
+                    identity.tcbEvaluationDataNumber = JSONParserLib.parseUint(current.value());
+                }
+                if (decodedKey.eq("miscselect")) {
+                    uint256 val = JSONParserLib.parseUintFromHex(JSONParserLib.decodeString(current.value()));
+                    identity.miscselect = bytes4(uint32(val));
+                }
+                if (decodedKey.eq("miscselectMask")) {
+                    uint256 val = JSONParserLib.parseUintFromHex(JSONParserLib.decodeString(current.value()));
+                    identity.miscselectMask = bytes4(uint32(val));
+                }
+                if (decodedKey.eq("attributes")) {
+                    uint256 val = JSONParserLib.parseUintFromHex(JSONParserLib.decodeString(current.value()));
+                    identity.attributes = bytes16(uint128(val));
+                }
+                if (decodedKey.eq("attributesMask")) {
+                    uint256 val = JSONParserLib.parseUintFromHex(JSONParserLib.decodeString(current.value()));
+                    identity.attributesMask = bytes16(uint128(val));
+                }
+                if (decodedKey.eq("mrsigner")) {
+                    uint256 val = JSONParserLib.parseUintFromHex(JSONParserLib.decodeString(current.value()));
+                    identity.mrsigner = bytes32(val);
+                }
+                if (decodedKey.eq("isvprodid")) {
+                    identity.isvprodid = uint16(JSONParserLib.parseUint(current.value()));
+                }
+                if (decodedKey.eq("tcbLevels")) {
+                    identity.rawTcbLevelsObjStr = current.value();
+                }
+            } else if (issueDateFound && nextUpdateFound && idFound) {
                 break;
             }
         }
     }
-
-    // TODO: Implement full parser
 }
