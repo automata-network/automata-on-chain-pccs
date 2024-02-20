@@ -25,7 +25,6 @@ struct X509CRLObj {
  * @notice This is a standalone contract that can be used by off-chain applications and smart contracts
  * to parse DER-encoded CRLs.
  */
-
 contract X509CRLHelper {
     using Asn1Decode for bytes;
     using NodePtr for uint256;

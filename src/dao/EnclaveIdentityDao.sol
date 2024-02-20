@@ -13,7 +13,6 @@ import {EnclaveIdentityHelper, EnclaveIdentityJsonObj, EnclaveId} from "../helpe
  * @dev should extends this contract and use the provided read/write methods to interact with Enclave
  * Identity JSON data published on-chain.
  */
-
 abstract contract EnclaveIdentityDao {
     PcsDao public Pcs;
     EnclaveIdentityHelper public EnclaveIdentityLib;

@@ -31,6 +31,9 @@ contract IdentityHelperTest is IdentityConstants, Test {
         assertEq(identity.attributesMask, bytes16(0xFBFFFFFFFFFFFFFF0000000000000000));
         assertEq(identity.mrsigner, bytes32(0x8C4F5775D796503E96137F77C68A829A0056AC8DED70140B081B094490C57BFF));
         assertEq(identity.isvprodid, 1);
-        assertEq(keccak256(bytes(identity.rawTcbLevelsObjStr)), 0x26cfff8f7e3f0c1fc3d7beb72ab8bc2ca2d0d776b1db4749b34f2fc1d259110e);
+        assertEq(
+            keccak256(bytes(identity.rawTcbLevelsObjStr)),
+            0x26cfff8f7e3f0c1fc3d7beb72ab8bc2ca2d0d776b1db4749b34f2fc1d259110e
+        );
     }
 }

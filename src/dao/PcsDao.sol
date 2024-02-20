@@ -11,7 +11,6 @@ import {CA, AttestationRequestData, AttestationRequest} from "../Common.sol";
  * @notice This contract is heavily inspired by Sections 4.2.5 and 4.2.6 in the Intel SGX PCCS Design Guideline
  * https://download.01.org/intel-sgx/sgx-dcap/1.19/linux/docs/SGX_DCAP_Caching_Service_Design_Guide.pdf
  */
-
 abstract contract PcsDao {
     /// @notice PCS Certificates mapping
     ///

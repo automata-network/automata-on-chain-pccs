@@ -25,7 +25,6 @@ struct TcbInfoJsonObj {
  * @dev should consider extending this contract to implement parsers that could extract detailed TCBInfo
  * using logic that complies to the specific version and type.
  */
-
 contract FmspcTcbHelper {
     using JSONParserLib for JSONParserLib.Item;
     using LibString for string;

@@ -13,7 +13,6 @@ import {FmspcTcbHelper, TcbInfoJsonObj} from "../helper/FmspcTcbHelper.sol";
  * @dev should extends this contract and use the provided read/write methods to interact with TCBInfo JSON
  * data published on-chain.
  */
-
 abstract contract FmspcTcbDao {
     PcsDao public Pcs;
     FmspcTcbHelper public FmspcTcbLib;

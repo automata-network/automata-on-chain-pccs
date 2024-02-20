@@ -11,7 +11,6 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
  * https://download.01.org/intel-sgx/sgx-dcap/1.19/linux/docs/SGX_DCAP_Caching_Service_Design_Guide.pdf
  * @notice This contract is the combination of both PckDao and PlatformTcbsDao as described in section 4.2
  */
-
 abstract contract PckDao {
     using EnumerableSet for EnumerableSet.Bytes32Set;
 
