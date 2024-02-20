@@ -72,6 +72,7 @@ contract EnclaveIdentityHelper {
         id = identity.id;
     }
 
+    // 310k gas
     function parseIdentityString(string calldata identityStr) external pure returns (IdentityObj memory identity) {
         identity = _parseIdentity(identityStr, true);
     }

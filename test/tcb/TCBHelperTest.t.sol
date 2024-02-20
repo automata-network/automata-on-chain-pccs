@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
-import {FmspcTcbHelper} from "../../src/helper/FmspcTcbHelper.sol";
+import {FmspcTcbHelper, TCBLevelsObj, TCBStatus} from "../../src/helper/FmspcTcbHelper.sol";
 import {TCBConstants} from "./TCBConstants.t.sol";
 
 contract IdentityHelperTest is TCBConstants, Test {
@@ -23,5 +23,32 @@ contract IdentityHelperTest is TCBConstants, Test {
         assertEq(nextUpdate, 1707878687);
     }
 
-    // TODO: add more tests after full parser implementation is complete
+    function testV3TcbLevelsParser() public {
+        (uint256 version, TCBLevelsObj[] memory tcbLevels) = fmspcTcbLib.parseTcbLevels(string(tcbStr));
+        assertEq(version, 3);
+
+        // TODO: add test cases for the remaining tcblevels
+        _assertTcbLevel(
+            tcbLevels[0],
+            [12, 12, 3, 3, 255, 255, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            13,
+            1691539200,
+            TCBStatus.TCB_SW_HARDENING_NEEDED
+        );
+    }
+
+    function _assertTcbLevel(
+        TCBLevelsObj memory tcbLevel, 
+        uint8[16] memory expectedCpuSvns, 
+        uint256 expectedPcesvn, 
+        uint256 expectedTimestamp, 
+        TCBStatus expectedStatus
+    ) private {
+        assertEq(tcbLevel.pcesvn, expectedPcesvn);
+        assertEq(tcbLevel.tcbDateTimestamp, expectedTimestamp);
+        assertEq(uint8(tcbLevel.status), uint8(expectedStatus));
+        for (uint256 i = 0; i < 16; i++) {
+            assertEq(tcbLevel.cpusvnsArr[i], expectedCpuSvns[i]);
+        }
+    }
 }
