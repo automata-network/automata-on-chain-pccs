@@ -5,6 +5,12 @@ import {JSONParserLib} from "solady/utils/JSONParserLib.sol";
 import {LibString} from "solady/utils/LibString.sol";
 import {DateTimeUtils} from "../utils/DateTimeUtils.sol";
 
+enum EnclaveId {
+    QE,
+    QVE,
+    TD_QE
+}
+
 /**
  * @title Solidity Structure representing the EnclaveIdentity JSON
  * @param identityStr Identity string object body
@@ -13,12 +19,6 @@ import {DateTimeUtils} from "../utils/DateTimeUtils.sol";
 struct EnclaveIdentityJsonObj {
     string identityStr;
     bytes signature;
-}
-
-enum EnclaveId {
-    QE,
-    QVE,
-    TD_QE
 }
 
 /// @dev Parsed IdentityStr to an object, except for TCBLevels
@@ -35,6 +35,18 @@ struct IdentityObj {
     bytes32 mrsigner;
     uint16 isvprodid;
     string rawTcbLevelsObjStr;
+}
+
+enum EnclaveIdTcbStatus {
+    OK,
+    SGX_ENCLAVE_REPORT_ISVSVN_REVOKED,
+    SGX_ENCLAVE_REPORT_ISVSVN_OUT_OF_DATE
+}
+
+struct Tcb {
+    uint16 isvsvn;
+    uint256 dateTimestamp;
+    EnclaveIdTcbStatus status;
 }
 
 /**
@@ -62,6 +74,39 @@ contract EnclaveIdentityHelper {
 
     function parseIdentityString(string calldata identityStr) external pure returns (IdentityObj memory identity) {
         identity = _parseIdentity(identityStr, true);
+    }
+
+    function parseTcb(string memory tcbLevelsStr) external pure returns (Tcb[] memory tcb) {
+        JSONParserLib.Item memory tcbLevelsParent = JSONParserLib.parse(tcbLevelsStr);
+        JSONParserLib.Item[] memory tcbLevels = tcbLevelsParent.children();
+        uint256 tcbLevelsSize = tcbLevelsParent.size();
+        tcb = new Tcb[](tcbLevelsSize);
+        for (uint256 i = 0; i < tcbLevelsSize; i++) {
+            uint256 tcbLevelsChildSize = tcbLevels[i].size();
+            JSONParserLib.Item[] memory tcbObj = tcbLevels[i].children();
+            for (uint256 j = 0; j < tcbLevelsChildSize; j++) {
+                string memory tcbKey = JSONParserLib.decodeString(tcbObj[j].key());
+                if (tcbKey.eq("tcb")) {
+                    JSONParserLib.Item[] memory tcbChild = tcbObj[j].children();
+                    string memory childKey = JSONParserLib.decodeString(tcbChild[0].key());
+                    if (childKey.eq("isvsvn")) {
+                        tcb[i].isvsvn = uint16(JSONParserLib.parseUint(tcbChild[0].value()));
+                    }
+                } else if (tcbKey.eq("tcbDate")) {
+                    tcb[i].dateTimestamp =
+                        DateTimeUtils.fromISOToTimestamp(JSONParserLib.decodeString(tcbObj[j].value()));
+                } else if (tcbKey.eq("tcbStatus")) {
+                    string memory decodedValue = JSONParserLib.decodeString(tcbObj[j].value());
+                    if (decodedValue.eq("UpToDate")) {
+                        tcb[i].status = EnclaveIdTcbStatus.OK;
+                    } else if (decodedValue.eq("Revoked")) {
+                        tcb[i].status = EnclaveIdTcbStatus.SGX_ENCLAVE_REPORT_ISVSVN_REVOKED;
+                    } else if (decodedValue.eq("OutOfDate")) {
+                        tcb[i].status = EnclaveIdTcbStatus.SGX_ENCLAVE_REPORT_ISVSVN_OUT_OF_DATE;
+                    }
+                }
+            }
+        }
     }
 
     function _parseIdentity(string calldata identityStr, bool parseFully)
