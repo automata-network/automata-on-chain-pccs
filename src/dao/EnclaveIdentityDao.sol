@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {CA, AttestationRequestData, AttestationRequest} from "../Common.sol";
 import {PcsDao} from "./PcsDao.sol";
 
-import {EnclaveIdentityHelper, EnclaveIdentityJsonObj, EnclaveId} from "../helper/EnclaveIdentityHelper.sol";
+import {EnclaveIdentityHelper, EnclaveIdentityJsonObj, EnclaveId, IdentityObj} from "../helper/EnclaveIdentityHelper.sol";
 
 /**
  * @title Enclave Identity Data Access Object
@@ -23,10 +23,9 @@ abstract contract EnclaveIdentityDao {
     /// NOT the "version" value found in the Enclave Identity JSON
     ///
     /// @notice the schema of the attested data is the following:
-    /// A tuple of (uint256, uint256, string, bytes)
-    /// - uint256 issueDateTimestamp
-    /// - uint256 nextUpdateTimestamp
-    /// - string identity json blob
+    /// An ABI-encoded tuple of (EnclaveIdentityHelper.IdentityObj, string, bytes)
+    /// see {{ EnclaveIdentityHelper.IdentityObj }} for struct definition
+    /// - qeidentity object string
     /// - bytes signature
     mapping(bytes32 => bytes32) public enclaveIdentityAttestations;
 
@@ -130,13 +129,12 @@ abstract contract EnclaveIdentityDao {
         EnclaveIdentityJsonObj calldata enclaveIdentityObj
     ) private view returns (AttestationRequest memory req) {
         bytes32 predecessorAttestationId = _getAttestationId(id, version);
-        (uint256 issueDate, uint256 nextUpdate, EnclaveId retId) =
-            EnclaveIdentityLib.getIdentitySummary(enclaveIdentityObj.identityStr);
-        if (id != uint256(retId)) {
+        IdentityObj memory identity = EnclaveIdentityLib.parseIdentityString(enclaveIdentityObj.identityStr);
+        if (id != uint256(identity.id)) {
             revert Enclave_Id_Mismatch();
         }
         bytes memory attestationData =
-            abi.encode(issueDate, nextUpdate, enclaveIdentityObj.identityStr, enclaveIdentityObj.signature);
+            abi.encode(identity, enclaveIdentityObj.identityStr, enclaveIdentityObj.signature);
         AttestationRequestData memory reqData = AttestationRequestData({
             recipient: msg.sender,
             expirationTime: 0,

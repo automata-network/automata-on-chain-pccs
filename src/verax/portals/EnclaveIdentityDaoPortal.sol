@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {AbstractPortal} from "@consensys/linea-attestation-registry-contracts/abstracts/AbstractPortal.sol";
 import {AttestationPayload, Attestation} from "@consensys/linea-attestation-registry-contracts/types/Structs.sol";
-import {EnclaveIdentityDao, AttestationRequest} from "../../dao/EnclaveIdentityDao.sol";
+import {EnclaveIdentityDao, AttestationRequest, IdentityObj} from "../../dao/EnclaveIdentityDao.sol";
 import {SigVerifyModuleBase} from "../base/SigVerifyModuleBase.sol";
 
 contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal, SigVerifyModuleBase {
@@ -39,8 +39,9 @@ contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal, SigVeri
     /// @inheritdoc AbstractPortal
     function withdraw(address payable to, uint256 amount) external override {}
 
+    // TODO
     function enclaveIdentitySchemaID() public pure override returns (bytes32 ENCLAVE_IDENTITY_SCHEMA_ID) {
-        // keccak256(bytes("uint256 issueDateTimestamp, uint256 nextUpdateTimestamp, string identity, bytes signature"))
+        // keccak256(bytes("(uint8 id, uint256 version, uint256 issueDateTimestamp, uint256 nextUpdateTimestamp, uint256 tcbEvaluationDataNumber, bytes4 miscselect, bytes4 miscselectMask, bytes16 attributes, bytes16 attributesMask, bytes32 mrsigner, uint16 isvprodid, (uint16 isvsvn, uint256 dateTimestamp, uint8 status)[] tcb), string identity, bytes signature"))
         ENCLAVE_IDENTITY_SCHEMA_ID = 0x97b41ea5b7cea14d9f50d4b8f09b6fff7744522db6e340e18fbc324810ab9152;
     }
 
@@ -133,8 +134,8 @@ contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal, SigVeri
     }
 
     function _validate(AttestationPayload memory attestationPayload, bytes memory issuer) private view {
-        (,, string memory enclaveIdentity, bytes memory signature) =
-            abi.decode(attestationPayload.attestationData, (uint256, uint256, string, bytes));
+        (, string memory enclaveIdentity, bytes memory signature) =
+            abi.decode(attestationPayload.attestationData, (IdentityObj, string, bytes));
         bytes32 digest = sha256(abi.encodePacked(enclaveIdentity));
         bool sigVerified = verifySignature(digest, signature, issuer);
         if (!sigVerified) {
