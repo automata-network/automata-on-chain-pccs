@@ -41,8 +41,8 @@ contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal, SigVeri
 
     // TODO
     function enclaveIdentitySchemaID() public pure override returns (bytes32 ENCLAVE_IDENTITY_SCHEMA_ID) {
-        // keccak256(bytes("(uint8 id, uint256 version, uint256 issueDateTimestamp, uint256 nextUpdateTimestamp, uint256 tcbEvaluationDataNumber, bytes4 miscselect, bytes4 miscselectMask, bytes16 attributes, bytes16 attributesMask, bytes32 mrsigner, uint16 isvprodid, (uint16 isvsvn, uint256 dateTimestamp, uint8 status)[] tcb), string identity, bytes signature"))
-        ENCLAVE_IDENTITY_SCHEMA_ID = 0x97b41ea5b7cea14d9f50d4b8f09b6fff7744522db6e340e18fbc324810ab9152;
+        // keccak256(bytes("(uint8 id, uint256 version, uint256 issueDateTimestamp, uint256 nextUpdateTimestamp, uint256 tcbEvaluationDataNumber, bytes4 miscselect, bytes4 miscselectMask, bytes16 attributes, bytes16 attributesMask, bytes32 mrsigner, uint16 isvprodid, (uint16 isvsvn, uint256 dateTimestamp, uint8 status)[] tcb), bytes32 digest, string identity, bytes signature"))
+        ENCLAVE_IDENTITY_SCHEMA_ID = 0xe9524a98e08b3e84ffe24d87c7571c870b2deb7ffbeea11aa3a11be287930d45;
     }
 
     function _attestEnclaveIdentity(AttestationRequest memory req) internal override returns (bytes32 attestationId) {
@@ -101,10 +101,10 @@ contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal, SigVeri
     ) internal view override locked {
         bytes memory prevData = _getAttestedData(attestationId);
         bytes memory currentData = attestationPayload.attestationData;
-        (uint256 prevIssueDate,,,) = abi.decode(prevData, (uint256, uint256, string, bytes));
-        (uint256 currentIssueDate,,,) = abi.decode(currentData, (uint256, uint256, string, bytes));
+        (IdentityObj memory prevId,,,) = abi.decode(prevData, (IdentityObj, bytes32, string, bytes));
+        (IdentityObj memory currentId,,,) = abi.decode(currentData, (IdentityObj, bytes32, string, bytes));
 
-        if (currentIssueDate < prevIssueDate) {
+        if (prevId.issueDateTimestamp < currentId.issueDateTimestamp) {
             revert Invalid_Identity_Replacement();
         }
     }
@@ -134,8 +134,8 @@ contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal, SigVeri
     }
 
     function _validate(AttestationPayload memory attestationPayload, bytes memory issuer) private view {
-        (, string memory enclaveIdentity, bytes memory signature) =
-            abi.decode(attestationPayload.attestationData, (IdentityObj, string, bytes));
+        (,, string memory enclaveIdentity, bytes memory signature) =
+            abi.decode(attestationPayload.attestationData, (IdentityObj, bytes32, string, bytes));
         bytes32 digest = sha256(abi.encodePacked(enclaveIdentity));
         bool sigVerified = verifySignature(digest, signature, issuer);
         if (!sigVerified) {

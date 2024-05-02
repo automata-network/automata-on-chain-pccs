@@ -40,7 +40,7 @@ contract ConfigureVerax is Script {
             "Intel On-Chain PCCS Enclave Identity", // name
             "", // Description
             "", // Context
-            "uint256 issueDateTimestamp, uint256 nextUpdateTimestamp, string identity, bytes signature" // Schema
+            "(uint8 id, uint256 version, uint256 issueDateTimestamp, uint256 nextUpdateTimestamp, uint256 tcbEvaluationDataNumber, bytes4 miscselect, bytes4 miscselectMask, bytes16 attributes, bytes16 attributesMask, bytes32 mrsigner, uint16 isvprodid, (uint16 isvsvn, uint256 dateTimestamp, uint8 status)[] tcb), bytes32 digest, string identity, bytes signature" // Schema
         );
         // FMSPC TCB Schema
         schemaRegistry.createSchema(

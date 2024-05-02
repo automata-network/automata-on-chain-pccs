@@ -30,7 +30,7 @@ abstract contract VeraxTestBase is Test {
         AttestationRegistry(vm.envAddress("TEST_ATTESTATION_REGISTRY_ADDRESS"));
 
     bytes32 internal constant ENCLAVE_IDENTITY_SCHEMA_ID =
-        0x97b41ea5b7cea14d9f50d4b8f09b6fff7744522db6e340e18fbc324810ab9152;
+        0xe9524a98e08b3e84ffe24d87c7571c870b2deb7ffbeea11aa3a11be287930d45;
     bytes32 internal constant FMSPC_TCB_SCHEMA_ID = 0x46bd450c3c87d1c7842b1efb25c629c61fa188159f1e48326da497f28aef6757;
     bytes32 internal constant PCK_SCHEMA_ID = 0x24c1e0f0784350da3b36c4fc38e701b0218e02a9ec9eba3329d7bcafc339df2b;
     bytes32 internal constant PCS_CERT_SCHEMA_ID = 0xe636510f39fcce1becac6265aeea289429c8ffaa4e37cf7d9a8269f49ab853b6;
@@ -64,7 +64,7 @@ abstract contract VeraxTestBase is Test {
             "Intel On-Chain PCS Enclave Identity", // name
             "", // Description
             "", // Context
-            "uint256 issueDateTimestamp, uint256 nextUpdateTimestamp, string identity, bytes signature" // Schema
+            "(uint8 id, uint256 version, uint256 issueDateTimestamp, uint256 nextUpdateTimestamp, uint256 tcbEvaluationDataNumber, bytes4 miscselect, bytes4 miscselectMask, bytes16 attributes, bytes16 attributesMask, bytes32 mrsigner, uint16 isvprodid, (uint16 isvsvn, uint256 dateTimestamp, uint8 status)[] tcb), bytes32 digest, string identity, bytes signature" // Schema
         );
         // FMSPC TCB Schema
         schemaRegistry.createSchema(

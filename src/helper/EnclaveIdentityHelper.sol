@@ -65,11 +65,7 @@ contract EnclaveIdentityHelper {
         identity = _parseIdentity(identityStr);
     }
 
-    function _parseIdentity(string calldata identityStr)
-        private
-        pure
-        returns (IdentityObj memory identity)
-    {
+    function _parseIdentity(string calldata identityStr) private pure returns (IdentityObj memory identity) {
         JSONParserLib.Item memory root = JSONParserLib.parse(identityStr);
         JSONParserLib.Item[] memory identityObj = root.children();
 

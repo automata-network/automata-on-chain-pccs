@@ -4,7 +4,9 @@ pragma solidity ^0.8.0;
 import {CA, AttestationRequestData, AttestationRequest} from "../Common.sol";
 import {PcsDao} from "./PcsDao.sol";
 
-import {EnclaveIdentityHelper, EnclaveIdentityJsonObj, EnclaveId, IdentityObj} from "../helper/EnclaveIdentityHelper.sol";
+import {
+    EnclaveIdentityHelper, EnclaveIdentityJsonObj, EnclaveId, IdentityObj
+} from "../helper/EnclaveIdentityHelper.sol";
 
 /**
  * @title Enclave Identity Data Access Object
@@ -25,7 +27,9 @@ abstract contract EnclaveIdentityDao {
     /// @notice the schema of the attested data is the following:
     /// An ABI-encoded tuple of (EnclaveIdentityHelper.IdentityObj, string, bytes)
     /// see {{ EnclaveIdentityHelper.IdentityObj }} for struct definition
-    /// - qeidentity object string
+    /// - bytes32 digest - the digest can be used as a compact identifier for the collateral, and also be quickly
+    /// verified with the associated signature
+    /// - string qeidentityObj
     /// - bytes signature
     mapping(bytes32 => bytes32) public enclaveIdentityAttestations;
 
@@ -133,8 +137,9 @@ abstract contract EnclaveIdentityDao {
         if (id != uint256(identity.id)) {
             revert Enclave_Id_Mismatch();
         }
+        bytes32 digest = sha256(bytes(enclaveIdentityObj.identityStr));
         bytes memory attestationData =
-            abi.encode(identity, enclaveIdentityObj.identityStr, enclaveIdentityObj.signature);
+            abi.encode(identity, digest, enclaveIdentityObj.identityStr, enclaveIdentityObj.signature);
         AttestationRequestData memory reqData = AttestationRequestData({
             recipient: msg.sender,
             expirationTime: 0,
