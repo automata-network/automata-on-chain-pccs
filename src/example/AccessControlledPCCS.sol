@@ -94,7 +94,7 @@ contract AccessControlledPCCS is Ownable {
     }
 
     function pcsCertAttestations(CA ca) external view returns (bytes32 attestationId) {
-        (ID certId, ) = _getCertIdsFromCommonCAs(ca);
+        (ID certId,) = _getCertIdsFromCommonCAs(ca);
         attestationId = _computeId(certId, hex"");
         uint256 len = _pccsData[attestationId].length;
         if (len == 0) {
@@ -150,11 +150,11 @@ contract AccessControlledPCCS is Ownable {
         attestationId = _upsertCrl(ca, crl);
     }
 
-    function upsertRootCACrl(bytes calldata rootcacrl) external returns (bytes32 attestationId) {
+    function upsertRootCACrl(bytes calldata rootcacrl) external onlyOwner returns (bytes32 attestationId) {
         attestationId = _upsertCrl(CA.ROOT, rootcacrl);
     }
 
-    function upsertFmspcTcb(TcbInfoJsonObj calldata tcbInfoObj) external returns (bytes32 attestationId) {
+    function upsertFmspcTcb(TcbInfoJsonObj calldata tcbInfoObj) external onlyOwner returns (bytes32 attestationId) {
         (bytes memory data, uint256 tcbType, string memory fmspc, uint256 version) =
             _buildTcbAttestationData(tcbInfoObj.tcbInfoStr, tcbInfoObj.signature);
         bytes32 key = keccak256(abi.encodePacked(tcbType, fmspc, version));
@@ -164,6 +164,7 @@ contract AccessControlledPCCS is Ownable {
 
     function upsertEnclaveIdentity(uint256 id, uint256 version, EnclaveIdentityJsonObj calldata enclaveIdentityObj)
         external
+        onlyOwner
         returns (bytes32 attestationId)
     {
         IdentityObj memory identity = enclaveIdHelper.parseIdentityString(enclaveIdentityObj.identityStr);
