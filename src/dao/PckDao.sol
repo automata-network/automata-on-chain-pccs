@@ -58,6 +58,12 @@ abstract contract PckDao {
     }
 
     /**
+     * @dev implement getter logic to retrieve attestation data
+     * @param attestationId maps to the data
+     */
+    function getAttestedData(bytes32 attestationId) public view virtual returns (bytes memory attestationData);
+
+    /**
      * @notice Section 4.2.2 (getCert(qe_id, cpu_svn, pce_svn, pce_id))
      * @notice The ordering of arguments is slightly different from the interface specified in the design guideline
      */
@@ -68,12 +74,12 @@ abstract contract PckDao {
         string calldata pceid
     ) external returns (bytes memory pckCert) {
         bytes32 tcbmAttestationId = tcbmAttestations[_getTcbmKey(qeid, pceid, platformCpuSvn, platformPceSvn)];
-        string memory tcbm = string(_getAttestedData(tcbmAttestationId));
+        string memory tcbm = string(getAttestedData(tcbmAttestationId));
         bytes32 attestationId = _getPckAttestationId(qeid, pceid, tcbm);
         if (attestationId == bytes32(0)) {
             emit PCKMissing(qeid, pceid, platformCpuSvn, platformPceSvn);
         } else {
-            pckCert = _getAttestedData(attestationId);
+            pckCert = getAttestedData(attestationId);
         }
     }
 
@@ -91,7 +97,7 @@ abstract contract PckDao {
             for (uint256 i = 0; i < n; i++) {
                 tcbms[i] = _tcbmStrMap[_tcbmHSets[k].at(i)];
                 bytes32 attestationId = _getPckAttestationId(qeid, pceid, tcbms[i]);
-                pckCerts[i] = _getAttestedData(attestationId);
+                pckCerts[i] = getAttestedData(attestationId);
             }
         }
     }
@@ -113,7 +119,7 @@ abstract contract PckDao {
         if (attestationId == bytes32(0)) {
             emit TCBmMissing(qeid, pceid, platformCpuSvn, platformPceSvn);
         } else {
-            tcbm = string(_getAttestedData(attestationId));
+            tcbm = string(getAttestedData(attestationId));
         }
     }
 
@@ -172,8 +178,8 @@ abstract contract PckDao {
     {
         bytes32 intermediateCertAttestationId = Pcs.pcsCertAttestations(ca);
         bytes32 rootCertAttestationId = Pcs.pcsCertAttestations(CA.ROOT);
-        (,intermediateCert) = abi.decode(_getAttestedData(intermediateCertAttestationId), (bytes32, bytes));
-        (,rootCert) = abi.decode(_getAttestedData(rootCertAttestationId), (bytes32, bytes));
+        (, intermediateCert) = abi.decode(getAttestedData(intermediateCertAttestationId), (bytes32, bytes));
+        (, rootCert) = abi.decode(getAttestedData(rootCertAttestationId), (bytes32, bytes));
     }
 
     /**
@@ -201,12 +207,6 @@ abstract contract PckDao {
      * @return attestationId
      */
     function _attestTcbm(AttestationRequest memory req) internal virtual returns (bytes32 attestationId);
-
-    /**
-     * @dev implement getter logic to retrieve attestation data
-     * @param attestationId maps to the data
-     */
-    function _getAttestedData(bytes32 attestationId) internal view virtual returns (bytes memory attestationData);
 
     /**
      * @notice computes the key that maps to the corresponding attestation ID

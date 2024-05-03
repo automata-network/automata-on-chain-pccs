@@ -65,7 +65,6 @@ abstract contract VeraxPcsSetupBase is VeraxTestBase, PCSConstants {
         bytes32 actualHash = keccak256(rootCaAttestation.attestationData);
         assertEq(actualHash, expectedHash);
 
-
         // validate RootCA attestations
         (tbs,) = x509CrlLib.getTbsAndSig(rootCrlDer);
         assertTrue(attestationRegistry.isRegistered(rootCrlAttestation));

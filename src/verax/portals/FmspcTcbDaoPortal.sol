@@ -39,6 +39,16 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal, SigVerifyModuleBase {
     /// @inheritdoc AbstractPortal
     function withdraw(address payable to, uint256 amount) external override {}
 
+    function getAttestedData(bytes32 attestationId) public view override returns (bytes memory attestationData) {
+        if (attestationRegistry.isRegistered(attestationId)) {
+            Attestation memory attestation = attestationRegistry.getAttestation(attestationId);
+            if (attestation.revoked) {
+                revert Attestation_Revoked(attestationId, attestation.replacedBy);
+            }
+            attestationData = attestation.attestationData;
+        }
+    }
+
     function fmspcTcbSchemaID() public pure override returns (bytes32 FMSPC_TCB_SCHEMA_ID) {
         // keccak256(bytes("uint256 tcbType, uint256 version, uint256 issueDateTimestamp, uint256 nextUpdateTimestamp, string tcbInfo, bytes signature"))
         FMSPC_TCB_SCHEMA_ID = 0x46bd450c3c87d1c7842b1efb25c629c61fa188159f1e48326da497f28aef6757;
@@ -69,16 +79,6 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal, SigVerifyModuleBase {
         _unlock = false;
     }
 
-    function _getAttestedData(bytes32 attestationId) internal view override returns (bytes memory attestationData) {
-        if (attestationRegistry.isRegistered(attestationId)) {
-            Attestation memory attestation = attestationRegistry.getAttestation(attestationId);
-            if (attestation.revoked) {
-                revert Attestation_Revoked(attestationId, attestation.replacedBy);
-            }
-            attestationData = attestation.attestationData;
-        }
-    }
-
     function _onAttest(AttestationPayload memory, /*attestationPayload*/ address, /*attester*/ uint256 /*value*/ )
         internal
         override
@@ -98,7 +98,7 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal, SigVerifyModuleBase {
         address, /*attester*/
         uint256 /*value*/
     ) internal view override locked {
-        bytes memory prevData = _getAttestedData(attestationId);
+        bytes memory prevData = getAttestedData(attestationId);
         bytes memory currentData = attestationPayload.attestationData;
         (,, uint256 prevIssueDate,,,) = abi.decode(prevData, (uint256, uint256, uint256, uint256, string, bytes));
         (,, uint256 currentIssueDate,,,) = abi.decode(currentData, (uint256, uint256, uint256, uint256, string, bytes));

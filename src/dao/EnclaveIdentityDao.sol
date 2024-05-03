@@ -43,6 +43,12 @@ abstract contract EnclaveIdentityDao {
     }
 
     /**
+     * @dev implement getter logic to retrieve attestation data
+     * @param attestationId maps to the data
+     */
+    function getAttestedData(bytes32 attestationId) public view virtual returns (bytes memory attestationData);
+
+    /**
      * @notice Section 4.2.9 (getEnclaveIdentity)
      * @notice Gets the enclave identity.
      * @param id 0: QE; 1: QVE; 2: TD_QE
@@ -58,7 +64,7 @@ abstract contract EnclaveIdentityDao {
         if (attestationId == bytes32(0)) {
             emit EnclaveIdentityMissing(id, version);
         } else {
-            bytes memory attestedIdentityData = _getAttestedData(attestationId);
+            bytes memory attestedIdentityData = getAttestedData(attestationId);
             (,, enclaveIdObj.identityStr, enclaveIdObj.signature) =
                 abi.decode(attestedIdentityData, (IdentityObj, bytes32, string, bytes));
         }
@@ -94,8 +100,8 @@ abstract contract EnclaveIdentityDao {
     function getEnclaveIdentityIssuerChain() public view returns (bytes memory signingCert, bytes memory rootCert) {
         bytes32 signingCertAttestationId = Pcs.pcsCertAttestations(CA.SIGNING);
         bytes32 rootCertAttestationId = Pcs.pcsCertAttestations(CA.ROOT);
-        (,signingCert) = abi.decode(_getAttestedData(signingCertAttestationId), (bytes32, bytes));
-        (,rootCert) = abi.decode(_getAttestedData(rootCertAttestationId), (bytes32, bytes));
+        (, signingCert) = abi.decode(getAttestedData(signingCertAttestationId), (bytes32, bytes));
+        (, rootCert) = abi.decode(getAttestedData(rootCertAttestationId), (bytes32, bytes));
     }
 
     /**
@@ -110,12 +116,6 @@ abstract contract EnclaveIdentityDao {
      * @return attestationId
      */
     function _attestEnclaveIdentity(AttestationRequest memory req) internal virtual returns (bytes32 attestationId);
-
-    /**
-     * @dev implement getter logic to retrieve attestation data
-     * @param attestationId maps to the data
-     */
-    function _getAttestedData(bytes32 attestationId) internal view virtual returns (bytes memory attestationData);
 
     /**
      * @notice computes the key that maps to the corresponding attestation ID

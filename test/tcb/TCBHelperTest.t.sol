@@ -38,10 +38,10 @@ contract IdentityHelperTest is TCBConstants, Test {
     }
 
     function _assertTcbLevel(
-        TCBLevelsObj memory tcbLevel, 
-        uint8[16] memory expectedCpuSvns, 
-        uint256 expectedPcesvn, 
-        uint256 expectedTimestamp, 
+        TCBLevelsObj memory tcbLevel,
+        uint8[16] memory expectedCpuSvns,
+        uint256 expectedPcesvn,
+        uint256 expectedTimestamp,
         TCBStatus expectedStatus
     ) private {
         assertEq(tcbLevel.pcesvn, expectedPcesvn);

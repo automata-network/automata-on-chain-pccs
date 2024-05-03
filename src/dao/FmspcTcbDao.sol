@@ -37,6 +37,12 @@ abstract contract FmspcTcbDao {
     }
 
     /**
+     * @dev implement getter logic to retrieve attestation data
+     * @param attestationId maps to the data
+     */
+    function getAttestedData(bytes32 attestationId) public view virtual returns (bytes memory attestationData);
+
+    /**
      * @notice Section 4.2.3 (getTcbInfo)
      * @notice Queries TCB Info for the given FMSPC
      * @param tcbType 0: SGX, 1: TDX
@@ -54,7 +60,7 @@ abstract contract FmspcTcbDao {
         if (attestationId == bytes32(0)) {
             emit TCBInfoMissing(tcbType, fmspc, version);
         } else {
-            bytes memory attestedTcbData = _getAttestedData(attestationId);
+            bytes memory attestedTcbData = getAttestedData(attestationId);
             (,,,, tcbObj.tcbInfoStr, tcbObj.signature) =
                 abi.decode(attestedTcbData, (uint256, uint256, uint256, uint256, string, bytes));
         }
@@ -82,8 +88,8 @@ abstract contract FmspcTcbDao {
     function getTcbIssuerChain() public view returns (bytes memory signingCert, bytes memory rootCert) {
         bytes32 signingCertAttestationId = Pcs.pcsCertAttestations(CA.SIGNING);
         bytes32 rootCertAttestationId = Pcs.pcsCertAttestations(CA.ROOT);
-        (,signingCert) = abi.decode(_getAttestedData(signingCertAttestationId), (bytes32, bytes));
-        (,rootCert) = abi.decode(_getAttestedData(rootCertAttestationId), (bytes32, bytes));
+        (, signingCert) = abi.decode(getAttestedData(signingCertAttestationId), (bytes32, bytes));
+        (, rootCert) = abi.decode(getAttestedData(rootCertAttestationId), (bytes32, bytes));
     }
 
     /**
@@ -98,12 +104,6 @@ abstract contract FmspcTcbDao {
      * @return attestationId
      */
     function _attestTcb(AttestationRequest memory req) internal virtual returns (bytes32 attestationId);
-
-    /**
-     * @dev implement getter logic to retrieve attestation data
-     * @param attestationId maps to the data
-     */
-    function _getAttestedData(bytes32 attestationId) internal view virtual returns (bytes memory attestationData);
 
     /**
      * @notice computes the key that maps to the corresponding attestation ID

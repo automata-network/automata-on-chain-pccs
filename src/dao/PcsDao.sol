@@ -48,6 +48,12 @@ abstract contract PcsDao {
     }
 
     /**
+     * @dev implement getter logic to retrieve attestation data
+     * @param attestationId maps to the data
+     */
+    function getAttestedData(bytes32 attestationId) public view virtual returns (bytes memory attestationData);
+
+    /**
      * @param ca see {Common.sol} for definition
      * @return cert - DER encoded certificate
      * @return crl - DER-encoded CRLs that is signed by the provided cert
@@ -57,11 +63,11 @@ abstract contract PcsDao {
         if (pcsCertAttestationId == bytes32(0)) {
             revert Missing_Certificate(ca);
         }
-        (,cert) = abi.decode(_getAttestedData(pcsCertAttestationId), (bytes32, bytes));
+        (, cert) = abi.decode(getAttestedData(pcsCertAttestationId), (bytes32, bytes));
 
         bytes32 pcsCrlAttestationId = pcsCrlAttestations[ca];
         if (pcsCrlAttestationId != bytes32(0)) {
-            (,crl) = abi.decode(_getAttestedData(pcsCertAttestationId), (bytes32, bytes));
+            (, crl) = abi.decode(getAttestedData(pcsCertAttestationId), (bytes32, bytes));
         }
     }
 
@@ -96,12 +102,6 @@ abstract contract PcsDao {
     function pcsCertSchemaID() public view virtual returns (bytes32 PCS_CERT_SCHEMA_ID);
 
     function pcsCrlSchemaID() public view virtual returns (bytes32 PCS_CRL_SCHEMA_ID);
-
-    /**
-     * @dev implement getter logic to retrieve attestation data
-     * @param attestationId maps to the data
-     */
-    function _getAttestedData(bytes32 attestationId) internal view virtual returns (bytes memory attestationData);
 
     /**
      * @dev implement logic to validate and attest PCS Certificates or CRLs

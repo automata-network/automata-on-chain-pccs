@@ -49,6 +49,16 @@ contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase {
     /// @inheritdoc AbstractPortal
     function withdraw(address payable to, uint256 amount) external override {}
 
+    function getAttestedData(bytes32 attestationId) public view override returns (bytes memory attestationData) {
+        if (attestationRegistry.isRegistered(attestationId)) {
+            Attestation memory attestation = attestationRegistry.getAttestation(attestationId);
+            if (attestation.revoked) {
+                revert Attestation_Revoked(attestationId, attestation.replacedBy);
+            }
+            attestationData = attestation.attestationData;
+        }
+    }
+
     function pckSchemaID() public pure override returns (bytes32 PCK_SCHEMA_ID) {
         // keccak256(bytes("bytes pckCert"))
         PCK_SCHEMA_ID = 0x24c1e0f0784350da3b36c4fc38e701b0218e02a9ec9eba3329d7bcafc339df2b;
@@ -109,16 +119,6 @@ contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase {
         _unlock = false;
     }
 
-    function _getAttestedData(bytes32 attestationId) internal view override returns (bytes memory attestationData) {
-        if (attestationRegistry.isRegistered(attestationId)) {
-            Attestation memory attestation = attestationRegistry.getAttestation(attestationId);
-            if (attestation.revoked) {
-                revert Attestation_Revoked(attestationId, attestation.replacedBy);
-            }
-            attestationData = attestation.attestationData;
-        }
-    }
-
     function _onRevoke(bytes32 attestationId) internal view override {
         Attestation memory attestation = attestationRegistry.getAttestation(attestationId);
         if (attestation.schemaId == pckSchemaID()) {
@@ -132,7 +132,7 @@ contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase {
             } else {
                 revert Invalid_Issuer_Name();
             }
-            bytes memory crl = _getAttestedData(Pcs.pcsCrlAttestations(ca));
+            bytes memory crl = getAttestedData(Pcs.pcsCrlAttestations(ca));
             if (crl.length > 0) {
                 uint256 serialNum = x509Helper.getSerialNumber(cert);
                 bool revoked = x509CrlHelper.serialNumberIsRevoked(serialNum, crl);
@@ -225,11 +225,11 @@ contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase {
             }
         }
         (bytes memory issuerCert,) = getPckCertChain(ca);
-        bytes memory crlData = _getAttestedData(Pcs.pcsCrlAttestations(ca));
+        bytes memory crlData = getAttestedData(Pcs.pcsCrlAttestations(ca));
         {
             // check whether certificate has been revoked and signed by a valid CA
             if (crlData.length > 0) {
-                (,bytes memory crl) = abi.decode(crlData, (bytes32, bytes));
+                (, bytes memory crl) = abi.decode(crlData, (bytes32, bytes));
                 uint256 serialNum = pck.serialNumber;
                 bool revoked = x509CrlHelper.serialNumberIsRevoked(serialNum, crl);
                 if (revoked) {

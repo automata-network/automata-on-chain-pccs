@@ -39,7 +39,16 @@ contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal, SigVeri
     /// @inheritdoc AbstractPortal
     function withdraw(address payable to, uint256 amount) external override {}
 
-    // TODO
+    function getAttestedData(bytes32 attestationId) public view override returns (bytes memory attestationData) {
+        if (attestationRegistry.isRegistered(attestationId)) {
+            Attestation memory attestation = attestationRegistry.getAttestation(attestationId);
+            if (attestation.revoked) {
+                revert Attestation_Revoked(attestationId, attestation.replacedBy);
+            }
+            attestationData = attestation.attestationData;
+        }
+    }
+
     function enclaveIdentitySchemaID() public pure override returns (bytes32 ENCLAVE_IDENTITY_SCHEMA_ID) {
         // keccak256(bytes("(uint8 id, uint256 version, uint256 issueDateTimestamp, uint256 nextUpdateTimestamp, uint256 tcbEvaluationDataNumber, bytes4 miscselect, bytes4 miscselectMask, bytes16 attributes, bytes16 attributesMask, bytes32 mrsigner, uint16 isvprodid, (uint16 isvsvn, uint256 dateTimestamp, uint8 status)[] tcb), bytes32 digest, string identity, bytes signature"))
         ENCLAVE_IDENTITY_SCHEMA_ID = 0xe9524a98e08b3e84ffe24d87c7571c870b2deb7ffbeea11aa3a11be287930d45;
@@ -70,16 +79,6 @@ contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal, SigVeri
         _unlock = false;
     }
 
-    function _getAttestedData(bytes32 attestationId) internal view override returns (bytes memory attestationData) {
-        if (attestationRegistry.isRegistered(attestationId)) {
-            Attestation memory attestation = attestationRegistry.getAttestation(attestationId);
-            if (attestation.revoked) {
-                revert Attestation_Revoked(attestationId, attestation.replacedBy);
-            }
-            attestationData = attestation.attestationData;
-        }
-    }
-
     function _onAttest(AttestationPayload memory, /*attestationPayload*/ address, /*attester*/ uint256 /*value*/ )
         internal
         override
@@ -99,7 +98,7 @@ contract EnclaveIdentityDaoPortal is EnclaveIdentityDao, AbstractPortal, SigVeri
         address, /*attester*/
         uint256 /*value*/
     ) internal view override locked {
-        bytes memory prevData = _getAttestedData(attestationId);
+        bytes memory prevData = getAttestedData(attestationId);
         bytes memory currentData = attestationPayload.attestationData;
         (IdentityObj memory prevId,,,) = abi.decode(prevData, (IdentityObj, bytes32, string, bytes));
         (IdentityObj memory currentId,,,) = abi.decode(currentData, (IdentityObj, bytes32, string, bytes));
