@@ -47,7 +47,7 @@ contract AccessControlledPCCS is Ownable {
 
     error Missing_Data(ID id);
 
-    function enclaveIdAttestations(bytes32 key) external pure returns (bytes32 attestationId) {
+    function enclaveIdentityAttestations(bytes32 key) external pure returns (bytes32 attestationId) {
         attestationId = _computeId(ID.QE_ID_OBJ, key);
     }
 
