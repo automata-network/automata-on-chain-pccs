@@ -47,8 +47,12 @@ contract AccessControlledPCCS is Ownable {
 
     error Missing_Data(ID id);
 
-    function enclaveIdentityAttestations(bytes32 key) external pure returns (bytes32 attestationId) {
+    function enclaveIdentityAttestations(bytes32 key) external view returns (bytes32 attestationId) {
         attestationId = _computeId(ID.QE_ID_OBJ, key);
+        uint256 len = _pccsData[attestationId].length;
+        if (len == 0) {
+            return bytes32(0);
+        }
     }
 
     function getEnclaveIdentity(uint256 id, uint256 version)
@@ -66,8 +70,12 @@ contract AccessControlledPCCS is Ownable {
             abi.decode(attData, (IdentityObj, bytes32, string, bytes));
     }
 
-    function fmspcTcbInfoAttestations(bytes32 key) external pure returns (bytes32 attestationId) {
+    function fmspcTcbInfoAttestations(bytes32 key) external view returns (bytes32 attestationId) {
         attestationId = _computeId(ID.FMSPC_TCB_INFO_OBJ, key);
+        uint256 len = _pccsData[attestationId].length;
+        if (len == 0) {
+            return bytes32(0);
+        }
     }
 
     function getTcbInfo(uint256 tcbType, string calldata fmspc, uint256 version)
@@ -85,14 +93,22 @@ contract AccessControlledPCCS is Ownable {
             abi.decode(attData, (uint256, uint256, uint256, uint256, TCBLevelsObj[], bytes32, string, bytes));
     }
 
-    function pcsCertAttestations(CA ca) external pure returns (bytes32 attestationId) {
+    function pcsCertAttestations(CA ca) external view returns (bytes32 attestationId) {
         (ID certId, ) = _getCertIdsFromCommonCAs(ca);
         attestationId = _computeId(certId, hex"");
+        uint256 len = _pccsData[attestationId].length;
+        if (len == 0) {
+            return bytes32(0);
+        }
     }
 
-    function pcsCrlAttestations(CA ca) external pure returns (bytes32 attestationId) {
+    function pcsCrlAttestations(CA ca) external view returns (bytes32 attestationId) {
         (, ID crlId) = _getCertIdsFromCommonCAs(ca);
         attestationId = _computeId(crlId, hex"");
+        uint256 len = _pccsData[attestationId].length;
+        if (len == 0) {
+            return bytes32(0);
+        }
     }
 
     function getCertificateById(CA ca) external view returns (bytes memory cert, bytes memory crl) {
@@ -101,10 +117,16 @@ contract AccessControlledPCCS is Ownable {
         bytes32 certAttestationId = _computeId(certId, hex"");
         bytes32 crlAttestationId = _computeId(crlId, hex"");
 
-        (, cert) = abi.decode(_pccsData[certAttestationId], (bytes32, bytes));
+        bytes memory certData = _pccsData[certAttestationId];
+        if (certData.length == 0) {
+            revert Missing_Data(certId);
+        }
 
-        if (crlAttestationId != bytes32(0)) {
-            (, crl) = abi.decode(_pccsData[crlAttestationId], (bytes32, bytes));
+        (, cert) = abi.decode(certData, (bytes32, bytes));
+
+        bytes memory crlData = _pccsData[crlAttestationId];
+        if (crlData.length > 0) {
+            (, crl) = abi.decode(crlData, (bytes32, bytes));
         }
     }
 
