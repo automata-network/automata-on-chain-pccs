@@ -47,7 +47,7 @@ contract ConfigureVerax is Script {
             "Intel On-Chain PCCS FMSPC TCB", // name
             "", // Description
             "", // Context
-            "uint256 tcbType, uint256 version, uint256 issueDateTimestamp, uint256 nextUpdateTimestamp, string tcbInfo, bytes signature" // Schema
+            "uint256 tcbType, uint256 version, uint256 issueDateTimestamp, uint256 nextUpdateTimestamp, (uint256 pcesvn, uin256[] cpusvnArrs, uint256 tcbDateTimestamp, uint8 status)[]tcbLevels, bytes32 digest, string tcbInfo, bytes signature" // Schema
         );
         // PCK Certificate Schema
         schemaRegistry.createSchema(

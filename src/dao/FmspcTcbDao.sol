@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {CA, AttestationRequestData, AttestationRequest} from "../Common.sol";
 import {PcsDao} from "./PcsDao.sol";
 
-import {FmspcTcbHelper, TcbInfoJsonObj} from "../helper/FmspcTcbHelper.sol";
+import {FmspcTcbHelper, TcbInfoJsonObj, TCBLevelsObj} from "../helper/FmspcTcbHelper.sol";
 
 /**
  * @title FMSPC TCB Data Access Object
@@ -20,11 +20,14 @@ abstract contract FmspcTcbDao {
     /// @notice retrieves the attested FMSPC TCBInfo from the registry
     /// key: keccak256(FMSPC ++ type ++ version)
     /// @notice the schema of the attested data is the following:
-    /// A tuple of (uint256, uint256, uint256, uint256, string, bytes)
+    /// An ABI-encoded tuple of (uint256, uint256, uint256, uint256, TCBLevelInfo array, bytes32, string, bytes)
     /// - uint256 tcbType
     /// - uint256 version
     /// - uint256 issueDateTimestamp
     /// - uint256 nextUpdateTimestamp
+    /// - see {{ FmspcTcbHelper.TCBLevelsObj }} or struct definition
+    /// - bytes32 digest - the digest can be used as a compact identifier for the collateral, and also be quickly
+    /// verified with the associated signature
     /// - string tcbInfo
     /// - bytes signature
     mapping(bytes32 => bytes32) public fmspcTcbInfoAttestations;
@@ -61,8 +64,8 @@ abstract contract FmspcTcbDao {
             emit TCBInfoMissing(tcbType, fmspc, version);
         } else {
             bytes memory attestedTcbData = getAttestedData(attestationId);
-            (,,,, tcbObj.tcbInfoStr, tcbObj.signature) =
-                abi.decode(attestedTcbData, (uint256, uint256, uint256, uint256, string, bytes));
+            (,,,,,, tcbObj.tcbInfoStr, tcbObj.signature) =
+                abi.decode(attestedTcbData, (uint256, uint256, uint256, uint256, TCBLevelsObj[], bytes32, string, bytes));
         }
     }
 
@@ -124,12 +127,9 @@ abstract contract FmspcTcbDao {
         view
         returns (AttestationRequest memory req, uint256 tcbType, string memory fmspc, uint256 version)
     {
-        uint256 issueDate;
-        uint256 nextUpdate;
-        (tcbType, fmspc, version, issueDate, nextUpdate) = FmspcTcbLib.parseTcbString(tcbInfoObj.tcbInfoStr);
+        bytes memory attestationData;
+        (attestationData, tcbType, fmspc, version) = _buildAttestationData(tcbInfoObj.tcbInfoStr, tcbInfoObj.signature);
         bytes32 predecessorAttestationId = _getAttestationId(tcbType, fmspc, version);
-        bytes memory attestationData =
-            abi.encode(tcbType, version, issueDate, nextUpdate, tcbInfoObj.tcbInfoStr, tcbInfoObj.signature);
         AttestationRequestData memory reqData = AttestationRequestData({
             recipient: msg.sender,
             expirationTime: 0,
@@ -139,5 +139,19 @@ abstract contract FmspcTcbDao {
             value: 0
         });
         req = AttestationRequest({schema: fmspcTcbSchemaID(), data: reqData});
+    }
+
+    function _buildAttestationData(string memory tcbInfoStr, bytes memory signature)
+        private
+        view
+        returns (bytes memory attestationData, uint256 tcbType, string memory fmspc, uint256 version)
+    {
+        (, TCBLevelsObj[] memory tcbLevels) = FmspcTcbLib.parseTcbLevels(tcbInfoStr);
+        uint256 issueDate;
+        uint256 nextUpdate;
+        (tcbType, fmspc, version, issueDate, nextUpdate) = FmspcTcbLib.parseTcbString(tcbInfoStr);
+        attestationData = abi.encode(
+            tcbType, version, issueDate, nextUpdate, tcbLevels, sha256(bytes(tcbInfoStr)), tcbInfoStr, signature
+        );
     }
 }

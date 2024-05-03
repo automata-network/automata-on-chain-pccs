@@ -31,7 +31,7 @@ abstract contract VeraxTestBase is Test {
 
     bytes32 internal constant ENCLAVE_IDENTITY_SCHEMA_ID =
         0xe9524a98e08b3e84ffe24d87c7571c870b2deb7ffbeea11aa3a11be287930d45;
-    bytes32 internal constant FMSPC_TCB_SCHEMA_ID = 0x46bd450c3c87d1c7842b1efb25c629c61fa188159f1e48326da497f28aef6757;
+    bytes32 internal constant FMSPC_TCB_SCHEMA_ID = 0xa757d8bdd4714c2f4894f419eb480be748eb303d5e3652dc97c21e38d916d750;
     bytes32 internal constant PCK_SCHEMA_ID = 0x24c1e0f0784350da3b36c4fc38e701b0218e02a9ec9eba3329d7bcafc339df2b;
     bytes32 internal constant PCS_CERT_SCHEMA_ID = 0xedc3e4f5846d93e65599fb22bc868cdb3ec6c766bbe6145acb2c3ab4765e0eb0;
     bytes32 internal constant PCS_CRL_SCHEMA_ID = 0x420573d190f658fca27d49a4c5568195f63283301f2fd65104f7704e9442b912;
@@ -71,7 +71,7 @@ abstract contract VeraxTestBase is Test {
             "Intel On-Chain PCS FMSPC TCB", // name
             "", // Description
             "", // Context
-            "uint256 tcbType, uint256 version, uint256 issueDateTimestamp, uint256 nextUpdateTimestamp, string tcbInfo, bytes signature" // Schema
+            "uint256 tcbType, uint256 version, uint256 issueDateTimestamp, uint256 nextUpdateTimestamp, (uint256 pcesvn, uin256[] cpusvnArrs, uint256 tcbDateTimestamp, uint8 status)[]tcbLevels, bytes32 digest, string tcbInfo, bytes signature" // Schema
         );
         // PCK Certificate Schema
         schemaRegistry.createSchema(

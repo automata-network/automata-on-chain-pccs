@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {AbstractPortal} from "@consensys/linea-attestation-registry-contracts/abstracts/AbstractPortal.sol";
 import {AttestationPayload, Attestation} from "@consensys/linea-attestation-registry-contracts/types/Structs.sol";
-import {FmspcTcbDao, AttestationRequest} from "../../dao/FmspcTcbDao.sol";
+import {FmspcTcbDao, AttestationRequest, TCBLevelsObj} from "../../dao/FmspcTcbDao.sol";
 import {SigVerifyModuleBase} from "../base/SigVerifyModuleBase.sol";
 
 contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal, SigVerifyModuleBase {
@@ -50,8 +50,8 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal, SigVerifyModuleBase {
     }
 
     function fmspcTcbSchemaID() public pure override returns (bytes32 FMSPC_TCB_SCHEMA_ID) {
-        // keccak256(bytes("uint256 tcbType, uint256 version, uint256 issueDateTimestamp, uint256 nextUpdateTimestamp, string tcbInfo, bytes signature"))
-        FMSPC_TCB_SCHEMA_ID = 0x46bd450c3c87d1c7842b1efb25c629c61fa188159f1e48326da497f28aef6757;
+        // keccak256(bytes("uint256 tcbType, uint256 version, uint256 issueDateTimestamp, uint256 nextUpdateTimestamp, (uint256 pcesvn, uin256[] cpusvnArrs, uint256 tcbDateTimestamp, uint8 status)[]tcbLevels, bytes32 digest, string tcbInfo, bytes signature"))
+        FMSPC_TCB_SCHEMA_ID = 0xa757d8bdd4714c2f4894f419eb480be748eb303d5e3652dc97c21e38d916d750;
     }
 
     function _attestTcb(AttestationRequest memory req) internal override returns (bytes32 attestationId) {
@@ -100,8 +100,10 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal, SigVerifyModuleBase {
     ) internal view override locked {
         bytes memory prevData = getAttestedData(attestationId);
         bytes memory currentData = attestationPayload.attestationData;
-        (,, uint256 prevIssueDate,,,) = abi.decode(prevData, (uint256, uint256, uint256, uint256, string, bytes));
-        (,, uint256 currentIssueDate,,,) = abi.decode(currentData, (uint256, uint256, uint256, uint256, string, bytes));
+        (,, uint256 prevIssueDate,,,,,) =
+            abi.decode(prevData, (uint256, uint256, uint256, uint256, TCBLevelsObj[], bytes32, string, bytes));
+        (,, uint256 currentIssueDate,,,,,) =
+            abi.decode(currentData, (uint256, uint256, uint256, uint256, TCBLevelsObj[], bytes32, string, bytes));
 
         if (currentIssueDate < prevIssueDate) {
             revert Invalid_TCBInfo_Replacement();
@@ -133,9 +135,10 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal, SigVerifyModuleBase {
     }
 
     function _validate(AttestationPayload memory attestationPayload, bytes memory issuer) private view {
-        (,,,, string memory tcbInfo, bytes memory signature) =
-            abi.decode(attestationPayload.attestationData, (uint256, uint256, uint256, uint256, string, bytes));
-        bytes32 digest = sha256(abi.encodePacked(tcbInfo));
+        (,,,,, bytes32 digest,, bytes memory signature) = abi.decode(
+            attestationPayload.attestationData,
+            (uint256, uint256, uint256, uint256, TCBLevelsObj[], bytes32, string, bytes)
+        );
         bool sigVerified = verifySignature(digest, signature, issuer);
         if (!sigVerified) {
             revert Invalid_Signature();
