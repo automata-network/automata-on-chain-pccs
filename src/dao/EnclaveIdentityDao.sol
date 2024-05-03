@@ -60,7 +60,7 @@ abstract contract EnclaveIdentityDao {
         } else {
             bytes memory attestedIdentityData = _getAttestedData(attestationId);
             (,, enclaveIdObj.identityStr, enclaveIdObj.signature) =
-                abi.decode(attestedIdentityData, (uint256, uint256, string, bytes));
+                abi.decode(attestedIdentityData, (IdentityObj, bytes32, string, bytes));
         }
     }
 
@@ -94,8 +94,8 @@ abstract contract EnclaveIdentityDao {
     function getEnclaveIdentityIssuerChain() public view returns (bytes memory signingCert, bytes memory rootCert) {
         bytes32 signingCertAttestationId = Pcs.pcsCertAttestations(CA.SIGNING);
         bytes32 rootCertAttestationId = Pcs.pcsCertAttestations(CA.ROOT);
-        signingCert = _getAttestedData(signingCertAttestationId);
-        rootCert = _getAttestedData(rootCertAttestationId);
+        (,signingCert) = abi.decode(_getAttestedData(signingCertAttestationId), (bytes32, bytes));
+        (,rootCert) = abi.decode(_getAttestedData(rootCertAttestationId), (bytes32, bytes));
     }
 
     /**

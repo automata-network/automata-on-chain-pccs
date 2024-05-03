@@ -82,8 +82,8 @@ abstract contract FmspcTcbDao {
     function getTcbIssuerChain() public view returns (bytes memory signingCert, bytes memory rootCert) {
         bytes32 signingCertAttestationId = Pcs.pcsCertAttestations(CA.SIGNING);
         bytes32 rootCertAttestationId = Pcs.pcsCertAttestations(CA.ROOT);
-        signingCert = _getAttestedData(signingCertAttestationId);
-        rootCert = _getAttestedData(rootCertAttestationId);
+        (,signingCert) = abi.decode(_getAttestedData(signingCertAttestationId), (bytes32, bytes));
+        (,rootCert) = abi.decode(_getAttestedData(rootCertAttestationId), (bytes32, bytes));
     }
 
     /**

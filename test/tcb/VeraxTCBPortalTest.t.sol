@@ -5,7 +5,7 @@ import {FmspcTcbDaoPortal} from "../../src/verax/portals/FmspcTcbDaoPortal.sol";
 import {TCBConstants} from "./TCBConstants.t.sol";
 import "../pcs/VeraxPcsSetupBase.t.sol";
 
-contract VeraxIdentityPortalTest is VeraxPcsSetupBase, TCBConstants {
+contract VeraxTCBPortalTest is VeraxPcsSetupBase, TCBConstants {
     FmspcTcbDaoPortal fmspcTcbPortal;
 
     function setUp() public override {
