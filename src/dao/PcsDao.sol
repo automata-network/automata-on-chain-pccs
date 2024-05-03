@@ -23,6 +23,7 @@ abstract contract PcsDao {
     /// @dev the Intel source code at: https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/39989a42bbbb0c968153a47254b6de79a27eb603/QuoteVerification/QvE/Enclave/qve.cpp#L92-L100
     ///
     /// @notice the schema of the attested data is the following:
+    /// - bytes32 identifier
     /// - bytes pcsCert
     mapping(CA => bytes32) public pcsCertAttestations;
 
@@ -32,6 +33,7 @@ abstract contract PcsDao {
     /// @dev Portal and a Module from the Verax Protocol.
     ///
     /// @notice the schema of the attested data is the following:
+    /// - bytes32 identifier
     /// - bytes pcsCrl
     mapping(CA => bytes32) public pcsCrlAttestations;
 
@@ -55,11 +57,11 @@ abstract contract PcsDao {
         if (pcsCertAttestationId == bytes32(0)) {
             revert Missing_Certificate(ca);
         }
-        cert = _getAttestedData(pcsCertAttestationId);
+        (,cert) = abi.decode(_getAttestedData(pcsCertAttestationId), (bytes32, bytes));
 
         bytes32 pcsCrlAttestationId = pcsCrlAttestations[ca];
         if (pcsCrlAttestationId != bytes32(0)) {
-            crl = _getAttestedData(pcsCrlAttestationId);
+            (,crl) = abi.decode(_getAttestedData(pcsCertAttestationId), (bytes32, bytes));
         }
     }
 
@@ -110,6 +112,12 @@ abstract contract PcsDao {
     function _attestPcs(AttestationRequest memory req, CA ca) internal virtual returns (bytes32 attestationId);
 
     /**
+     * @dev implements this method to define an identifier for the given DER (X509 Certificates or CRLs)
+     * @return id the identifier, most likely an output of a hash.
+     */
+    function _getTbsIdentifier(bool isCrl, bytes memory der) internal view virtual returns (bytes32 id);
+
+    /**
      * @notice builds an EAS compliant attestation request
      * @param isCrl - true only if the attested data is a CRL
      * @param blob represents the corresponding DER-encoded value, specified by isCrl and CA
@@ -120,12 +128,13 @@ abstract contract PcsDao {
         returns (AttestationRequest memory req)
     {
         bytes32 predecessorAttestationId = isCrl ? pcsCrlAttestations[ca] : pcsCertAttestations[ca];
+        bytes memory attData = abi.encode(_getTbsIdentifier(isCrl, blob), blob);
         AttestationRequestData memory reqData = AttestationRequestData({
             recipient: msg.sender,
             expirationTime: 0,
             revocable: true,
             refUID: predecessorAttestationId,
-            data: blob,
+            data: attData,
             value: 0
         });
         bytes32 schemaId = isCrl ? pcsCrlSchemaID() : pcsCertSchemaID();

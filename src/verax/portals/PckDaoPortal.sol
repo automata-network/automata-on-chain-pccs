@@ -225,10 +225,11 @@ contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase {
             }
         }
         (bytes memory issuerCert,) = getPckCertChain(ca);
-        bytes memory crl = _getAttestedData(Pcs.pcsCrlAttestations(ca));
+        bytes memory crlData = _getAttestedData(Pcs.pcsCrlAttestations(ca));
         {
             // check whether certificate has been revoked and signed by a valid CA
-            if (crl.length > 0) {
+            if (crlData.length > 0) {
+                (,bytes memory crl) = abi.decode(crlData, (bytes32, bytes));
                 uint256 serialNum = pck.serialNumber;
                 bool revoked = x509CrlHelper.serialNumberIsRevoked(serialNum, crl);
                 if (revoked) {

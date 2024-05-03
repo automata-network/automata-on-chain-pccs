@@ -61,14 +61,14 @@ contract ConfigureVerax is Script {
             "Intel On-Chain PCCS Certificates", // name
             "", // Description
             "", // Context
-            "bytes pcsCert" // Schema
+            "bytes32 identifier, bytes pcsCert" // Schema
         );
         // PCS CRL Schema
         schemaRegistry.createSchema(
             "Intel On-Chain PCCS Certificate Revocation List", // name
             "", // Description
             "", // Context
-            "bytes pcsCrl" // Schema
+            "bytes32 identifier, bytes pcsCrl" // Schema
         );
         // Platform TCBs Schema
         schemaRegistry.createSchema(

@@ -33,8 +33,8 @@ abstract contract VeraxTestBase is Test {
         0xe9524a98e08b3e84ffe24d87c7571c870b2deb7ffbeea11aa3a11be287930d45;
     bytes32 internal constant FMSPC_TCB_SCHEMA_ID = 0x46bd450c3c87d1c7842b1efb25c629c61fa188159f1e48326da497f28aef6757;
     bytes32 internal constant PCK_SCHEMA_ID = 0x24c1e0f0784350da3b36c4fc38e701b0218e02a9ec9eba3329d7bcafc339df2b;
-    bytes32 internal constant PCS_CERT_SCHEMA_ID = 0xe636510f39fcce1becac6265aeea289429c8ffaa4e37cf7d9a8269f49ab853b6;
-    bytes32 internal constant PCS_CRL_SCHEMA_ID = 0xca0446aabb4cf5f2ce35e983f5d0ff69a4cbe43c9740d8e83af54dbc3e4a884c;
+    bytes32 internal constant PCS_CERT_SCHEMA_ID = 0xedc3e4f5846d93e65599fb22bc868cdb3ec6c766bbe6145acb2c3ab4765e0eb0;
+    bytes32 internal constant PCS_CRL_SCHEMA_ID = 0x420573d190f658fca27d49a4c5568195f63283301f2fd65104f7704e9442b912;
 
     function setUp() public virtual {
         // Fork Linea mainnet
@@ -85,14 +85,14 @@ abstract contract VeraxTestBase is Test {
             "Intel On-Chain PCS Certificates", // name
             "", // Description
             "", // Context
-            "bytes pcsCert" // Schema
+            "bytes32 identifier, bytes pcsCert" // Schema
         );
         // PCS CRL Schema
         schemaRegistry.createSchema(
             "Intel On-Chain PCS Certificate Revocation List", // name
             "", // Description
             "", // Context
-            "bytes pcsCrl" // Schema
+            "bytes32 identifier, bytes pcsCrl" // Schema
         );
         // Platform TCBs Schema
         schemaRegistry.createSchema(

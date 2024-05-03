@@ -172,8 +172,8 @@ abstract contract PckDao {
     {
         bytes32 intermediateCertAttestationId = Pcs.pcsCertAttestations(ca);
         bytes32 rootCertAttestationId = Pcs.pcsCertAttestations(CA.ROOT);
-        intermediateCert = _getAttestedData(intermediateCertAttestationId);
-        rootCert = _getAttestedData(rootCertAttestationId);
+        (,intermediateCert) = abi.decode(_getAttestedData(intermediateCertAttestationId), (bytes32, bytes));
+        (,rootCert) = abi.decode(_getAttestedData(rootCertAttestationId), (bytes32, bytes));
     }
 
     /**
