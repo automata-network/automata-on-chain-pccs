@@ -6,10 +6,7 @@ import "forge-std/StdJson.sol";
 import "solady/utils/JSONParserLib.sol";
 import "solady/utils/LibString.sol";
 
-import {
-    EnclaveIdentityJsonObj,
-    EnclaveIdentityHelper
-} from "../../src/helper/EnclaveIdentityHelper.sol";
+import {EnclaveIdentityJsonObj, EnclaveIdentityHelper} from "../../src/helper/EnclaveIdentityHelper.sol";
 import {TcbInfoJsonObj, FmspcTcbHelper} from "../../src/helper/FmspcTcbHelper.sol";
 import {PCKHelper} from "../../src/helper/PCKHelper.sol";
 import {X509CRLHelper} from "../../src/helper/X509CRLHelper.sol";
@@ -60,20 +57,11 @@ contract ConfigACScript is Script {
         vm.stopBroadcast();
     }
 
-    function configCertFromPath(uint8 caInput, string memory path) public {
-        if (caInput > 3) {
-            revert("Invalid CA provided.");
-        }
-
-        CA ca = CA(caInput);
-        
-        // TODO: read path
-        bytes memory readDer;
-        
-        vm.broadcast(key);
-        // upsert root ca
-        allDao.upsertPcsCertificates(ca, readDer);
+    function inputCertOrCrl(uint8 caInput, bool isCrl, bytes memory der) public {
+        _readAndUpsertDer(caInput, isCrl, der);
     }
+
+    // TODO: how can I read a hexstring from file and turn them into bytes?
 
     function configureTcbInfoFromPath(string memory path) public {
         TcbInfoJsonObj memory tcbInfoJson = _readTcbInfoJson(path);
@@ -129,5 +117,24 @@ contract ConfigACScript is Script {
         // Solady JSONParserLib does not provide a method where I can convert a hexstring to bytes
         // i am sad
         identityJson.signature = stdJson.readBytes(idData, ".signature");
+    }
+
+    function _readAndUpsertDer(uint8 caInput, bool isCrl, bytes memory der) private {
+        if (caInput > 3) {
+            revert("Invalid CA provided.");
+        }
+
+        CA ca = CA(caInput);
+
+        vm.broadcast(key);
+        if (isCrl) {
+            if (caInput == 0) {
+                allDao.upsertRootCACrl(der);
+            } else {
+                allDao.upsertPckCrl(ca, der);
+            }
+        } else {
+            allDao.upsertPcsCertificates(ca, der);
+        }
     }
 }

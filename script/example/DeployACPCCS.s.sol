@@ -15,12 +15,7 @@ contract DeployACPCCS is Script {
     function run() public {
         vm.startBroadcast(privateKey);
 
-        AccessControlledPCCS pccs = new AccessControlledPCCS(
-            enclaveIdentityHelper,
-            fmspcTcbHelper,
-            x509,
-            x509Crl
-        );
+        AccessControlledPCCS pccs = new AccessControlledPCCS(enclaveIdentityHelper, fmspcTcbHelper, x509, x509Crl);
 
         console.log("[LOG] AccessControlledPCCS: ", address(pccs));
 
