@@ -65,19 +65,21 @@ contract ConfigACScript is Script {
         allDao.upsertEnclaveIdentity(0, 3, identityJson);
 
         // upsert rootCrl
-        inputCertOrCrl(0, true, rootCrlDer);
+        _readAndUpsertDer(0, true, rootCrlDer);
 
         // upsert processorCrl
-        inputCertOrCrl(1, true, processorCrlDer);
+        _readAndUpsertDer(1, true, processorCrlDer);
 
         // upsert platformCrl
-        inputCertOrCrl(2, true, platformCrlDer);
+        _readAndUpsertDer(2, true, platformCrlDer);
 
         vm.stopBroadcast();
     }
 
     function inputCertOrCrl(uint8 caInput, bool isCrl, bytes memory der) public {
+        vm.startBroadcast(key);
         _readAndUpsertDer(caInput, isCrl, der);
+        vm.stopBroadcast();
     }
 
     // TODO: how can I read a hexstring from file and turn them into bytes?
@@ -145,7 +147,6 @@ contract ConfigACScript is Script {
 
         CA ca = CA(caInput);
 
-        vm.broadcast(key);
         if (isCrl) {
             if (caInput == 0) {
                 allDao.upsertRootCACrl(der);
