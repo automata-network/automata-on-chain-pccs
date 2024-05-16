@@ -45,8 +45,13 @@ abstract contract EnclaveIdentityDao {
     /**
      * @dev implement getter logic to retrieve attestation data
      * @param attestationId maps to the data
+     * @param hashOnly indicate either returns the hash of the data or the full collateral and hash
      */
-    function getAttestedData(bytes32 attestationId) public view virtual returns (bytes memory attestationData);
+    function getAttestedData(bytes32 attestationId, bool hashOnly)
+        public
+        view
+        virtual
+        returns (bytes memory attestationData);
 
     /**
      * @notice Section 4.2.9 (getEnclaveIdentity)
@@ -64,7 +69,7 @@ abstract contract EnclaveIdentityDao {
         if (attestationId == bytes32(0)) {
             emit EnclaveIdentityMissing(id, version);
         } else {
-            bytes memory attestedIdentityData = getAttestedData(attestationId);
+            bytes memory attestedIdentityData = getAttestedData(attestationId, false);
             (,, enclaveIdObj.identityStr, enclaveIdObj.signature) =
                 abi.decode(attestedIdentityData, (IdentityObj, bytes32, string, bytes));
         }
@@ -100,8 +105,8 @@ abstract contract EnclaveIdentityDao {
     function getEnclaveIdentityIssuerChain() public view returns (bytes memory signingCert, bytes memory rootCert) {
         bytes32 signingCertAttestationId = Pcs.pcsCertAttestations(CA.SIGNING);
         bytes32 rootCertAttestationId = Pcs.pcsCertAttestations(CA.ROOT);
-        (, signingCert) = abi.decode(getAttestedData(signingCertAttestationId), (bytes32, bytes));
-        (, rootCert) = abi.decode(getAttestedData(rootCertAttestationId), (bytes32, bytes));
+        (, signingCert) = abi.decode(getAttestedData(signingCertAttestationId, false), (bytes32, bytes));
+        (, rootCert) = abi.decode(getAttestedData(rootCertAttestationId, false), (bytes32, bytes));
     }
 
     /**

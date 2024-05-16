@@ -60,8 +60,13 @@ abstract contract PckDao {
     /**
      * @dev implement getter logic to retrieve attestation data
      * @param attestationId maps to the data
+     * @param hashOnly indicate either returns the hash of the data or the full collateral and hash
      */
-    function getAttestedData(bytes32 attestationId) public view virtual returns (bytes memory attestationData);
+    function getAttestedData(bytes32 attestationId, bool hashOnly)
+        public
+        view
+        virtual
+        returns (bytes memory attestationData);
 
     /**
      * @notice Section 4.2.2 (getCert(qe_id, cpu_svn, pce_svn, pce_id))
@@ -74,12 +79,12 @@ abstract contract PckDao {
         string calldata pceid
     ) external returns (bytes memory pckCert) {
         bytes32 tcbmAttestationId = tcbmAttestations[_getTcbmKey(qeid, pceid, platformCpuSvn, platformPceSvn)];
-        string memory tcbm = string(getAttestedData(tcbmAttestationId));
+        string memory tcbm = string(getAttestedData(tcbmAttestationId, false));
         bytes32 attestationId = _getPckAttestationId(qeid, pceid, tcbm);
         if (attestationId == bytes32(0)) {
             emit PCKMissing(qeid, pceid, platformCpuSvn, platformPceSvn);
         } else {
-            pckCert = getAttestedData(attestationId);
+            pckCert = getAttestedData(attestationId, false);
         }
     }
 
@@ -97,7 +102,7 @@ abstract contract PckDao {
             for (uint256 i = 0; i < n; i++) {
                 tcbms[i] = _tcbmStrMap[_tcbmHSets[k].at(i)];
                 bytes32 attestationId = _getPckAttestationId(qeid, pceid, tcbms[i]);
-                pckCerts[i] = getAttestedData(attestationId);
+                pckCerts[i] = getAttestedData(attestationId, false);
             }
         }
     }
@@ -119,7 +124,7 @@ abstract contract PckDao {
         if (attestationId == bytes32(0)) {
             emit TCBmMissing(qeid, pceid, platformCpuSvn, platformPceSvn);
         } else {
-            tcbm = string(getAttestedData(attestationId));
+            tcbm = string(getAttestedData(attestationId, false));
         }
     }
 
@@ -178,8 +183,8 @@ abstract contract PckDao {
     {
         bytes32 intermediateCertAttestationId = Pcs.pcsCertAttestations(ca);
         bytes32 rootCertAttestationId = Pcs.pcsCertAttestations(CA.ROOT);
-        (, intermediateCert) = abi.decode(getAttestedData(intermediateCertAttestationId), (bytes32, bytes));
-        (, rootCert) = abi.decode(getAttestedData(rootCertAttestationId), (bytes32, bytes));
+        (, intermediateCert) = abi.decode(getAttestedData(intermediateCertAttestationId, false), (bytes32, bytes));
+        (, rootCert) = abi.decode(getAttestedData(rootCertAttestationId, false), (bytes32, bytes));
     }
 
     /**

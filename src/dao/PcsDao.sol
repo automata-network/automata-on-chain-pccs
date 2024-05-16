@@ -50,8 +50,13 @@ abstract contract PcsDao {
     /**
      * @dev implement getter logic to retrieve attestation data
      * @param attestationId maps to the data
+     * @param hashOnly indicate either returns the hash of the data or the full collateral and hash
      */
-    function getAttestedData(bytes32 attestationId) public view virtual returns (bytes memory attestationData);
+    function getAttestedData(bytes32 attestationId, bool hashOnly)
+        public
+        view
+        virtual
+        returns (bytes memory attestationData);
 
     /**
      * @param ca see {Common.sol} for definition
@@ -63,11 +68,11 @@ abstract contract PcsDao {
         if (pcsCertAttestationId == bytes32(0)) {
             revert Missing_Certificate(ca);
         }
-        (, cert) = abi.decode(getAttestedData(pcsCertAttestationId), (bytes32, bytes));
+        (, cert) = abi.decode(getAttestedData(pcsCertAttestationId, false), (bytes32, bytes));
 
         bytes32 pcsCrlAttestationId = pcsCrlAttestations[ca];
         if (pcsCrlAttestationId != bytes32(0)) {
-            (, crl) = abi.decode(getAttestedData(pcsCertAttestationId), (bytes32, bytes));
+            (, crl) = abi.decode(getAttestedData(pcsCertAttestationId, false), (bytes32, bytes));
         }
     }
 

@@ -52,7 +52,12 @@ contract PcsDaoPortal is PcsDao, AbstractPortal, SigVerifyModuleBase {
     /// @inheritdoc AbstractPortal
     function withdraw(address payable to, uint256 amount) external override {}
 
-    function getAttestedData(bytes32 attestationId) public view override returns (bytes memory attestationData) {
+    function getAttestedData(bytes32 attestationId, bool hashOnly)
+        public
+        view
+        override
+        returns (bytes memory attestationData)
+    {
         if (attestationRegistry.isRegistered(attestationId)) {
             Attestation memory attestation = attestationRegistry.getAttestation(attestationId);
             if (attestation.revoked) {
@@ -109,7 +114,7 @@ contract PcsDaoPortal is PcsDao, AbstractPortal, SigVerifyModuleBase {
     function _onRevoke(bytes32 attestationId) internal view override {
         Attestation memory attestation = attestationRegistry.getAttestation(attestationId);
         bytes memory cert = attestation.attestationData;
-        bytes memory rootCrl = getAttestedData(pcsCrlAttestations[CA.ROOT]);
+        bytes memory rootCrl = getAttestedData(pcsCrlAttestations[CA.ROOT], false);
         CA ca;
         string memory subjectCommonName = x509Helper.getSubjectCommonName(cert);
         if (LibString.eq(subjectCommonName, PCK_PLATFORM_CA_COMMON_NAME)) {
@@ -174,9 +179,9 @@ contract PcsDaoPortal is PcsDao, AbstractPortal, SigVerifyModuleBase {
         bytes32 rootCertAttestationId = pcsCertAttestations[CA.ROOT];
         bytes memory data;
         if (ca != CA.ROOT) {
-            data = getAttestedData(intermediateCertAttestationId);
+            data = getAttestedData(intermediateCertAttestationId, false);
         } else {
-            data = getAttestedData(rootCertAttestationId);
+            data = getAttestedData(rootCertAttestationId, false);
         }
         if (data.length > 0) {
             (, issuerCert) = abi.decode(data, (bytes32, bytes));
@@ -242,7 +247,7 @@ contract PcsDaoPortal is PcsDao, AbstractPortal, SigVerifyModuleBase {
                 }
             }
             bytes memory issuerCert = _getIssuer(CA.ROOT);
-            bytes memory rootCrlData = getAttestedData(pcsCrlAttestations[CA.ROOT]);
+            bytes memory rootCrlData = getAttestedData(pcsCrlAttestations[CA.ROOT], false);
             {
                 if (ca == CA.ROOT) {
                     bytes memory pubKey = x509Helper.getSubjectPublicKey(cert);

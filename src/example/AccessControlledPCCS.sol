@@ -66,8 +66,7 @@ contract AccessControlledPCCS is Ownable {
         if (attData.length == 0) {
             revert Missing_Data(ID.QE_ID_OBJ);
         }
-        (,, enclaveIdObj.identityStr, enclaveIdObj.signature) =
-            abi.decode(attData, (IdentityObj, bytes32, string, bytes));
+        (, enclaveIdObj.identityStr, enclaveIdObj.signature) = abi.decode(attData, (IdentityObj, string, bytes));
     }
 
     function fmspcTcbInfoAttestations(bytes32 key) external view returns (bytes32 attestationId) {
@@ -89,8 +88,8 @@ contract AccessControlledPCCS is Ownable {
         if (attData.length == 0) {
             revert Missing_Data(ID.FMSPC_TCB_INFO_OBJ);
         }
-        (,,,,,, tcbObj.tcbInfoStr, tcbObj.signature) =
-            abi.decode(attData, (uint256, uint256, uint256, uint256, TCBLevelsObj[], bytes32, string, bytes));
+        (,,,,, tcbObj.tcbInfoStr, tcbObj.signature) =
+            abi.decode(attData, (uint256, uint256, uint256, uint256, TCBLevelsObj[], string, bytes));
     }
 
     function pcsCertAttestations(CA ca) external view returns (bytes32 attestationId) {
@@ -122,23 +121,28 @@ contract AccessControlledPCCS is Ownable {
             revert Missing_Data(certId);
         }
 
-        (, cert) = abi.decode(certData, (bytes32, bytes));
+        cert = abi.decode(certData, (bytes));
 
         bytes memory crlData = _pccsData[crlAttestationId];
         if (crlData.length > 0) {
-            (, crl) = abi.decode(crlData, (bytes32, bytes));
+            crl = abi.decode(crlData, (bytes));
         }
     }
 
-    function getAttestedData(bytes32 id) external view returns (bytes memory data) {
-        data = _pccsData[id];
+    function getAttestedData(bytes32 id, bool hashOnly) external view returns (bytes memory data) {
+        if (hashOnly) {
+            data = _pccsData[id];
+        } else {
+            bytes memory metaData = _pccsData[id];
+            (bytes32 dataHash, bytes32 dataAttestationId) = abi.decode(metaData, (bytes32, bytes32));
+            data = abi.encode(dataHash, _pccsData[dataAttestationId]);
+        }
     }
 
     function upsertPcsCertificates(CA ca, bytes calldata cert) external onlyOwner returns (bytes32 attestationId) {
         (ID certId,) = _getCertIdsFromCommonCAs(ca);
         (bytes memory tbs,) = x509Helper.getTbsAndSig(cert);
-        attestationId = _computeId(certId, hex"");
-        _pccsData[attestationId] = abi.encode(keccak256(tbs), cert);
+        attestationId = _attestCollateral(certId, hex"", cert, keccak256(tbs));
     }
 
     function upsertPckCrl(CA ca, bytes calldata crl)
@@ -158,8 +162,7 @@ contract AccessControlledPCCS is Ownable {
         (bytes memory data, uint256 tcbType, string memory fmspc, uint256 version) =
             _buildTcbAttestationData(tcbInfoObj.tcbInfoStr, tcbInfoObj.signature);
         bytes32 key = keccak256(abi.encodePacked(tcbType, fmspc, version));
-        attestationId = _computeId(ID.FMSPC_TCB_INFO_OBJ, key);
-        _pccsData[attestationId] = data;
+        attestationId = _attestCollateral(ID.FMSPC_TCB_INFO_OBJ, key, data, sha256(bytes(tcbInfoObj.tcbInfoStr)));
     }
 
     function upsertEnclaveIdentity(uint256 id, uint256 version, EnclaveIdentityJsonObj calldata enclaveIdentityObj)
@@ -169,10 +172,9 @@ contract AccessControlledPCCS is Ownable {
     {
         IdentityObj memory identity = enclaveIdHelper.parseIdentityString(enclaveIdentityObj.identityStr);
         bytes32 digest = sha256(bytes(enclaveIdentityObj.identityStr));
-        bytes memory data = abi.encode(identity, digest, enclaveIdentityObj.identityStr, enclaveIdentityObj.signature);
+        bytes memory data = abi.encode(identity, enclaveIdentityObj.identityStr, enclaveIdentityObj.signature);
         bytes32 key = keccak256(abi.encodePacked(id, version));
-        attestationId = _computeId(ID.QE_ID_OBJ, key);
-        _pccsData[attestationId] = data;
+        attestationId = _attestCollateral(ID.QE_ID_OBJ, key, data, digest);
     }
 
     function _getCertIdsFromCommonCAs(CA ca) private pure returns (ID certId, ID crlId) {
@@ -193,8 +195,7 @@ contract AccessControlledPCCS is Ownable {
     function _upsertCrl(CA ca, bytes calldata crl) private returns (bytes32 attestationId) {
         (, ID crlId) = _getCertIdsFromCommonCAs(ca);
         (bytes memory tbs,) = x509CrlHelper.getTbsAndSig(crl);
-        attestationId = _computeId(crlId, hex"");
-        _pccsData[attestationId] = abi.encode(keccak256(tbs), crl);
+        attestationId = _attestCollateral(crlId, hex"", crl, keccak256(tbs));
     }
 
     function _buildTcbAttestationData(string memory tcbInfoStr, bytes memory signature)
@@ -206,9 +207,17 @@ contract AccessControlledPCCS is Ownable {
         uint256 issueDate;
         uint256 nextUpdate;
         (tcbType, fmspc, version, issueDate, nextUpdate) = fmspcTcbHelper.parseTcbString(tcbInfoStr);
-        attestationData = abi.encode(
-            tcbType, version, issueDate, nextUpdate, tcbLevels, sha256(bytes(tcbInfoStr)), tcbInfoStr, signature
-        );
+        attestationData = abi.encode(tcbType, version, issueDate, nextUpdate, tcbLevels, tcbInfoStr, signature);
+    }
+
+    function _attestCollateral(ID id, bytes32 key, bytes memory data, bytes32 dataHash)
+        private
+        returns (bytes32 metaAttestationId)
+    {
+        bytes32 dataAttestationId = _computeId(id, key);
+        metaAttestationId = _computeId(id, keccak256(abi.encodePacked(key)));
+        _pccsData[dataAttestationId] = data;
+        _pccsData[metaAttestationId] = abi.encode(dataHash, dataAttestationId);
     }
 
     function _computeId(ID id, bytes32 key) private pure returns (bytes32 attId) {

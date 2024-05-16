@@ -39,7 +39,12 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal, SigVerifyModuleBase {
     /// @inheritdoc AbstractPortal
     function withdraw(address payable to, uint256 amount) external override {}
 
-    function getAttestedData(bytes32 attestationId) public view override returns (bytes memory attestationData) {
+    function getAttestedData(bytes32 attestationId, bool hashOnly)
+        public
+        view
+        override
+        returns (bytes memory attestationData)
+    {
         if (attestationRegistry.isRegistered(attestationId)) {
             Attestation memory attestation = attestationRegistry.getAttestation(attestationId);
             if (attestation.revoked) {
@@ -98,7 +103,7 @@ contract FmspcTcbDaoPortal is FmspcTcbDao, AbstractPortal, SigVerifyModuleBase {
         address, /*attester*/
         uint256 /*value*/
     ) internal view override locked {
-        bytes memory prevData = getAttestedData(attestationId);
+        bytes memory prevData = getAttestedData(attestationId, false);
         bytes memory currentData = attestationPayload.attestationData;
         (,, uint256 prevIssueDate,,,,,) =
             abi.decode(prevData, (uint256, uint256, uint256, uint256, TCBLevelsObj[], bytes32, string, bytes));

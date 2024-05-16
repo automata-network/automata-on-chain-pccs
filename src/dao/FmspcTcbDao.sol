@@ -42,9 +42,13 @@ abstract contract FmspcTcbDao {
     /**
      * @dev implement getter logic to retrieve attestation data
      * @param attestationId maps to the data
+     * @param hashOnly indicate either returns the hash of the data or the full collateral and hash
      */
-    function getAttestedData(bytes32 attestationId) public view virtual returns (bytes memory attestationData);
-
+    function getAttestedData(bytes32 attestationId, bool hashOnly)
+        public
+        view
+        virtual
+        returns (bytes memory attestationData);
     /**
      * @notice Section 4.2.3 (getTcbInfo)
      * @notice Queries TCB Info for the given FMSPC
@@ -55,6 +59,7 @@ abstract contract FmspcTcbDao {
      * https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/39989a42bbbb0c968153a47254b6de79a27eb603/QuoteVerification/QVL/Src/AttestationParsers/include/SgxEcdsaAttestation/AttestationParsers.h#L241-L248
      * @return tcbObj See {FmspcTcbHelper.sol} to learn more about the structure definition
      */
+
     function getTcbInfo(uint256 tcbType, string calldata fmspc, uint256 version)
         external
         returns (TcbInfoJsonObj memory tcbObj)
@@ -63,9 +68,10 @@ abstract contract FmspcTcbDao {
         if (attestationId == bytes32(0)) {
             emit TCBInfoMissing(tcbType, fmspc, version);
         } else {
-            bytes memory attestedTcbData = getAttestedData(attestationId);
-            (,,,,,, tcbObj.tcbInfoStr, tcbObj.signature) =
-                abi.decode(attestedTcbData, (uint256, uint256, uint256, uint256, TCBLevelsObj[], bytes32, string, bytes));
+            bytes memory attestedTcbData = getAttestedData(attestationId, false);
+            (,,,,,, tcbObj.tcbInfoStr, tcbObj.signature) = abi.decode(
+                attestedTcbData, (uint256, uint256, uint256, uint256, TCBLevelsObj[], bytes32, string, bytes)
+            );
         }
     }
 
@@ -91,8 +97,8 @@ abstract contract FmspcTcbDao {
     function getTcbIssuerChain() public view returns (bytes memory signingCert, bytes memory rootCert) {
         bytes32 signingCertAttestationId = Pcs.pcsCertAttestations(CA.SIGNING);
         bytes32 rootCertAttestationId = Pcs.pcsCertAttestations(CA.ROOT);
-        (, signingCert) = abi.decode(getAttestedData(signingCertAttestationId), (bytes32, bytes));
-        (, rootCert) = abi.decode(getAttestedData(rootCertAttestationId), (bytes32, bytes));
+        (, signingCert) = abi.decode(getAttestedData(signingCertAttestationId, false), (bytes32, bytes));
+        (, rootCert) = abi.decode(getAttestedData(rootCertAttestationId, false), (bytes32, bytes));
     }
 
     /**

@@ -49,7 +49,12 @@ contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase {
     /// @inheritdoc AbstractPortal
     function withdraw(address payable to, uint256 amount) external override {}
 
-    function getAttestedData(bytes32 attestationId) public view override returns (bytes memory attestationData) {
+    function getAttestedData(bytes32 attestationId, bool hashOnly)
+        public
+        view
+        override
+        returns (bytes memory attestationData)
+    {
         if (attestationRegistry.isRegistered(attestationId)) {
             Attestation memory attestation = attestationRegistry.getAttestation(attestationId);
             if (attestation.revoked) {
@@ -132,7 +137,7 @@ contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase {
             } else {
                 revert Invalid_Issuer_Name();
             }
-            bytes memory crl = getAttestedData(Pcs.pcsCrlAttestations(ca));
+            bytes memory crl = getAttestedData(Pcs.pcsCrlAttestations(ca), false);
             if (crl.length > 0) {
                 uint256 serialNum = x509Helper.getSerialNumber(cert);
                 bool revoked = x509CrlHelper.serialNumberIsRevoked(serialNum, crl);
@@ -225,7 +230,7 @@ contract PckDaoPortal is PckDao, AbstractPortal, SigVerifyModuleBase {
             }
         }
         (bytes memory issuerCert,) = getPckCertChain(ca);
-        bytes memory crlData = getAttestedData(Pcs.pcsCrlAttestations(ca));
+        bytes memory crlData = getAttestedData(Pcs.pcsCrlAttestations(ca), false);
         {
             // check whether certificate has been revoked and signed by a valid CA
             if (crlData.length > 0) {
