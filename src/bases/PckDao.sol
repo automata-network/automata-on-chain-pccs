@@ -338,9 +338,11 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
 
         // Step 4: Check whether the pck has been revoked
         bytes memory crlData = getAttestedData(Pcs.pcsCrlAttestations(ca));
-        bool revocable = crlLib.serialNumberIsRevoked(pck.serialNumber, crlData);
-        if (revocable) {
-            revert Certificate_Revoked(pck.serialNumber);
+        if (crlData.length > 0) {
+            bool revocable = crlLib.serialNumberIsRevoked(pck.serialNumber, crlData);
+            if (revocable) {
+                revert Certificate_Revoked(pck.serialNumber);
+            }
         }
 
         // Step 5: Check signature
