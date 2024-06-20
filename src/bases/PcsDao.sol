@@ -205,14 +205,22 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
 
         // Step 4: Check signature
         bytes memory rootCert = _getIssuer(CA.ROOT);
-        if (rootCert.length > 0) {
+        if (ca == CA.ROOT) {
+            (bytes memory tbs, bytes memory signature) = x509Lib.getTbsAndSig(cert);
+            bytes32 digest = sha256(tbs);
+            // the root certificate is issued by its own key
+            bool sigVerified = verifySignature(digest, signature, cert);
+            if (!sigVerified) {
+                revert Invalid_Signature();
+            }
+        } else if (rootCert.length > 0) {
             (bytes memory tbs, bytes memory signature) = x509Lib.getTbsAndSig(cert);
             bytes32 digest = sha256(tbs);
             bool sigVerified = verifySignature(digest, signature, rootCert);
             if (!sigVerified) {
                 revert Invalid_Signature();
             }
-        } else if (ca != CA.ROOT) {
+        } else {
             // all other certificates should already have an iusuer configured
             revert Missing_Issuer();
         }
@@ -249,7 +257,9 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
     function _getIssuer(CA ca) private view returns (bytes memory issuerCert) {
         bytes32 intermediateCertAttestationId = pcsCertAttestations[ca];
         bytes32 rootCertAttestationId = pcsCertAttestations[CA.ROOT];
-        if (ca != CA.ROOT) {
+        if (ca == CA.PLATFORM || ca == CA.PROCESSOR) {
+            // this is applicable to crls only
+            // since all certs in the pcsdao are issued by the root
             issuerCert = getAttestedData(intermediateCertAttestationId);
         } else {
             issuerCert = getAttestedData(rootCertAttestationId);
