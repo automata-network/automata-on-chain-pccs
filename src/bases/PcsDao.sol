@@ -96,9 +96,8 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
      * @param cert the DER-encoded certificate
      */
     function upsertPcsCertificates(CA ca, bytes calldata cert) external returns (bytes32 attestationId) {
-        _validatePcsCert(ca, cert);
+        bytes32 hash = _validatePcsCert(ca, cert);
         AttestationRequest memory req = _buildPcsAttestationRequest(false, ca, cert);
-        bytes32 hash = keccak256(cert);
         attestationId = _attestPcs(req, hash);
         pcsCertAttestations[ca] = attestationId;
     }
@@ -129,9 +128,8 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
     function _attestPcs(AttestationRequest memory req, bytes32 hash) internal virtual returns (bytes32 attestationId);
 
     function _upsertPcsCrl(CA ca, bytes calldata crl) private returns (bytes32 attestationId) {
-        _validatePcsCrl(ca, crl);
+        bytes32 hash = _validatePcsCrl(ca, crl);
         AttestationRequest memory req = _buildPcsAttestationRequest(true, ca, crl);
-        bytes32 hash = keccak256(crl);
         attestationId = _attestPcs(req, hash);
         pcsCrlAttestations[ca] = attestationId;
     }
@@ -159,7 +157,7 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
         req = AttestationRequest({schema: schemaId, data: reqData});
     }
 
-    function _validatePcsCert(CA ca, bytes calldata cert) private view {
+    function _validatePcsCert(CA ca, bytes calldata cert) private view returns (bytes32 hash) {
         // Step 1: Check whether cert has expired
         bool notExpired = x509Lib.certIsNotExpired(cert);
         if (!notExpired) {
@@ -205,28 +203,27 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
 
         // Step 4: Check signature
         bytes memory rootCert = _getIssuer(CA.ROOT);
+        (bytes memory tbs, bytes memory signature) = x509Lib.getTbsAndSig(cert);
+        bytes32 digest = sha256(tbs);
+        bool sigVerified;
         if (ca == CA.ROOT) {
-            (bytes memory tbs, bytes memory signature) = x509Lib.getTbsAndSig(cert);
-            bytes32 digest = sha256(tbs);
             // the root certificate is issued by its own key
-            bool sigVerified = verifySignature(digest, signature, cert);
-            if (!sigVerified) {
-                revert Invalid_Signature();
-            }
+            sigVerified = verifySignature(digest, signature, cert);
         } else if (rootCert.length > 0) {
-            (bytes memory tbs, bytes memory signature) = x509Lib.getTbsAndSig(cert);
-            bytes32 digest = sha256(tbs);
-            bool sigVerified = verifySignature(digest, signature, rootCert);
-            if (!sigVerified) {
-                revert Invalid_Signature();
-            }
+            sigVerified = verifySignature(digest, signature, rootCert);
         } else {
             // all other certificates should already have an iusuer configured
             revert Missing_Issuer();
         }
+
+        if (!sigVerified) {
+            revert Invalid_Signature();
+        }
+
+        hash = keccak256(tbs);
     }
 
-    function _validatePcsCrl(CA ca, bytes calldata crl) private view {
+    function _validatePcsCrl(CA ca, bytes calldata crl) private view returns (bytes32 hash) {
         // Step 1: Check whether CRL has expired
         bool notExpired = crlLib.crlIsNotExpired(crl);
         if (!notExpired) {
@@ -252,6 +249,8 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
         if (!sigVerified) {
             revert Invalid_Signature();
         }
+
+        hash = keccak256(tbs);
     }
 
     function _getIssuer(CA ca) private view returns (bytes memory issuerCert) {

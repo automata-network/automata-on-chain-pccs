@@ -29,13 +29,14 @@ contract AutomataPckDaoTest is PCSSetupBase {
     function testGetCert() public {
         bytes memory fetchedCert = pck.getCert(qeid, cpusvn, pcesvn, pceid);
         bytes32 fetchedCollateralHash = pck.getCollateralHash(pckAttestationId);
-        assertEq(fetchedCollateralHash, keccak256(pckDer));
-        assertEq(keccak256(fetchedCert), fetchedCollateralHash);
+        (bytes memory tbs, ) = x509Lib.getTbsAndSig(pckDer);
+        assertEq(fetchedCollateralHash, keccak256(tbs));
+        assertEq(keccak256(fetchedCert), keccak256(pckDer));
 
         (string[] memory tcbms, bytes[] memory certs) = pck.getCerts(qeid, pceid);
 
         assertEq(keccak256(bytes(tcbms[0])), keccak256(bytes(tcbm)));
-        assertEq(keccak256(certs[0]), fetchedCollateralHash);
+        assertEq(keccak256(certs[0]), keccak256(pckDer));
     }
 
     function testGetPlatformTcb() public {

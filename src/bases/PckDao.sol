@@ -146,9 +146,8 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         string calldata tcbm,
         bytes calldata cert
     ) external pckCACheck(ca) returns (bytes32 attestationId) {
-        _validatePck(ca, cert, tcbm, pceid);
+        bytes32 hash = _validatePck(ca, cert, tcbm, pceid);
         AttestationRequest memory req = _buildPckCertAttestationRequest(qeid, pceid, tcbm, cert);
-        bytes32 hash = keccak256(cert);
         attestationId = _attestPck(req, hash);
         pckCertAttestations[keccak256(abi.encodePacked(qeid, pceid, tcbm))] = attestationId;
         _upsertTcbm(qeid, pceid, tcbm);
@@ -311,7 +310,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         }
     }
 
-    function _validatePck(CA ca, bytes memory der, string calldata tcbm, string calldata pceid) private view {
+    function _validatePck(CA ca, bytes memory der, string calldata tcbm, string calldata pceid) private view returns (bytes32 hash) {
         // Step 1: Check whether the pck has expired
         bool notExpired = pckLib.certIsNotExpired(der);
         if (!notExpired) {
@@ -319,6 +318,8 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         }
 
         X509CertObj memory pck = pckLib.parseX509DER(der);
+        hash = keccak256(pck.tbs);
+
         // Step 2: Check Issuer and Subject names
         string memory expectedIssuer;
         if (ca == CA.PLATFORM) {
