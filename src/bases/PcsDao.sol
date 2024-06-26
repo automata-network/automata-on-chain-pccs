@@ -86,7 +86,7 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
 
         bytes32 pcsCrlAttestationId = pcsCrlAttestations[ca];
         if (pcsCrlAttestationId != bytes32(0)) {
-            crl = getAttestedData(pcsCertAttestationId);
+            crl = getAttestedData(pcsCrlAttestationId);
         }
     }
 
