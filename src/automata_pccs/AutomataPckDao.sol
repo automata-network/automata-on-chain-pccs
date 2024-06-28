@@ -2,13 +2,21 @@
 pragma solidity ^0.8.0;
 
 import {AutomataDaoBase} from "./shared/AutomataDaoBase.sol";
-import {PckDao, AttestationRequest} from "../bases/PckDao.sol";
+import {PckDao, AttestationRequest, PcsDao} from "../bases/PckDao.sol";
 
-contract AutomataPckDao is AutomataDaoBase, PckDao {
+import {Ownable} from "solady/auth/Ownable.sol";
+
+contract AutomataPckDao is Ownable, AutomataDaoBase, PckDao {
     constructor(address _storage, address _pcs, address _x509, address _crl)
         AutomataDaoBase(_storage)
         PckDao(_pcs, _x509, _crl)
-    {}
+    {
+        _initializeOwner(msg.sender);
+    }
+
+    function setPcs(address _pcs) external onlyOwner {
+        Pcs = PcsDao(_pcs);
+    }
 
     function pckSchemaID() public pure override returns (bytes32) {
         // NOT-APPLICABLE FOR OUR USE CASE

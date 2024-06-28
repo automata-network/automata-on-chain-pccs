@@ -2,13 +2,21 @@
 pragma solidity ^0.8.0;
 
 import {AutomataDaoBase} from "./shared/AutomataDaoBase.sol";
-import {FmspcTcbDao, AttestationRequest} from "../bases/FmspcTcbDao.sol";
+import {FmspcTcbDao, AttestationRequest, PcsDao} from "../bases/FmspcTcbDao.sol";
 
-contract AutomataFmspcTcbDao is AutomataDaoBase, FmspcTcbDao {
+import {Ownable} from "solady/auth/Ownable.sol";
+
+contract AutomataFmspcTcbDao is Ownable, AutomataDaoBase, FmspcTcbDao {
     constructor(address _storage, address _pcs, address _fmspcHelper, address _x509Helper)
         AutomataDaoBase(_storage)
         FmspcTcbDao(_pcs, _fmspcHelper, _x509Helper)
-    {}
+    {
+        _initializeOwner(msg.sender);
+    }
+
+    function setPcs(address _pcs) external onlyOwner {
+        Pcs = PcsDao(_pcs);
+    }
 
     function fmpscTcbV2SchemaID() public pure override returns (bytes32) {
         // NOT-APPLICABLE FOR OUR USE CASE

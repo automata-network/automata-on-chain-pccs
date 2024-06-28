@@ -5,6 +5,10 @@ import "forge-std/Script.sol";
 
 import {AutomataDaoStorage} from "../../src/automata_pccs/shared/AutomataDaoStorage.sol";
 
+interface IUpdatePcs {
+    function setPcs(address _pcs) external;
+}
+
 contract ConfigAutomataDao is Script {
     uint256 privateKey = vm.envUint("PRIVATE_KEY");
 
@@ -25,5 +29,18 @@ contract ConfigAutomataDao is Script {
         vm.broadcast(privateKey);
 
         AutomataDaoStorage(pccsStorageAddr).revokeDao(dao);
+    }
+
+    function updatePcsDependencies() public {
+        address[3] memory daos = [
+            pckDaoAddr,
+            fmspcTcbDaoAddr,
+            enclaveIdDaoAddr
+        ];
+
+        for (uint256 i = 0; i < 3; i++) {
+            vm.broadcast(privateKey);
+            IUpdatePcs(daos[i]).setPcs(pcsDaoAddr);
+        }
     }
 }

@@ -2,13 +2,21 @@
 pragma solidity ^0.8.0;
 
 import {AutomataDaoBase} from "./shared/AutomataDaoBase.sol";
-import {EnclaveIdentityDao, AttestationRequest} from "../bases/EnclaveIdentityDao.sol";
+import {EnclaveIdentityDao, AttestationRequest, PcsDao} from "../bases/EnclaveIdentityDao.sol";
 
-contract AutomataEnclaveIdentityDao is AutomataDaoBase, EnclaveIdentityDao {
+import {Ownable} from "solady/auth/Ownable.sol";
+
+contract AutomataEnclaveIdentityDao is Ownable, AutomataDaoBase, EnclaveIdentityDao {
     constructor(address _storage, address _pcs, address _enclaveIdentityHelper, address _x509Helper)
         EnclaveIdentityDao(_pcs, _enclaveIdentityHelper, _x509Helper)
         AutomataDaoBase(_storage)
-    {}
+    {
+        _initializeOwner(msg.sender);
+    }
+
+    function setPcs(address _pcs) external onlyOwner {
+        Pcs = PcsDao(_pcs);
+    }
 
     function enclaveIdentitySchemaID() public pure override returns (bytes32) {
         // NOT-APPLICABLE FOR OUR USE CASE
