@@ -9,6 +9,7 @@ import {CA, AttestationRequestData, AttestationRequest} from "../Common.sol";
 import {
     FmspcTcbHelper,
     TcbInfoJsonObj,
+    TcbId,
     TcbInfoBasic,
     TCBLevelsObj,
     TDXModule,
@@ -166,8 +167,11 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         if (tcbInfo.version < 3) {
             attestationData = abi.encode(tcbInfo, tcbLevels, tcbInfoStr, signature);
         } else {
-            (TDXModule memory module, TDXModuleIdentity[] memory moduleIdentities) =
-                FmspcTcbLib.parseTcbTdxModules(tcbInfoStr);
+            TDXModule memory module;
+            TDXModuleIdentity[] memory moduleIdentities;
+            if (tcbInfo.id == TcbId.TDX) {
+                (module, moduleIdentities) = FmspcTcbLib.parseTcbTdxModules(tcbInfoStr);
+            }
             attestationData = abi.encode(tcbInfo, module, moduleIdentities, tcbLevels, tcbInfoStr, signature);
         }
     }
