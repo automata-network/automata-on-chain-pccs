@@ -49,6 +49,26 @@ contract AutomataFmspcTcbDaoTest is PCSSetupBase, TCBConstants {
         assertEq(fmspcTcbDao.getCollateralHash(attestationId), sha256(bytes(tcbInfoObj.tcbInfoStr)));
     }
 
+    function testAttestFmspcTcbTdxV3() public {
+        vm.warp(1715843418);
+
+        uint8 tcbType = 1;
+        string memory fmspc = "90c06f000000";
+        uint32 version = 3;
+
+        TcbInfoJsonObj memory tcbInfoObj =
+            TcbInfoJsonObj({tcbInfoStr: string(tdx_tcbStr), signature: tdx_signature});
+
+        bytes32 attestationId = fmspcTcbDao.upsertFmspcTcb(tcbInfoObj);
+        assertEq(
+            fmspcTcbDao.fmspcTcbInfoAttestations(keccak256(abi.encodePacked(tcbType, fmspc, version))), attestationId
+        );
+
+        TcbInfoJsonObj memory fetched = fmspcTcbDao.getTcbInfo(tcbType, fmspc, version);
+        assertEq(fetched.signature, tcbInfoObj.signature);
+        assertEq(fmspcTcbDao.getCollateralHash(attestationId), sha256(bytes(tcbInfoObj.tcbInfoStr)));
+    }
+
     function testTcbIssuerChain() public {
         (bytes memory fetchedSigning, bytes memory fetchedRoot) = fmspcTcbDao.getTcbIssuerChain();
         assertEq(keccak256(signingDer), keccak256(fetchedSigning));

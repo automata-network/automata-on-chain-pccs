@@ -104,7 +104,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         (AttestationRequest memory req, TcbInfoBasic memory tcbInfo) = _buildTcbAttestationRequest(tcbInfoObj);
         bytes32 hash = sha256(bytes(tcbInfoObj.tcbInfoStr));
         attestationId = _attestTcb(req, hash);
-        fmspcTcbInfoAttestations[keccak256(abi.encodePacked(tcbInfo.tcbType, tcbInfo.fmspc, tcbInfo.version))] =
+        fmspcTcbInfoAttestations[keccak256(abi.encodePacked(uint8(tcbInfo.id), tcbInfo.fmspc, tcbInfo.version))] =
             attestationId;
     }
 
@@ -141,7 +141,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     {
         bytes memory attestationData;
         (attestationData, tcbInfo) = _buildAttestationData(tcbInfoObj.tcbInfoStr, tcbInfoObj.signature);
-        bytes32 predecessorAttestationId = _getAttestationId(tcbInfo.tcbType, tcbInfo.fmspc, tcbInfo.version);
+        bytes32 predecessorAttestationId = _getAttestationId(uint8(tcbInfo.id), tcbInfo.fmspc, tcbInfo.version);
         if (block.timestamp < tcbInfo.issueDate || block.timestamp > tcbInfo.nextUpdate) {
             revert TCB_Expired();
         }
