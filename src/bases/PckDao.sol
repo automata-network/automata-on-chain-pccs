@@ -38,18 +38,15 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
     PCKHelper public pckLib;
     X509CRLHelper public crlLib;
 
-    /// K = keccak256(qeid ++ pceid)
-    /// H = keccak256(qeid ++ pceid ++ tcbm)
-    /// mapping (K => Enumerable H Set)
+    /// mapping (keccak256(qeid ++ pceid) => Enumerable tcbm Set)
+    /// tcbm is a 18-byte data which is a concatenation of PCK cpusvn (16 bytes) and pcesvn (2 bytes)
     mapping(bytes32 => EnumerableSet.Bytes32Set) private _tcbmHSets;
-    /// mapping (H => tcbm)
-    mapping(bytes32 => string) private _tcbmStrMap;
 
     /// @notice retrieves the attested TCBm from the registry
     /// key: keccak256(qeid ++ pceid ++ platformCpuSvn ++ platformPceSvn)
     ///
     /// @notice the schema of the attested data is the following:
-    /// - string tcbm
+    /// - bytes18 tcbm
     mapping(bytes32 => bytes32) public tcbmAttestations;
 
     /// @notice retrieves the attested PCK Cert from the registry
@@ -86,9 +83,13 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         string calldata platformPceSvn,
         string calldata pceid
     ) external view returns (bytes memory pckCert) {
-        bytes32 tcbmAttestationId = tcbmAttestations[_getTcbmKey(qeid, pceid, platformCpuSvn, platformPceSvn)];
-        string memory tcbm = string(getAttestedData(tcbmAttestationId));
-        bytes32 attestationId = _getPckAttestationId(qeid, pceid, tcbm);
+        (bytes16 qeidBytes, bytes2 pceidBytes, bytes16 platformCpuSvnBytes, bytes2 platformPceSvnBytes,) =
+            _parseStringInputs(qeid, pceid, platformCpuSvn, platformPceSvn, "");
+
+        bytes32 tcbmAttestationId =
+            tcbmAttestations[_getTcbmKey(qeidBytes, pceidBytes, platformCpuSvnBytes, platformPceSvnBytes)];
+        bytes18 tcbmBytes = bytes18(getAttestedData(tcbmAttestationId));
+        bytes32 attestationId = _getPckAttestationId(qeidBytes, pceidBytes, tcbmBytes);
         if (attestationId != bytes32(0)) {
             pckCert = getAttestedData(attestationId);
         }
@@ -99,14 +100,17 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         view
         returns (string[] memory tcbms, bytes[] memory pckCerts)
     {
-        bytes32 k = keccak256(abi.encodePacked(qeid, pceid));
+        (bytes16 qeidBytes, bytes2 pceidBytes,,,) = _parseStringInputs(qeid, pceid, "", "", "");
+
+        bytes32 k = keccak256(abi.encodePacked(qeidBytes, pceidBytes));
         uint256 n = _tcbmHSets[k].length();
         if (n > 0) {
             tcbms = new string[](n);
             pckCerts = new bytes[](n);
             for (uint256 i = 0; i < n; i++) {
-                tcbms[i] = _tcbmStrMap[_tcbmHSets[k].at(i)];
-                bytes32 attestationId = _getPckAttestationId(qeid, pceid, tcbms[i]);
+                bytes18 tcbmBytes = bytes18(_tcbmHSets[k].at(i));
+                tcbms[i] = LibString.toHexStringNoPrefix(abi.encodePacked(tcbmBytes));
+                bytes32 attestationId = _getPckAttestationId(qeidBytes, pceidBytes, tcbmBytes);
                 pckCerts[i] = getAttestedData(attestationId);
             }
         }
@@ -123,9 +127,16 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         string calldata platformCpuSvn,
         string calldata platformPceSvn
     ) external view returns (string memory tcbm) {
-        bytes32 attestationId = _getTcbmAttestationId(qeid, pceid, platformCpuSvn, platformPceSvn);
+        (bytes16 qeidBytes, bytes2 pceidBytes, bytes16 platformCpuSvnBytes, bytes2 platformPceSvnBytes,) =
+            _parseStringInputs(qeid, pceid, platformCpuSvn, platformPceSvn, "");
+
+        bytes32 attestationId = _getTcbmAttestationId(qeidBytes, pceidBytes, platformCpuSvnBytes, platformPceSvnBytes);
         if (attestationId != bytes32(0)) {
-            tcbm = string(getAttestedData(attestationId));
+            tcbm = LibString.toHexStringNoPrefix(
+                abi.encodePacked(
+                    bytes18(getAttestedData(attestationId))
+                )
+            );
         }
     }
 
@@ -146,11 +157,12 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         string calldata tcbm,
         bytes calldata cert
     ) external pckCACheck(ca) returns (bytes32 attestationId) {
-        bytes32 hash = _validatePck(ca, cert, tcbm, pceid);
-        AttestationRequest memory req = _buildPckCertAttestationRequest(qeid, pceid, tcbm, cert);
+        (bytes16 qeidBytes, bytes2 pceidBytes,,, bytes18 tcbmBytes) = _parseStringInputs(qeid, pceid, "", "", tcbm);
+        bytes32 hash = _validatePck(ca, cert, tcbmBytes, pceidBytes);
+        AttestationRequest memory req = _buildPckCertAttestationRequest(qeidBytes, pceidBytes, tcbmBytes, cert);
         attestationId = _attestPck(req, hash);
-        pckCertAttestations[keccak256(abi.encodePacked(qeid, pceid, tcbm))] = attestationId;
-        _upsertTcbm(qeid, pceid, tcbm);
+        pckCertAttestations[keccak256(abi.encodePacked(qeidBytes, pceidBytes, tcbmBytes))] = attestationId;
+        _upsertTcbm(qeidBytes, pceidBytes, tcbmBytes);
     }
 
     /// @dev currently missing strict TCB check on platformCpuSvn and platformPceSvn
@@ -162,8 +174,17 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         string calldata platformPceSvn,
         string calldata tcbm
     ) external virtual returns (bytes32 attestationId) {
-        bytes32 pckKey = keccak256(abi.encodePacked(qeid, pceid, tcbm));
+        (
+            bytes16 qeidBytes,
+            bytes2 pceidBytes,
+            bytes16 platformCpuSvnBytes,
+            bytes2 platformPceSvnBytes,
+            bytes18 tcbmBytes
+        ) = _parseStringInputs(qeid, pceid, platformCpuSvn, platformPceSvn, tcbm);
+
+        bytes32 pckKey = keccak256(abi.encodePacked(qeidBytes, pceidBytes, tcbmBytes));
         bytes32 pckAttestationId = pckCertAttestations[pckKey];
+
         if (pckAttestationId == bytes32(0)) {
             revert Pck_Not_Found();
         }
@@ -171,11 +192,12 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         // parse PCK to check PCEID and tcbm
         bytes memory der = getAttestedData(pckAttestationId);
         X509CertObj memory pck = pckLib.parseX509DER(der);
-        _validatePckTcb(pceid, tcbm, der, pck.extensionPtr);
+        _validatePckTcb(pceidBytes, tcbmBytes, der, pck.extensionPtr);
 
-        AttestationRequest memory req = _buildTcbmAttestationRequest(qeid, pceid, platformCpuSvn, platformPceSvn, tcbm);
+        AttestationRequest memory req =
+            _buildTcbmAttestationRequest(qeidBytes, pceidBytes, platformCpuSvnBytes, platformPceSvnBytes, tcbmBytes);
         attestationId = _attestTcbm(req);
-        bytes32 tcbmKey = _getTcbmKey(qeid, pceid, platformCpuSvn, platformPceSvn);
+        bytes32 tcbmKey = _getTcbmKey(qeidBytes, pceidBytes, platformCpuSvnBytes, platformPceSvnBytes);
         tcbmAttestations[tcbmKey] = attestationId;
     }
 
@@ -232,7 +254,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
     /**
      * @notice computes the key that maps to the corresponding attestation ID
      */
-    function _getPckAttestationId(string memory qeid, string memory pceid, string memory tcbm)
+    function _getPckAttestationId(bytes16 qeid, bytes2 pceid, bytes18 tcbm)
         private
         view
         returns (bytes32 attestationId)
@@ -243,24 +265,22 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
     /**
      * @notice computes the key that maps to the corresponding attestation ID
      */
-    function _getTcbmAttestationId(
-        string calldata qeid,
-        string calldata pceid,
-        string calldata platformCpuSvn,
-        string calldata platformPceSvn
-    ) private view returns (bytes32 attestationId) {
+    function _getTcbmAttestationId(bytes16 qeid, bytes2 pceid, bytes16 platformCpuSvn, bytes2 platformPceSvn)
+        private
+        view
+        returns (bytes32 attestationId)
+    {
         attestationId = tcbmAttestations[_getTcbmKey(qeid, pceid, platformCpuSvn, platformPceSvn)];
     }
 
     /**
      * @notice builds an EAS compliant attestation request
      */
-    function _buildPckCertAttestationRequest(
-        string calldata qeid,
-        string calldata pceid,
-        string calldata tcbm,
-        bytes calldata cert
-    ) private view returns (AttestationRequest memory req) {
+    function _buildPckCertAttestationRequest(bytes16 qeid, bytes2 pceid, bytes18 tcbm, bytes calldata cert)
+        private
+        view
+        returns (AttestationRequest memory req)
+    {
         bytes32 predecessorAttestationId = _getPckAttestationId(qeid, pceid, tcbm);
         AttestationRequestData memory reqData = AttestationRequestData({
             recipient: msg.sender,
@@ -274,11 +294,11 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
     }
 
     function _buildTcbmAttestationRequest(
-        string calldata qeid,
-        string calldata pceid,
-        string calldata platformCpuSvn,
-        string calldata platformPceSvn,
-        string calldata tcbm
+        bytes16 qeid,
+        bytes2 pceid,
+        bytes16 platformCpuSvn,
+        bytes2 platformPceSvn,
+        bytes18 tcbm
     ) private view returns (AttestationRequest memory req) {
         bytes32 predecessorAttestationId = _getTcbmAttestationId(qeid, pceid, platformCpuSvn, platformPceSvn);
         AttestationRequestData memory reqData = AttestationRequestData({
@@ -286,31 +306,28 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
             expirationTime: 0, // assign zero here because this has already been checked
             revocable: true,
             refUID: predecessorAttestationId,
-            data: bytes(tcbm),
+            data: abi.encode(tcbm),
             value: 0
         });
         req = AttestationRequest({schema: tcbmSchemaID(), data: reqData});
     }
 
-    function _getTcbmKey(
-        string calldata qeid,
-        string calldata pceid,
-        string calldata platformCpuSvn,
-        string calldata platformPceSvn
-    ) private pure returns (bytes32 key) {
+    function _getTcbmKey(bytes16 qeid, bytes2 pceid, bytes16 platformCpuSvn, bytes2 platformPceSvn)
+        private
+        pure
+        returns (bytes32 key)
+    {
         key = keccak256(abi.encodePacked(qeid, pceid, platformCpuSvn, platformPceSvn));
     }
 
-    function _upsertTcbm(string calldata qeid, string calldata pceid, string calldata tcbm) private {
+    function _upsertTcbm(bytes16 qeid, bytes2 pceid, bytes18 tcbm) private {
         bytes32 k = keccak256(abi.encodePacked(qeid, pceid));
-        bytes32 h = keccak256(abi.encodePacked(qeid, pceid, tcbm));
-        if (!_tcbmHSets[k].contains(h)) {
-            _tcbmHSets[k].add(h);
-            _tcbmStrMap[h] = tcbm;
+        if (!_tcbmHSets[k].contains(bytes32(tcbm))) {
+            _tcbmHSets[k].add(bytes32(tcbm));
         }
     }
 
-    function _validatePck(CA ca, bytes memory der, string calldata tcbm, string calldata pceid) private view returns (bytes32 hash) {
+    function _validatePck(CA ca, bytes memory der, bytes18 tcbm, bytes2 pceid) private view returns (bytes32 hash) {
         // Step 1: Check whether the pck has expired
         bool notExpired = pckLib.certIsNotExpired(der);
         if (!notExpired) {
@@ -359,21 +376,17 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         }
     }
 
-    function _validatePckTcb(string calldata pceid, string calldata tcbm, bytes memory der, uint256 pckExtensionPtr)
-        private
-        view
-    {
+    function _validatePckTcb(bytes2 pceid, bytes18 tcbm, bytes memory der, uint256 pckExtensionPtr) private view {
         (uint16 pcesvn, uint8[] memory cpusvns,, bytes memory pceidBytes) =
             pckLib.parsePckExtension(der, pckExtensionPtr);
-        bool pceidMatched = LibString.eq(pceid, LibString.toHexStringNoPrefix(pceidBytes));
+        bool pceidMatched = bytes2(pceidBytes) == pceid;
         bytes memory encodedPceSvn = _littleEndianEncode(abi.encodePacked(pcesvn));
         bytes memory encodedCpuSvn;
         for (uint256 i = 0; i < cpusvns.length; i++) {
             encodedCpuSvn = abi.encodePacked(encodedCpuSvn, cpusvns[i]);
         }
         bytes memory encodedTcbmBytes = abi.encodePacked(encodedCpuSvn, encodedPceSvn);
-        string memory encodedTcbmHex = LibString.toHexStringNoPrefix(encodedTcbmBytes);
-        bool tcbIsValid = LibString.eq(tcbm, encodedTcbmHex);
+        bool tcbIsValid = tcbm == bytes18(encodedTcbmBytes);
         if (!pceidMatched || !tcbIsValid) {
             revert TCB_Mismatch();
         }
@@ -386,6 +399,40 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
             unchecked {
                 i--;
             }
+        }
+    }
+
+    function _parseStringInputs(
+        string memory qeid,
+        string memory pceid,
+        string memory platformCpuSvn,
+        string memory platformPceSvn,
+        string memory tcbm
+    )
+        private
+        pure
+        returns (
+            bytes16 qeidBytes,
+            bytes2 pceidBytes,
+            bytes16 platformCpuSvnBytes,
+            bytes2 platformPceSvnBytes,
+            bytes18 tcbmBytes
+        )
+    {
+        if (bytes(qeid).length == 32) {
+            qeidBytes = bytes16(uint128(_parseUintFromHex(qeid)));
+        }
+        if (bytes(pceid).length == 4) {
+            pceidBytes = bytes2(uint16(_parseUintFromHex(pceid)));
+        }
+        if (bytes(platformCpuSvn).length == 32) {
+            platformCpuSvnBytes = bytes16(uint128(_parseUintFromHex(platformCpuSvn)));
+        }
+        if (bytes(platformPceSvn).length == 4) {
+            platformPceSvnBytes = bytes2(uint16(_parseUintFromHex(platformPceSvn)));
+        }
+        if (bytes(tcbm).length == 36) {
+            tcbmBytes = bytes18(uint144(_parseUintFromHex(tcbm)));
         }
     }
 }
