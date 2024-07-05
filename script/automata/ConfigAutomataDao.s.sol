@@ -32,11 +32,7 @@ contract ConfigAutomataDao is Script {
     }
 
     function updatePcsDependencies() public {
-        address[3] memory daos = [
-            pckDaoAddr,
-            fmspcTcbDaoAddr,
-            enclaveIdDaoAddr
-        ];
+        address[3] memory daos = [pckDaoAddr, fmspcTcbDaoAddr, enclaveIdDaoAddr];
 
         for (uint256 i = 0; i < 3; i++) {
             vm.broadcast(privateKey);

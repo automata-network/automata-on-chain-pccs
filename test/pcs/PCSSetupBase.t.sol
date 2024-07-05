@@ -41,7 +41,7 @@ abstract contract PCSSetupBase is TestSetupBase, PCSConstants {
         bytes memory attestedData = pcs.getAttestedData(rootAttestation);
         bytes32 collateralHash = pcs.getCollateralHash(rootAttestation);
 
-        (bytes memory tbs, ) = x509Lib.getTbsAndSig(rootDer);
+        (bytes memory tbs,) = x509Lib.getTbsAndSig(rootDer);
         bytes32 actualHash = keccak256(tbs);
         assertEq(actualHash, collateralHash);
         assertEq(keccak256(attestedData), keccak256(rootDer));
@@ -49,7 +49,7 @@ abstract contract PCSSetupBase is TestSetupBase, PCSConstants {
         // validate RootCRL attestations
         attestedData = pcs.getAttestedData(rootCrlAttestation);
         collateralHash = pcs.getCollateralHash(rootCrlAttestation);
-        (tbs, ) = x509CrlLib.getTbsAndSig(rootCrlDer);
+        (tbs,) = x509CrlLib.getTbsAndSig(rootCrlDer);
         actualHash = keccak256(tbs);
         assertEq(actualHash, collateralHash);
         assertEq(keccak256(attestedData), keccak256(rootCrlDer));
@@ -57,7 +57,7 @@ abstract contract PCSSetupBase is TestSetupBase, PCSConstants {
         // validate SigningCA attestations
         attestedData = pcs.getAttestedData(signingAttestation);
         collateralHash = pcs.getCollateralHash(signingAttestation);
-        (tbs, ) = x509CrlLib.getTbsAndSig(signingDer);
+        (tbs,) = x509CrlLib.getTbsAndSig(signingDer);
         actualHash = keccak256(tbs);
         assertEq(actualHash, collateralHash);
         assertEq(keccak256(attestedData), keccak256(signingDer));
@@ -65,7 +65,7 @@ abstract contract PCSSetupBase is TestSetupBase, PCSConstants {
         // validate PlatformCA attestations
         attestedData = pcs.getAttestedData(platformAttestation);
         collateralHash = pcs.getCollateralHash(platformAttestation);
-        (tbs, ) = x509CrlLib.getTbsAndSig(platformDer);
+        (tbs,) = x509CrlLib.getTbsAndSig(platformDer);
         actualHash = keccak256(tbs);
         assertEq(actualHash, collateralHash);
         assertEq(keccak256(attestedData), keccak256(platformDer));
@@ -73,7 +73,7 @@ abstract contract PCSSetupBase is TestSetupBase, PCSConstants {
         // validate PlatformCRL attestations
         attestedData = pcs.getAttestedData(platformCrlAttestation);
         collateralHash = pcs.getCollateralHash(platformCrlAttestation);
-        (tbs, ) = x509CrlLib.getTbsAndSig(pckCrlDer);
+        (tbs,) = x509CrlLib.getTbsAndSig(pckCrlDer);
         actualHash = keccak256(tbs);
         assertEq(actualHash, collateralHash);
         assertEq(keccak256(attestedData), keccak256(pckCrlDer));
