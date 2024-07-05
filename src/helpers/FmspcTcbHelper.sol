@@ -40,8 +40,8 @@ struct TcbInfoBasic {
     uint64 issueDate;
     uint64 nextUpdate;
     uint32 evaluationDataNumber;
-    string fmspc;
-    string pceid;
+    bytes6 fmspc;
+    bytes2 pceid;
 }
 
 struct TCBLevelsObj {
@@ -134,7 +134,7 @@ contract FmspcTcbHelper {
                 }
                 idFound = true;
             } else if (decodedKey.eq("fmspc")) {
-                tcbInfo.fmspc = JSONParserLib.decodeString(val);
+                tcbInfo.fmspc = bytes6(uint48(JSONParserLib.parseUintFromHex(JSONParserLib.decodeString(val))));
                 fmspcFound = true;
             } else if (decodedKey.eq("version")) {
                 tcbInfo.version = uint32(JSONParserLib.parseUint(val));
@@ -146,7 +146,7 @@ contract FmspcTcbHelper {
                 tcbInfo.nextUpdate = uint64(DateTimeUtils.fromISOToTimestamp(JSONParserLib.decodeString(val)));
                 nextUpdateFound = true;
             } else if (decodedKey.eq("pceId")) {
-                tcbInfo.pceid = JSONParserLib.decodeString(val);
+                tcbInfo.pceid = bytes2(uint16(JSONParserLib.parseUintFromHex(JSONParserLib.decodeString(val))));
                 pceidFound = true;
             } else if (decodedKey.eq("tcbEvaluationDataNumber")) {
                 tcbInfo.evaluationDataNumber = uint32(JSONParserLib.parseUint(val));

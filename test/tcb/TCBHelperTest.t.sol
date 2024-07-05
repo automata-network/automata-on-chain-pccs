@@ -18,7 +18,8 @@ contract IdentityHelperTest is TCBConstants, TDXConstants, Test {
         TcbInfoBasic memory tcbInfo = fmspcTcbLib.parseTcbString(string(tdx_tcbStr));
         assertEq(tcbInfo.tcbType, 0);
         assertEq(uint8(tcbInfo.id), uint8(TcbId.TDX));
-        assertEq(keccak256(bytes(tcbInfo.fmspc)), keccak256(bytes("90c06f000000")));
+
+        assertEq(keccak256(abi.encodePacked(tcbInfo.fmspc)), keccak256(hex"90C06f000000"));
         assertEq(tcbInfo.version, 3);
         assertEq(tcbInfo.issueDate, 1715843417);
         assertEq(tcbInfo.nextUpdate, 1718435417);

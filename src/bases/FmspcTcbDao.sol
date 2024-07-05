@@ -78,7 +78,8 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         view
         returns (TcbInfoJsonObj memory tcbObj)
     {
-        bytes32 attestationId = _getAttestationId(tcbType, fmspc, version);
+        bytes6 fmspcBytes = bytes6(uint48(_parseUintFromHex(fmspc)));
+        bytes32 attestationId = _getAttestationId(tcbType, fmspcBytes, version);
         if (attestationId != bytes32(0)) {
             bytes memory attestedTcbData = getAttestedData(attestationId);
             if (version < 3) {
@@ -122,8 +123,10 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
 
     /**
      * @notice computes the key that maps to the corresponding attestation ID
+     * @dev once again I am reminding you that the argument tcbType is to indicate the TEE type for the
+     * particular TCBInfo. i.e. 0: SGX, 1: TDX
      */
-    function _getAttestationId(uint256 tcbType, string memory fmspc, uint256 version)
+    function _getAttestationId(uint256 tcbType, bytes6 fmspc, uint256 version)
         private
         view
         returns (bytes32 attestationId)
