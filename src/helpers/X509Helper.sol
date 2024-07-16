@@ -193,7 +193,12 @@ contract X509Helper {
         returns (bytes memory pubKey)
     {
         subjectPublicKeyInfoPtr = der.nextSiblingOf(subjectPublicKeyInfoPtr);
-        pubKey = _trimBytes(der.bytesAt(subjectPublicKeyInfoPtr), 64);
+        pubKey = der.bitstringAt(subjectPublicKeyInfoPtr);
+        if (pubKey.length != 65) {
+            // TODO: we need to figure out how to handle key with prefix byte 0x02 or 0x03
+            revert("compressed public key not supported");
+        }
+        pubKey = _trimBytes(pubKey, 64);
     }
 
     function _parseSerialNumber(bytes memory serialBytes) private pure returns (uint256 serial) {
@@ -202,9 +207,7 @@ contract X509Helper {
     }
 
     function _getSignature(bytes calldata der, uint256 sigPtr) private pure returns (bytes memory sig) {
-        // Skip three bytes to the right, TODO: why is it tagged with 0x03?
-        // the three bytes in question: 0x034700 or 0x034800 or 0x034900
-        sigPtr = NodePtr.getPtr(sigPtr.ixs() + 3, sigPtr.ixf() + 3, sigPtr.ixl());
+        sigPtr = der.rootOfBitStringAt(sigPtr);
 
         sigPtr = der.firstChildOf(sigPtr);
         bytes memory sigX = _trimBytes(der.bytesAt(sigPtr), 32);
@@ -218,11 +221,17 @@ contract X509Helper {
     /// @dev remove unnecessary prefix from the input
     function _trimBytes(bytes memory input, uint256 expectedLength) private pure returns (bytes memory output) {
         uint256 n = input.length;
-
-        if (n <= expectedLength) {
-            return input;
+        if (n == expectedLength) {
+            output = input;
+        } else if (n < expectedLength) {
+            output = new bytes(expectedLength);
+            uint256 padLength = expectedLength - n;
+            for (uint256 i = 0; i < n; i++) {
+                output[padLength + i] = input[i];
+            }
+        } else {
+            uint256 lengthDiff = n - expectedLength;
+            output = input.substring(lengthDiff, expectedLength);
         }
-        uint256 lengthDiff = n - expectedLength;
-        output = input.substring(lengthDiff, expectedLength);
     }
 }
