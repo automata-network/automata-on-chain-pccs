@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {AutomataDaoBase} from "./shared/AutomataDaoBase.sol";
-import {PckDao, AttestationRequest, PcsDao} from "../bases/PckDao.sol";
+import {PckDao, AttestationRequest, PcsDao, X509CRLHelper} from "../bases/PckDao.sol";
 
 import {Ownable} from "solady/auth/Ownable.sol";
 
@@ -14,8 +14,10 @@ contract AutomataPckDao is Ownable, AutomataDaoBase, PckDao {
         _initializeOwner(msg.sender);
     }
 
-    function setPcs(address _pcs) external onlyOwner {
+    function updateDeps(address _pcs, address _x509, address _crl) external onlyOwner {
         Pcs = PcsDao(_pcs);
+        x509 = _x509;
+        crlLib = X509CRLHelper(_crl);
     }
 
     function pckSchemaID() public pure override returns (bytes32) {

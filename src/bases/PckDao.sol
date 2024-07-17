@@ -132,11 +132,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
 
         bytes32 attestationId = _getTcbmAttestationId(qeidBytes, pceidBytes, platformCpuSvnBytes, platformPceSvnBytes);
         if (attestationId != bytes32(0)) {
-            tcbm = LibString.toHexStringNoPrefix(
-                abi.encodePacked(
-                    bytes18(getAttestedData(attestationId))
-                )
-            );
+            tcbm = LibString.toHexStringNoPrefix(abi.encodePacked(bytes18(getAttestedData(attestationId))));
         }
     }
 

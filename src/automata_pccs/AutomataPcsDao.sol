@@ -2,10 +2,19 @@
 pragma solidity ^0.8.0;
 
 import {AutomataDaoBase} from "./shared/AutomataDaoBase.sol";
-import {PcsDao, AttestationRequest} from "../bases/PcsDao.sol";
+import {PcsDao, AttestationRequest, X509CRLHelper} from "../bases/PcsDao.sol";
 
-contract AutomataPcsDao is AutomataDaoBase, PcsDao {
-    constructor(address _storage, address _x509, address _crl) AutomataDaoBase(_storage) PcsDao(_x509, _crl) {}
+import {Ownable} from "solady/auth/Ownable.sol";
+
+contract AutomataPcsDao is AutomataDaoBase, PcsDao, Ownable {
+    constructor(address _storage, address _x509, address _crl) AutomataDaoBase(_storage) PcsDao(_x509, _crl) {
+        _initializeOwner(msg.sender);
+    }
+
+    function updateDeps(address _x509, address _crl) external onlyOwner {
+        x509 = _x509;
+        crlLib = X509CRLHelper(_crl);
+    }
 
     function pcsCertSchemaID() public pure override returns (bytes32) {
         // NOT-APPLICABLE FOR OUR USE CASE

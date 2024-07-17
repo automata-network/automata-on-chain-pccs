@@ -21,7 +21,6 @@ import {LibString} from "solady/utils/LibString.sol";
 abstract contract PcsDao is DaoBase, SigVerifyBase {
     using LibString for string;
 
-    X509Helper public x509Lib;
     X509CRLHelper public crlLib;
 
     /// @notice Fetches the attestationId of the attested PCS Certificate
@@ -61,7 +60,6 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
     error Invalid_Signature();
 
     constructor(address _x509, address _crl) SigVerifyBase(_x509) {
-        x509Lib = X509Helper(_x509);
         crlLib = X509CRLHelper(_crl);
     }
 
@@ -158,6 +156,8 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
     }
 
     function _validatePcsCert(CA ca, bytes calldata cert) private view returns (bytes32 hash) {
+        X509Helper x509Lib = X509Helper(x509);
+
         // Step 1: Check whether cert has expired
         bool notExpired = x509Lib.certIsNotExpired(cert);
         if (!notExpired) {

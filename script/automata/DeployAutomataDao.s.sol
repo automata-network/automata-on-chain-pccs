@@ -20,6 +20,38 @@ contract DeployAutomataDao is Script {
     address enclaveIdentityHelper = vm.envAddress("ENCLAVE_IDENTITY_HELPER");
     address fmspcTcbHelper = vm.envAddress("FMSPC_TCB_HELPER");
 
+    function deployAll(bool shouldDeployStorage) public {
+        vm.startBroadcast(privateKey);
+
+        AutomataDaoStorage pccsStorage;
+        if (shouldDeployStorage) {
+            pccsStorage = new AutomataDaoStorage();
+            console.log("AutomataDaoStorage deployed at ", address(pccsStorage));
+        } else {
+            pccsStorage = AutomataDaoStorage(pccsStorageAddr);
+        }
+
+        // Deploy PcsDao
+        AutomataPcsDao pcsDao = new AutomataPcsDao(address(pccsStorage), x509, x509Crl);
+        console.log("AutomataPcsDao deployed at: ", address(pcsDao));
+
+        // Deploy PckDao
+        AutomataPckDao pckDao = new AutomataPckDao(address(pccsStorage), address(pcsDao), x509, x509Crl);
+        console.log("AutomataPckDao deployed at: ", address(pckDao));
+
+        // Deploy EnclaveIdDao
+        AutomataEnclaveIdentityDao enclaveIdDao =
+            new AutomataEnclaveIdentityDao(address(pccsStorage), address(pcsDao), enclaveIdentityHelper, x509);
+        console.log("AutomataEnclaveIdDao deployed at: ", address(enclaveIdDao));
+
+        // Deploy FmspcDao
+        AutomataFmspcTcbDao fmspcTcbDao =
+            new AutomataFmspcTcbDao(address(pccsStorage), address(pcsDao), fmspcTcbHelper, x509);
+        console.log("AutomataFmspcTcbDao deployed at: ", address(fmspcTcbDao));
+
+        vm.stopBroadcast();
+    }
+
     function deployStorage() public {
         vm.broadcast(privateKey);
 

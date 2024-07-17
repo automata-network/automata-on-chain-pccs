@@ -9,7 +9,7 @@ interface IX509 {
 }
 
 abstract contract SigVerifyBase {
-    address x509;
+    address public x509;
 
     using BytesUtils for bytes;
 
