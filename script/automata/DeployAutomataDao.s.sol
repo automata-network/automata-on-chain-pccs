@@ -49,6 +49,13 @@ contract DeployAutomataDao is Script {
             new AutomataFmspcTcbDao(address(pccsStorage), address(pcsDao), fmspcTcbHelper, x509);
         console.log("AutomataFmspcTcbDao deployed at: ", address(fmspcTcbDao));
 
+        pccsStorage.updateDao(
+            address(pcsDao),
+            address(pckDao),
+            address(fmspcTcbDao),
+            address(enclaveIdDao)
+        );
+
         vm.stopBroadcast();
     }
 
