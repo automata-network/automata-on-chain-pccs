@@ -12,9 +12,6 @@ import {AutomataPckDao} from "../../src/automata_pccs/AutomataPckDao.sol";
 contract DeployAutomataDao is Script {
     uint256 privateKey = vm.envUint("PRIVATE_KEY");
 
-    address pccsStorageAddr = vm.envAddress("PCCS_STORAGE");
-    address pcsDaoAddr = vm.envAddress("PCS_DAO");
-
     address x509Crl = vm.envAddress("X509_CRL_HELPER");
     address x509 = vm.envAddress("X509_HELPER");
     address enclaveIdentityHelper = vm.envAddress("ENCLAVE_IDENTITY_HELPER");
@@ -28,6 +25,7 @@ contract DeployAutomataDao is Script {
             pccsStorage = new AutomataDaoStorage();
             console.log("AutomataDaoStorage deployed at ", address(pccsStorage));
         } else {
+            address pccsStorageAddr = vm.envAddress("PCCS_STORAGE");
             pccsStorage = AutomataDaoStorage(pccsStorageAddr);
         }
 
@@ -68,6 +66,8 @@ contract DeployAutomataDao is Script {
     }
 
     function deployPcs() public {
+        address pccsStorageAddr = vm.envAddress("PCCS_STORAGE");
+
         vm.broadcast(privateKey);
 
         AutomataPcsDao pcsDao = new AutomataPcsDao(pccsStorageAddr, x509, x509Crl);
@@ -76,6 +76,9 @@ contract DeployAutomataDao is Script {
     }
 
     function deployPck() public {
+        address pccsStorageAddr = vm.envAddress("PCCS_STORAGE");
+        address pcsDaoAddr = vm.envAddress("PCS_DAO");
+
         vm.broadcast(privateKey);
 
         AutomataPckDao pckDao = new AutomataPckDao(pccsStorageAddr, pcsDaoAddr, x509, x509Crl);
@@ -84,6 +87,9 @@ contract DeployAutomataDao is Script {
     }
 
     function deployEnclaveIdDao() public {
+        address pccsStorageAddr = vm.envAddress("PCCS_STORAGE");
+        address pcsDaoAddr = vm.envAddress("PCS_DAO");
+
         vm.broadcast(privateKey);
 
         AutomataEnclaveIdentityDao enclaveIdDao =
@@ -93,6 +99,9 @@ contract DeployAutomataDao is Script {
     }
 
     function deployFmspcTcbDao() public {
+        address pccsStorageAddr = vm.envAddress("PCCS_STORAGE");
+        address pcsDaoAddr = vm.envAddress("PCS_DAO");
+
         vm.broadcast(privateKey);
 
         AutomataFmspcTcbDao fmspcTcbDao = new AutomataFmspcTcbDao(pccsStorageAddr, pcsDaoAddr, fmspcTcbHelper, x509);
