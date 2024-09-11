@@ -2,7 +2,7 @@
 // Original source: https://github.com/JonahGroendal/asn1-decode
 pragma solidity ^0.8.0;
 
-// Inspired by PufferFinance/rave - Apache-2.0 license
+// Inspired by PufferFinance/rave
 // https://github.com/JonahGroendal/asn1-decode/blob/5c2d1469fc678513753786acb441e597969192ec/contracts/Asn1Decode.sol
 
 import "./BytesUtils.sol";
