@@ -1,7 +1,10 @@
 // Ref: https://github.com/marketplace/actions/slither-action#example-workflow-markdown-report
 
 module.exports = async ({ github, context, header, body }) => {
-    const comment = [header, body].join("\n");
+    const collapse_details = '<details> <summary> Click me to view the full report </summary>';
+    const close_details = '</details>';
+
+    const comment = [header, collapse_details, body, close_details].join("\n");
   
     const { data: comments } = await github.rest.issues.listComments({
       owner: context.repo.owner,
