@@ -1,9 +1,11 @@
-name: test
+name: Foundry Build CI/CD
 
-on: workflow_dispatch
-
-env:
-  FOUNDRY_PROFILE: ci
+# Controls when the workflow will run
+on: 
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   check:
@@ -32,3 +34,6 @@ jobs:
         run: |
           forge test -vvv
         id: test
+
+      - name: Run snapshot and Generate Summary
+        run: NO_COLOR=1 forge snapshot --gas-report >> $GITHUB_STEP_SUMMARY
