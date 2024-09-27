@@ -45,10 +45,10 @@ The Helper contracts have been deployed to testnet, and can be used by both on-c
 #### Mainnet
 |  | Network | Address |
 | --- | --- | --- |
-| `EnclaveIdentityHelper.sol` | Automata Mainnet (preview) | [0x13BECaa512713Ac7C2d7a04ba221aD5E02D43DFE](https://explorer.ata.network/address/0x13BECaa512713Ac7C2d7a04ba221aD5E02D43DFE) |
-| `FmspcTcbHelper.sol` | Automata Mainnet (preview) | [0xc99bf04c31bf3d026b5b47b2574fc19c1459b732](https://explorer.ata.network/address/0xc99bf04c31bf3d026b5b47b2574fc19c1459b732) |
-| `PCKHelper.sol` | Automata Mainnet (preview) | [0x3e2fe733E444313A93Fa3f9AEd3bB203048dDE70](https://explorer.ata.network/address/0x3e2fe733E444313A93Fa3f9AEd3bB203048dDE70) |
-| `X509CRLHelper.sol` | Automata Mainnet (preview) | [0x2567245dE6E349C8B7AA82fD6FF854b844A0aEF9](https://explorer.ata.network/address/0x2567245dE6E349C8B7AA82fD6FF854b844A0aEF9) |
+| `EnclaveIdentityHelper.sol` | Automata Mainnet | [0x13BECaa512713Ac7C2d7a04ba221aD5E02D43DFE](https://explorer.ata.network/address/0x13BECaa512713Ac7C2d7a04ba221aD5E02D43DFE) |
+| `FmspcTcbHelper.sol` | Automata Mainnet | [0xc99bf04c31bf3d026b5b47b2574fc19c1459b732](https://explorer.ata.network/address/0xc99bf04c31bf3d026b5b47b2574fc19c1459b732) |
+| `PCKHelper.sol` | Automata Mainnet | [0x3e2fe733E444313A93Fa3f9AEd3bB203048dDE70](https://explorer.ata.network/address/0x3e2fe733E444313A93Fa3f9AEd3bB203048dDE70) |
+| `X509CRLHelper.sol` | Automata Mainnet | [0x2567245dE6E349C8B7AA82fD6FF854b844A0aEF9](https://explorer.ata.network/address/0x2567245dE6E349C8B7AA82fD6FF854b844A0aEF9) |
 
 ### Base libraries and Automata DAO contracts
 
@@ -77,10 +77,10 @@ Our DAO implementation can be found in the [`automata_pccs`](./src/automata_pccs
 
 |  | Network | Address |
 | --- | --- | --- |
-| `AutomataEnclaveIdentityDao.sol` | Automata Mainnet (preview) | [0x28111536292b34f37120861A46B39BF39187d73a](https://explorer.ata.network/address/0x28111536292b34f37120861A46B39BF39187d73a) |
-| `AutomataFmspcTcbDao.sol` | Automata Mainnet (preview) | [0x868c18869f68E0E0b0b7B2B4439f7fDDd0421e6b](https://explorer.ata.network/address/0x868c18869f68E0E0b0b7B2B4439f7fDDd0421e6b) |
-| `AutomataPckDao.sol` | Automata Mainnet (preview) | [0xeCc198936FcA3Ca1fDc97B8612B32185908917B0](https://explorer.ata.network/address/0xeCc198936FcA3Ca1fDc97B8612B32185908917B0) |
-| `AutomataPcsDao.sol` | Automata Mainnet (preview) | [0x86f8865bce8be62cb8096b5b94fa3fb3a6ed330c](https://explorer.ata.network/address/0x86f8865bce8be62cb8096b5b94fa3fb3a6ed330c) |
+| `AutomataEnclaveIdentityDao.sol` | Automata Mainnet | [0x28111536292b34f37120861A46B39BF39187d73a](https://explorer.ata.network/address/0x28111536292b34f37120861A46B39BF39187d73a) |
+| `AutomataFmspcTcbDao.sol` | Automata Mainnet | [0x868c18869f68E0E0b0b7B2B4439f7fDDd0421e6b](https://explorer.ata.network/address/0x868c18869f68E0E0b0b7B2B4439f7fDDd0421e6b) |
+| `AutomataPckDao.sol` | Automata Mainnet | [0xeCc198936FcA3Ca1fDc97B8612B32185908917B0](https://explorer.ata.network/address/0xeCc198936FcA3Ca1fDc97B8612B32185908917B0) |
+| `AutomataPcsDao.sol` | Automata Mainnet | [0x86f8865bce8be62cb8096b5b94fa3fb3a6ed330c](https://explorer.ata.network/address/0x86f8865bce8be62cb8096b5b94fa3fb3a6ed330c) |
 
 ---
 
