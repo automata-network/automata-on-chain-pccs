@@ -35,12 +35,16 @@ The Helper contracts have been deployed to testnet, and can be used by both on-c
 | --- | --- | --- |
 | `EnclaveIdentityHelper.sol` | Automata Testnet | [0xfd4a34b578B352FE1896CDafaEb0f45f993352Bf](https://explorer-testnet.ata.network/address/0xfd4a34b578B352FE1896CDafaEb0f45f993352Bf) |
 |  | Ethereum Holesky Testnet | [0xEea41Ae0cB09A478b80425Ae61c85e445E83c415](https://holesky.etherscan.io/address/0xEea41Ae0cB09A478b80425Ae61c85e445E83c415) |
+|  | Ethereum Sepolia Testnet | [0xA5D1EC1CcCdF2f60Df05cf1e110352F696bA4C64](https://Sepolia.etherscan.io/address/0xA5D1EC1CcCdF2f60Df05cf1e110352F696bA4C64) |
 | `FmspcTcbHelper.sol` | Automata Testnet | [0xC2A662e08A35513596E22D0aC236Ce72e59125EE](https://explorer-testnet.ata.network/address/0xC2A662e08A35513596E22D0aC236Ce72e59125EE) |
 |  | Ethereum Holesky Testnet | [0xc728DD0FcD76CD9166F66e1CD8002dE86d6525B8](https://holesky.etherscan.io/address/0xc728DD0FcD76CD9166F66e1CD8002dE86d6525B8) |
+|  | Ethereum Sepolia Testnet | [0x2404DAc28D18847937CcAdC1b29d3403AED3BB6C](https://Sepolia.etherscan.io/address/0x2404DAc28D18847937CcAdC1b29d3403AED3BB6C) |
 | `PCKHelper.sol` | Automata Testnet | [0x5213c0e3Ab478dbc83E8afFF8909717332E4f8E1](https://explorer-testnet.ata.network/address/0x5213c0e3Ab478dbc83E8afFF8909717332E4f8E1) |
 |  | Ethereum Holesky Testnet | [0xDe20629a87C371668bB371ef1d77D9D167E52021](https://holesky.etherscan.io/address/0xDe20629a87C371668bB371ef1d77D9D167E52021) |
+|  | Ethereum Sepolia Testnet | [0xBf1ec53BA4768D1470F037898C6a3ff9Ed3Fe394](https://Sepolia.etherscan.io/address/0xBf1ec53BA4768D1470F037898C6a3ff9Ed3Fe394) |
 | `X509CRLHelper.sol` | Automata Testnet | [0x12C1E13Aa2a238EAb15c2e2b6AC670266bc3C814](https://explorer-testnet.ata.network/address/0x12C1E13Aa2a238EAb15c2e2b6AC670266bc3C814) |
 |  | Ethereum Holesky Testnet | [0x3ACBfad7460e2fae32A31f863e1A38F7a002cEA8](https://holesky.etherscan.io/address/0x3ACBfad7460e2fae32A31f863e1A38F7a002cEA8) |
+|  | Ethereum Sepolia Testnet | [0x2a81585F6d8ACB52DED417De5946486394b54B63](https://Sepolia.etherscan.io/address/0x2a81585F6d8ACB52DED417De5946486394b54B63) |
 
 #### Mainnet
 |  | Network | Address |
@@ -66,12 +70,16 @@ Our DAO implementation can be found in the [`automata_pccs`](./src/automata_pccs
 | --- | --- | --- |
 | `AutomataEnclaveIdentityDao.sol` | Automata Testnet | [0x413272890ab9F155a47A5F90a404Fb51aa259087](https://explorer-testnet.ata.network/address/0x413272890ab9F155a47A5F90a404Fb51aa259087) |
 |  | Ethereum Holesky Testnet | [0x9f4b0fB3A95072bD133082e9683A3536669EFE07](https://holesky.etherscan.io/address/0x9f4b0fB3A95072bD133082e9683A3536669EFE07) |
+|  | Ethereum Sepolia Testnet | [0x4bb680A5e6Ad6228E7d334903B0Ce10EF60c961C](https://Sepolia.etherscan.io/address/0x4bb680A5e6Ad6228E7d334903B0Ce10EF60c961C) |
 | `AutomataFmspcTcbDao.sol` | Automata Testnet | [0x7c04B466DebA13D48116b1339C62b35B9805E5A0](https://explorer-testnet.ata.network/address/0x7c04B466DebA13D48116b1339C62b35B9805E5A0) |
 |  | Ethereum Holesky Testnet | [0xaB5074445E5ae3C650553d5a7560B3A7121635B9](https://holesky.etherscan.io/address/0xaB5074445E5ae3C650553d5a7560B3A7121635B9) |
+|  | Ethereum Sepolia Testnet | [0xF790b1C23e6508A6135Ce88450eC0A59Af0B9896](https://Sepolia.etherscan.io/address/0xF790b1C23e6508A6135Ce88450eC0A59Af0B9896) |
 | `AutomataPckDao.sol` | Automata Testnet | [0x6D4cA6AE5315EBBcb4331c82531db0ad8853Eb31](https://explorer-testnet.ata.network/address/0x6D4cA6AE5315EBBcb4331c82531db0ad8853Eb31) |
 |  | Ethereum Holesky Testnet | [0x5B2d7781E3c44966769484daBCdc435EFD281c34](https://holesky.etherscan.io/address/0x5B2d7781E3c44966769484daBCdc435EFD281c34) |
+|  | Ethereum Sepolia Testnet | [0x3eA9D905Cb79586C2184f329e6a651D97F2ebee3](https://Sepolia.etherscan.io/address/0x3eA9D905Cb79586C2184f329e6a651D97F2ebee3) |
 | `AutomataPcsDao.sol` | Automata Testnet | [0xD0335cbC73CA2f8EDd98a2BE3909f55642F414D7](https://explorer-testnet.ata.network/address/0xD0335cbC73CA2f8EDd98a2BE3909f55642F414D7) |
 |  | Ethereum Holesky Testnet | [0x66FdB4E72d2F4a7e2081bf83F1FfACC9bbCb384b](https://holesky.etherscan.io/address/0x66FdB4E72d2F4a7e2081bf83F1FfACC9bbCb384b) |
+|  | Ethereum Sepolia Testnet | [0x348DA46aA11188f641f01dbe247b25FFA5FFB9c4](https://Sepolia.etherscan.io/address/0x348DA46aA11188f641f01dbe247b25FFA5FFB9c4) |
 
 ### Mainnet
 
