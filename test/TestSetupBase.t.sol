@@ -26,6 +26,8 @@ abstract contract TestSetupBase is Test {
     AutomataPckDao pck;
     AutomataEnclaveIdentityDao enclaveIdDao;
 
+    address P256_VERIFIER;
+
     address admin = address(1);
 
     function setUp() public virtual {
@@ -45,16 +47,18 @@ abstract contract TestSetupBase is Test {
         // deploy Automata PCCS
         pccsStorage = new AutomataDaoStorage();
 
-        pcs = new AutomataPcsDao(address(pccsStorage), address(x509Lib), address(x509CrlLib));
+        pcs = new AutomataPcsDao(address(pccsStorage), P256_VERIFIER, address(x509Lib), address(x509CrlLib));
 
         enclaveIdDao = new AutomataEnclaveIdentityDao(
-            address(pccsStorage), address(pcs), address(enclaveIdentityLib), address(x509Lib)
+            address(pccsStorage), P256_VERIFIER, address(pcs), address(enclaveIdentityLib), address(x509Lib)
         );
 
-        fmspcTcbDao =
-            new AutomataFmspcTcbDao(address(pccsStorage), address(pcs), address(fsmpcTcbLib), address(x509Lib));
+        fmspcTcbDao = new AutomataFmspcTcbDao(
+            address(pccsStorage), P256_VERIFIER, address(pcs), address(fsmpcTcbLib), address(x509Lib)
+        );
 
-        pck = new AutomataPckDao(address(pccsStorage), address(pcs), address(x509Lib), address(x509CrlLib));
+        pck =
+            new AutomataPckDao(address(pccsStorage), P256_VERIFIER, address(pcs), address(x509Lib), address(x509CrlLib));
 
         pccsStorage.updateDao(address(pcs), address(pck), address(fmspcTcbDao), address(enclaveIdDao));
 
@@ -68,7 +72,7 @@ abstract contract TestSetupBase is Test {
         require(succ, "Failed to deploy P256");
 
         // check code
-        address P256_VERIFIER = 0xc2b78104907F722DABAc4C69f826a522B2754De4;
+        P256_VERIFIER = 0xc2b78104907F722DABAc4C69f826a522B2754De4;
         uint256 codesize = P256_VERIFIER.code.length;
         require(codesize > 0, "P256 deployed to the wrong address");
     }

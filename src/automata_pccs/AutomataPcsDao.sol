@@ -7,7 +7,10 @@ import {PcsDao, AttestationRequest, X509CRLHelper} from "../bases/PcsDao.sol";
 import {Ownable} from "solady/auth/Ownable.sol";
 
 contract AutomataPcsDao is AutomataDaoBase, PcsDao, Ownable {
-    constructor(address _storage, address _x509, address _crl) AutomataDaoBase(_storage) PcsDao(_x509, _crl) {
+    constructor(address _storage, address _p256, address _x509, address _crl)
+        AutomataDaoBase(_storage)
+        PcsDao(_p256, _x509, _crl)
+    {
         _initializeOwner(msg.sender);
     }
 

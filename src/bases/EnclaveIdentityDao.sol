@@ -37,7 +37,9 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     error Invalid_TCB_Cert_Signature();
     error Enclave_Id_Expired();
 
-    constructor(address _pcs, address _enclaveIdentityHelper, address _x509Helper) SigVerifyBase(_x509Helper) {
+    constructor(address _p256, address _pcs, address _enclaveIdentityHelper, address _x509Helper)
+        SigVerifyBase(_p256, _x509Helper)
+    {
         Pcs = PcsDao(_pcs);
         EnclaveIdentityLib = EnclaveIdentityHelper(_enclaveIdentityHelper);
     }

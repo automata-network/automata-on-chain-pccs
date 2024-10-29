@@ -37,7 +37,9 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     /// See {{ FmspcTcbHelper.sol }} to learn more about FMSPC TCB related struct definitions.
     mapping(bytes32 => bytes32) public fmspcTcbInfoAttestations;
 
-    constructor(address _pcs, address _fmspcHelper, address _x509Helper) SigVerifyBase(_x509Helper) {
+    constructor(address _p256, address _pcs, address _fmspcHelper, address _x509Helper)
+        SigVerifyBase(_p256, _x509Helper)
+    {
         Pcs = PcsDao(_pcs);
         FmspcTcbLib = FmspcTcbHelper(_fmspcHelper);
     }

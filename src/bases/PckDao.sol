@@ -68,7 +68,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         _;
     }
 
-    constructor(address _pcs, address _x509, address _crl) SigVerifyBase(_x509) {
+    constructor(address _p256, address _pcs, address _x509, address _crl) SigVerifyBase(_p256, _x509) {
         Pcs = PcsDao(_pcs);
         pckLib = PCKHelper(_x509);
         crlLib = X509CRLHelper(_crl);

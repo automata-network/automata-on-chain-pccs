@@ -7,8 +7,8 @@ import {EnclaveIdentityDao, AttestationRequest, PcsDao} from "../bases/EnclaveId
 import {Ownable} from "solady/auth/Ownable.sol";
 
 contract AutomataEnclaveIdentityDao is Ownable, AutomataDaoBase, EnclaveIdentityDao {
-    constructor(address _storage, address _pcs, address _enclaveIdentityHelper, address _x509Helper)
-        EnclaveIdentityDao(_pcs, _enclaveIdentityHelper, _x509Helper)
+    constructor(address _storage, address _p256, address _pcs, address _enclaveIdentityHelper, address _x509Helper)
+        EnclaveIdentityDao(_p256, _pcs, _enclaveIdentityHelper, _x509Helper)
         AutomataDaoBase(_storage)
     {
         _initializeOwner(msg.sender);

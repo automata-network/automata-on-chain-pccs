@@ -7,9 +7,9 @@ import {FmspcTcbDao, AttestationRequest, PcsDao} from "../bases/FmspcTcbDao.sol"
 import {Ownable} from "solady/auth/Ownable.sol";
 
 contract AutomataFmspcTcbDao is Ownable, AutomataDaoBase, FmspcTcbDao {
-    constructor(address _storage, address _pcs, address _fmspcHelper, address _x509Helper)
+    constructor(address _storage, address _p256, address _pcs, address _fmspcHelper, address _x509Helper)
         AutomataDaoBase(_storage)
-        FmspcTcbDao(_pcs, _fmspcHelper, _x509Helper)
+        FmspcTcbDao(_p256, _pcs, _fmspcHelper, _x509Helper)
     {
         _initializeOwner(msg.sender);
     }

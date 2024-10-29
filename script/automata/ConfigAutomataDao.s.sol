@@ -43,20 +43,13 @@ contract ConfigAutomataDao is Script {
     function updatePcsDaoDependencies() public {
         AutomataPcsDao pcsDao = AutomataPcsDao(pcsDaoAddr);
         vm.broadcast(privateKey);
-        pcsDao.updateDeps(
-            x509,
-            x509Crl
-        );
+        pcsDao.updateDeps(x509, x509Crl);
     }
 
     function updatePckDaoDependencies() public {
         AutomataPckDao pckDao = AutomataPckDao(pckDaoAddr);
         vm.broadcast(privateKey);
-        pckDao.updateDeps(
-            pcsDaoAddr,
-            x509,
-            x509Crl
-        );
+        pckDao.updateDeps(pcsDaoAddr, x509, x509Crl);
     }
 
     function updatePcsDependencies() public {

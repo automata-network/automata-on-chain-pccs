@@ -8,12 +8,12 @@ interface IX509 {
     function getSubjectPublicKey(bytes memory der) external pure returns (bytes memory pubKey);
 }
 
-abstract contract SigVerifyBase {
+abstract contract SigVerifyBase is P256Verifier {
     address public x509;
 
     using BytesUtils for bytes;
 
-    constructor(address _x509helper) {
+    constructor(address _p256Verifier, address _x509helper) P256Verifier(_p256Verifier) {
         x509 = _x509helper;
     }
 
@@ -31,6 +31,6 @@ abstract contract SigVerifyBase {
             return false;
         }
 
-        verified = P256Verifier.ecdsaVerify(digest, signature, pubKey);
+        verified = ecdsaVerify(digest, signature, pubKey);
     }
 }
