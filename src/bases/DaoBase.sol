@@ -1,25 +1,32 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0;
 
+import "../interfaces/IDaoAttestationResolver.sol";
+
 abstract contract DaoBase {
+    IDaoAttestationResolver public resolver;
+
+    constructor(address _resolver) {
+        resolver = IDaoAttestationResolver(_resolver);
+    }
+
     /**
      * @dev implement getter logic to retrieve attested data
-     * @param attestationId maps to the data
+     * @param key - mapped to a collateral as defined by individual data access objects (DAOs)
      */
-    function getAttestedData(bytes32 attestationId) public view virtual returns (bytes memory attestationData);
+    function getAttestedData(bytes32 key) internal view virtual returns (bytes memory attestationData) {
+        bytes32 attestationId = resolver.collateralPointer(key);
+        attestationData = resolver.readAttestation(attestationId);
+    }
 
     /**
      * @dev must store the hash of a collateral (e.g. X509 Cert, TCBInfo JSON etc) in the attestation registry
-     * @dev it is recommended to store hash as a separate attestation from the actual collateral
-     * @dev this getter can be useful for checking the correctness of the queried attested collateral
-     *
-     * @dev may link the hash attestation with the attestation of the collateral
-     * For example, the content of a hash attestation can be a tuple of bytes32 values consisting of:
-     * (bytes32 collateralHash, bytes32 collateralAttestationId)
-     * @param attestationId - the attestationId pointing to the hash attestation, or the collateral attestation
-     * itself, if the hash is included as part of the attestation data, this varies by how you define the schema.
+     * as a separated attestation from the collateral data itself
      */
-    function getCollateralHash(bytes32 attestationId) public view virtual returns (bytes32 collateralHash);
+    function getCollateralHash(bytes32 key) internal view virtual returns (bytes32 collateralHash) {
+        bytes32 attestationId = resolver.collateralHashPointer(key);
+        collateralHash = abi.decode(resolver.readAttestation(attestationId), (bytes32));
+    }
 
     /// @dev https://github.com/Vectorized/solady/blob/4964e3e2da1bc86b0394f63a90821f51d60a260b/src/utils/JSONParserLib.sol#L339-L364
     /// @dev Parses an unsigned integer from a string (in hexadecimal, i.e. base 16).

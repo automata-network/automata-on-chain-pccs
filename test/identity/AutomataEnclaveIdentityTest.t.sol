@@ -18,7 +18,7 @@ contract AutomataEnclaveIdentityDaoTest is PCSSetupBase, IdentityConstants {
             EnclaveIdentityJsonObj({identityStr: string(identityStr), signature: signature});
 
         bytes32 attestationId = enclaveIdDao.upsertEnclaveIdentity(id, version, enclaveIdentityObj);
-        assertEq(enclaveIdDao.enclaveIdentityAttestations(keccak256(abi.encodePacked(id, version))), attestationId);
+        assertEq(pccsStorage.collateralPointer(enclaveIdDao.ENCLAVE_ID_KEY(id, version)), attestationId);
 
         EnclaveIdentityJsonObj memory fetched = enclaveIdDao.getEnclaveIdentity(id, version);
         assertEq(fetched.signature, enclaveIdentityObj.signature);

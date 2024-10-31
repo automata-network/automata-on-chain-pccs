@@ -38,8 +38,8 @@ abstract contract PCSSetupBase is TestSetupBase, PCSConstants {
 
     function testPcsSetup() public {
         // validate RootCA attestations
-        bytes memory attestedData = pcs.getAttestedData(rootAttestation);
-        bytes32 collateralHash = pcs.getCollateralHash(rootAttestation);
+        bytes memory attestedData = pccsStorage.readAttestation(rootAttestation);
+        bytes32 collateralHash = abi.decode(pccsStorage.readAttestation(bytes32(uint256(rootAttestation) + 1)), (bytes32));
 
         (bytes memory tbs,) = x509Lib.getTbsAndSig(rootDer);
         bytes32 actualHash = keccak256(tbs);
@@ -47,32 +47,32 @@ abstract contract PCSSetupBase is TestSetupBase, PCSConstants {
         assertEq(keccak256(attestedData), keccak256(rootDer));
 
         // validate RootCRL attestations
-        attestedData = pcs.getAttestedData(rootCrlAttestation);
-        collateralHash = pcs.getCollateralHash(rootCrlAttestation);
+        attestedData = pccsStorage.readAttestation(rootCrlAttestation);
+        collateralHash = abi.decode(pccsStorage.readAttestation(bytes32(uint256(rootCrlAttestation) + 1)), (bytes32));
         (tbs,) = x509CrlLib.getTbsAndSig(rootCrlDer);
         actualHash = keccak256(tbs);
         assertEq(actualHash, collateralHash);
         assertEq(keccak256(attestedData), keccak256(rootCrlDer));
 
         // validate SigningCA attestations
-        attestedData = pcs.getAttestedData(signingAttestation);
-        collateralHash = pcs.getCollateralHash(signingAttestation);
+        attestedData = pccsStorage.readAttestation(signingAttestation);
+        collateralHash = abi.decode(pccsStorage.readAttestation(bytes32(uint256(signingAttestation) + 1)), (bytes32));
         (tbs,) = x509CrlLib.getTbsAndSig(signingDer);
         actualHash = keccak256(tbs);
         assertEq(actualHash, collateralHash);
         assertEq(keccak256(attestedData), keccak256(signingDer));
 
         // validate PlatformCA attestations
-        attestedData = pcs.getAttestedData(platformAttestation);
-        collateralHash = pcs.getCollateralHash(platformAttestation);
+        attestedData = pccsStorage.readAttestation(platformAttestation);
+        collateralHash = abi.decode(pccsStorage.readAttestation(bytes32(uint256(platformAttestation) + 1)), (bytes32));
         (tbs,) = x509CrlLib.getTbsAndSig(platformDer);
         actualHash = keccak256(tbs);
         assertEq(actualHash, collateralHash);
         assertEq(keccak256(attestedData), keccak256(platformDer));
 
         // validate PlatformCRL attestations
-        attestedData = pcs.getAttestedData(platformCrlAttestation);
-        collateralHash = pcs.getCollateralHash(platformCrlAttestation);
+        attestedData = pccsStorage.readAttestation(platformCrlAttestation);
+        collateralHash = abi.decode(pccsStorage.readAttestation(bytes32(uint256(platformCrlAttestation) + 1)), (bytes32));
         (tbs,) = x509CrlLib.getTbsAndSig(pckCrlDer);
         actualHash = keccak256(tbs);
         assertEq(actualHash, collateralHash);

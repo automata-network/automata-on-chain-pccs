@@ -10,6 +10,11 @@ import {DaoBase} from "./DaoBase.sol";
 import {SigVerifyBase} from "./SigVerifyBase.sol";
 import {PcsDao} from "./PcsDao.sol";
 
+/// @notice EnclaveId is stored as ABI-encoded tuple of (EnclaveIdentityHelper.IdentityObj, string, bytes)
+/// @notice see {{ EnclaveIdentityHelper.IdentityObj }} for struct definition
+/// @notice - string qeidentityObj
+/// @notice - bytes signature
+
 /**
  * @title Enclave Identity Data Access Object
  * @notice This contract is heavily inspired by Section 4.2.9 in the Intel SGX PCCS Design Guideline
@@ -21,27 +26,26 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     PcsDao public Pcs;
     EnclaveIdentityHelper public EnclaveIdentityLib;
 
-    /// @notice retrieves the attestationId of the attested EnclaveIdentity from the registry
-    /// key: keccak256(id ++ version)
-    /// NOTE: the "version" indicated here is taken from the input parameter (e.g. v3 vs v4);
-    /// NOT the "version" value found in the Enclave Identity JSON
-    ///
-    /// @notice the schema of the attested data is the following:
-    /// An ABI-encoded tuple of (EnclaveIdentityHelper.IdentityObj, string, bytes)
-    /// see {{ EnclaveIdentityHelper.IdentityObj }} for struct definition
-    /// - string qeidentityObj
-    /// - bytes signature
-    mapping(bytes32 => bytes32) public enclaveIdentityAttestations;
-
     error Enclave_Id_Mismatch();
     error Invalid_TCB_Cert_Signature();
     error Enclave_Id_Expired();
 
-    constructor(address _p256, address _pcs, address _enclaveIdentityHelper, address _x509Helper)
+    constructor(address _resolver, address _p256, address _pcs, address _enclaveIdentityHelper, address _x509Helper)
+        DaoBase(_resolver)
         SigVerifyBase(_p256, _x509Helper)
     {
         Pcs = PcsDao(_pcs);
         EnclaveIdentityLib = EnclaveIdentityHelper(_enclaveIdentityHelper);
+    }
+
+    /**
+     * @notice computes the key that is mapped to the collateral attestation ID
+     * NOTE: the "version" indicated here is taken from the input parameter (e.g. v3 vs v4);
+     * NOT the "version" value found in the Enclave Identity JSON
+     * @return key = keccak256(id ++ version)
+     */
+    function ENCLAVE_ID_KEY(uint256 id, uint256 version) public pure returns (bytes32 key) {
+        key = keccak256(abi.encodePacked(id, version));
     }
 
     /**
@@ -57,9 +61,8 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         view
         returns (EnclaveIdentityJsonObj memory enclaveIdObj)
     {
-        bytes32 attestationId = _getAttestationId(id, version);
-        if (attestationId != bytes32(0)) {
-            bytes memory attestedIdentityData = getAttestedData(attestationId);
+        bytes memory attestedIdentityData = getAttestedData(ENCLAVE_ID_KEY(id, version));
+        if (attestedIdentityData.length > 0) {
             (, enclaveIdObj.identityStr, enclaveIdObj.signature) =
                 abi.decode(attestedIdentityData, (IdentityObj, string, bytes));
         }
@@ -83,10 +86,10 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         returns (bytes32 attestationId)
     {
         _validateQeIdentity(enclaveIdentityObj);
-        AttestationRequest memory req = _buildEnclaveIdentityAttestationRequest(id, version, enclaveIdentityObj);
+        bytes32 key = ENCLAVE_ID_KEY(id, version);
+        AttestationRequest memory req = _buildEnclaveIdentityAttestationRequest(id, key, enclaveIdentityObj);
         bytes32 hash = sha256(bytes(enclaveIdentityObj.identityStr));
-        attestationId = _attestEnclaveIdentity(req, hash);
-        enclaveIdentityAttestations[keccak256(abi.encodePacked(id, version))] = attestationId;
+        attestationId = _attestEnclaveIdentity(req, hash, key);
     }
 
     /**
@@ -95,10 +98,8 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
      * @return rootCert - DER encoded Intel SGX Root CA
      */
     function getEnclaveIdentityIssuerChain() public view returns (bytes memory signingCert, bytes memory rootCert) {
-        bytes32 signingCertAttestationId = Pcs.pcsCertAttestations(CA.SIGNING);
-        bytes32 rootCertAttestationId = Pcs.pcsCertAttestations(CA.ROOT);
-        signingCert = getAttestedData(signingCertAttestationId);
-        rootCert = getAttestedData(rootCertAttestationId);
+        signingCert = getAttestedData(Pcs.PCS_KEY(CA.SIGNING, false));
+        rootCert = getAttestedData(Pcs.PCS_KEY(CA.ROOT, false));
     }
 
     /**
@@ -112,16 +113,12 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
      * https://github.com/ethereum-attestation-service/eas-contracts/blob/52af661748bde9b40ae782907702f885852bc149/contracts/IEAS.sol#L9C1-L23C2
      * @return attestationId
      */
-    function _attestEnclaveIdentity(AttestationRequest memory req, bytes32 hash)
+    function _attestEnclaveIdentity(AttestationRequest memory req, bytes32 hash, bytes32 key)
         internal
         virtual
-        returns (bytes32 attestationId);
-
-    /**
-     * @notice computes the key that maps to the corresponding attestation ID
-     */
-    function _getAttestationId(uint256 id, uint256 version) private view returns (bytes32 attestationId) {
-        attestationId = enclaveIdentityAttestations[keccak256(abi.encodePacked(id, version))];
+        returns (bytes32 attestationId)
+    {
+        (attestationId,) = resolver.attest(key, req.data.data, hash);
     }
 
     /**
@@ -129,10 +126,10 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
      */
     function _buildEnclaveIdentityAttestationRequest(
         uint256 id,
-        uint256 version,
+        bytes32 key,
         EnclaveIdentityJsonObj calldata enclaveIdentityObj
     ) private view returns (AttestationRequest memory req) {
-        bytes32 predecessorAttestationId = _getAttestationId(id, version);
+        bytes32 predecessorAttestationId = resolver.collateralPointer(key);
         IdentityObj memory identity = EnclaveIdentityLib.parseIdentityString(enclaveIdentityObj.identityStr);
         if (id != uint256(identity.id)) {
             revert Enclave_Id_Mismatch();
@@ -160,8 +157,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
      */
     function _validateQeIdentity(EnclaveIdentityJsonObj calldata enclaveIdentityObj) private view {
         // Get TCB Signing Cert
-        bytes32 tcbSigningAttestationId = Pcs.pcsCertAttestations(CA.SIGNING);
-        bytes memory signingDer = getAttestedData(tcbSigningAttestationId);
+        bytes memory signingDer = getAttestedData(Pcs.PCS_KEY(CA.SIGNING, false));
 
         // Validate signature
         bool sigVerified =

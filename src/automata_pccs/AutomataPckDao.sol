@@ -1,15 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {AutomataDaoBase} from "./shared/AutomataDaoBase.sol";
 import {PckDao, AttestationRequest, PcsDao, X509CRLHelper} from "../bases/PckDao.sol";
-
 import {Ownable} from "solady/auth/Ownable.sol";
+import {AutomataDaoStorage} from "./shared/AutomataDaoStorage.sol";
 
-contract AutomataPckDao is Ownable, AutomataDaoBase, PckDao {
+contract AutomataPckDao is Ownable, PckDao {
     constructor(address _storage, address _p256, address _pcs, address _x509, address _crl)
-        AutomataDaoBase(_storage)
-        PckDao(_p256, _pcs, _x509, _crl)
+        PckDao(_storage, _p256, _pcs, _x509, _crl)
     {
         _initializeOwner(msg.sender);
     }
@@ -32,23 +30,24 @@ contract AutomataPckDao is Ownable, AutomataDaoBase, PckDao {
         return bytes32(0);
     }
 
-    function _attestPck(AttestationRequest memory req, bytes32 hash)
-        internal
-        override
-        returns (bytes32 attestationId)
-    {
-        // delete the predecessor if replacing
-        _deletePredecessor(req.data.refUID);
-        _attestCollateral(hash, req.data.data);
-        attestationId = hash;
+    function _upsertTcbm(bytes16 qeid, bytes2 pceid, bytes18 tcbm) internal override {
+        AutomataDaoStorage(address(resolver)).setTcbm(qeid, pceid, tcbm);
     }
 
-    function _attestTcbm(AttestationRequest memory req) internal override returns (bytes32 attestationId) {
-        // delete the predecessor if replacing
-        _deletePredecessor(req.data.refUID);
+    function _getAllTcbs(bytes16 qeidBytes, bytes2 pceidBytes)
+        internal
+        view
+        override
+        returns (bytes18[] memory tcbms)
+    {
+        tcbms = AutomataDaoStorage(address(resolver)).printTcbmSet(qeidBytes, pceidBytes);
+    }
 
-        bytes32 hash = keccak256(req.data.data);
-        _attestCollateral(hash, req.data.data);
-        attestationId = hash;
+    function _setTcbrToTcbmMapping(bytes32 tcbMappingKey, bytes18 tcbmBytes) internal override {
+        AutomataDaoStorage(address(resolver)).setTcbrMapping(tcbMappingKey, tcbmBytes);
+    }
+
+    function _tcbrToTcbmMapping(bytes32 tcbMappingKey) internal view override returns (bytes18 tcbm) {
+        tcbm = AutomataDaoStorage(address(resolver)).getTcbm(tcbMappingKey);
     }
 }

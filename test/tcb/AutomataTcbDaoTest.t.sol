@@ -21,13 +21,13 @@ contract AutomataFmspcTcbDaoTest is PCSSetupBase, TCBConstants {
 
         bytes32 attestationId = fmspcTcbDao.upsertFmspcTcb(tcbInfoObj);
         assertEq(
-            fmspcTcbDao.fmspcTcbInfoAttestations(keccak256(abi.encodePacked(tcbType, fmspcBytes, version))),
+            pccsStorage.collateralPointer(fmspcTcbDao.FMSPC_TCB_KEY(tcbType, fmspcBytes, version)),
             attestationId
         );
 
         TcbInfoJsonObj memory fetched = fmspcTcbDao.getTcbInfo(tcbType, fmspcStr, version);
         assertEq(fetched.signature, tcbInfoObj.signature);
-        assertEq(fmspcTcbDao.getCollateralHash(attestationId), sha256(bytes(tcbInfoObj.tcbInfoStr)));
+        assertEq(abi.decode(pccsStorage.readAttestation(bytes32(uint256(attestationId) + 1)), (bytes32)), sha256(bytes(tcbInfoObj.tcbInfoStr)));
     }
 
     function testAttestFmspcTcbSgxV3() public {
@@ -44,13 +44,13 @@ contract AutomataFmspcTcbDaoTest is PCSSetupBase, TCBConstants {
 
         bytes32 attestationId = fmspcTcbDao.upsertFmspcTcb(tcbInfoObj);
         assertEq(
-            fmspcTcbDao.fmspcTcbInfoAttestations(keccak256(abi.encodePacked(tcbType, fmspcBytes, version))),
+            pccsStorage.collateralPointer(fmspcTcbDao.FMSPC_TCB_KEY(tcbType, fmspcBytes, version)),
             attestationId
         );
 
         TcbInfoJsonObj memory fetched = fmspcTcbDao.getTcbInfo(tcbType, fmspcStr, version);
         assertEq(fetched.signature, tcbInfoObj.signature);
-        assertEq(fmspcTcbDao.getCollateralHash(attestationId), sha256(bytes(tcbInfoObj.tcbInfoStr)));
+        assertEq(abi.decode(pccsStorage.readAttestation(bytes32(uint256(attestationId) + 1)), (bytes32)), sha256(bytes(tcbInfoObj.tcbInfoStr)));
     }
 
     function testAttestFmspcTcbTdxV3() public {
@@ -65,13 +65,13 @@ contract AutomataFmspcTcbDaoTest is PCSSetupBase, TCBConstants {
 
         bytes32 attestationId = fmspcTcbDao.upsertFmspcTcb(tcbInfoObj);
         assertEq(
-            fmspcTcbDao.fmspcTcbInfoAttestations(keccak256(abi.encodePacked(tcbType, fmspcBytes, version))),
+            pccsStorage.collateralPointer(fmspcTcbDao.FMSPC_TCB_KEY(tcbType, fmspcBytes, version)),
             attestationId
         );
 
         TcbInfoJsonObj memory fetched = fmspcTcbDao.getTcbInfo(tcbType, fmspcStr, version);
         assertEq(fetched.signature, tcbInfoObj.signature);
-        assertEq(fmspcTcbDao.getCollateralHash(attestationId), sha256(bytes(tcbInfoObj.tcbInfoStr)));
+        assertEq(abi.decode(pccsStorage.readAttestation(bytes32(uint256(attestationId) + 1)), (bytes32)), sha256(bytes(tcbInfoObj.tcbInfoStr)));
     }
 
     function testTcbIssuerChain() public {

@@ -16,6 +16,13 @@ import {
     TDXModuleIdentity
 } from "../helpers/FmspcTcbHelper.sol";
 
+/// @notice the schema of the attested data is dependent on the version of TCBInfo:
+/// @notice For TCBInfoV2, it consists of the ABI-encoded tuple of:
+/// @notice (TcbInfoBasic, TCBLevelsObj[], string tcbInfo, bytes signature)
+/// @notice For TCBInfoV3, it consists of the abi-encoded tuple of:
+/// @notice (TcbInfoBasic, TDXModule, TDXModuleIdentity[], TCBLevelsObj, string tcbInfo, bytes signature)
+/// @notice See {{ FmspcTcbHelper.sol }} to learn more about FMSPC TCB related struct definitions.
+
 /**
  * @title FMSPC TCB Data Access Object
  * @notice This contract is heavily inspired by Section 4.2.3 in the Intel SGX PCCS Design Guidelines
@@ -27,25 +34,24 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     PcsDao public Pcs;
     FmspcTcbHelper public FmspcTcbLib;
 
-    /// @notice retrieves the attestationId of the attested FMSPC TCBInfo from the registry
-    /// key: keccak256(type ++ FMSPC ++ version)
-    /// @notice the schema of the attested data is dependent on the version of TCBInfo:
-    /// For TCBInfoV2, it consists of the ABI-encoded tuple of:
-    /// (TcbInfoBasic, TCBLevelsObj[], string tcbInfo, bytes signature)
-    /// For TCBInfoV3, it consists of the abi-encoded tuple of:
-    /// (TcbInfoBasic, TDXModule, TDXModuleIdentity[], TCBLevelsObj, string tcbInfo, bytes signature)
-    /// See {{ FmspcTcbHelper.sol }} to learn more about FMSPC TCB related struct definitions.
-    mapping(bytes32 => bytes32) public fmspcTcbInfoAttestations;
+    error Invalid_TCB_Cert_Signature();
+    error TCB_Expired();
 
-    constructor(address _p256, address _pcs, address _fmspcHelper, address _x509Helper)
+    constructor(address _resolver, address _p256, address _pcs, address _fmspcHelper, address _x509Helper)
         SigVerifyBase(_p256, _x509Helper)
+        DaoBase(_resolver)
     {
         Pcs = PcsDao(_pcs);
         FmspcTcbLib = FmspcTcbHelper(_fmspcHelper);
     }
 
-    error Invalid_TCB_Cert_Signature();
-    error TCB_Expired();
+    /**
+     * @notice computes the key that is mapped to the collateral attestation ID
+     * @return key = keccak256(type ++ FMSPC ++ version)
+     */
+    function FMSPC_TCB_KEY(uint8 tcbType, bytes6 fmspc, uint32 version) public pure returns (bytes32 key) {
+        key = keccak256(abi.encodePacked(tcbType, fmspc, version));
+    }
 
     /**
      * @dev overwrite this method to define the schemaID for the attestation of TCBInfo
@@ -56,14 +62,6 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
      * @dev overwrite this method to define the schemaID for the attestation of TCBInfo
      */
     function fmpscTcbV3SchemaID() public view virtual returns (bytes32 FMSPC_TCB_V3_SCHEMA_ID);
-
-    /**
-     * @dev implement logic to validate and attest TCBInfo
-     * @param req structure as defined by EAS
-     * https://github.com/ethereum-attestation-service/eas-contracts/blob/52af661748bde9b40ae782907702f885852bc149/contracts/IEAS.sol#L9C1-L23C2
-     * @return attestationId
-     */
-    function _attestTcb(AttestationRequest memory req, bytes32 hash) internal virtual returns (bytes32 attestationId);
 
     /**
      * @notice Section 4.2.3 (getTcbInfo)
@@ -81,17 +79,14 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         returns (TcbInfoJsonObj memory tcbObj)
     {
         bytes6 fmspcBytes = bytes6(uint48(_parseUintFromHex(fmspc)));
-        bytes32 attestationId = _getAttestationId(tcbType, fmspcBytes, version);
-        if (attestationId != bytes32(0)) {
-            bytes memory attestedTcbData = getAttestedData(attestationId);
-            if (version < 3) {
-                (,, tcbObj.tcbInfoStr, tcbObj.signature) =
-                    abi.decode(attestedTcbData, (TcbInfoBasic, TCBLevelsObj[], string, bytes));
-            } else {
-                (,,,, tcbObj.tcbInfoStr, tcbObj.signature) = abi.decode(
-                    attestedTcbData, (TcbInfoBasic, TDXModule, TDXModuleIdentity[], TCBLevelsObj[], string, bytes)
-                );
-            }
+        bytes memory attestedTcbData = getAttestedData(FMSPC_TCB_KEY(uint8(tcbType), fmspcBytes, uint32(version)));
+        if (version < 3) {
+            (,, tcbObj.tcbInfoStr, tcbObj.signature) =
+                abi.decode(attestedTcbData, (TcbInfoBasic, TCBLevelsObj[], string, bytes));
+        } else {
+            (,,,, tcbObj.tcbInfoStr, tcbObj.signature) = abi.decode(
+                attestedTcbData, (TcbInfoBasic, TDXModule, TDXModuleIdentity[], TCBLevelsObj[], string, bytes)
+            );
         }
     }
 
@@ -104,11 +99,9 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
      */
     function upsertFmspcTcb(TcbInfoJsonObj calldata tcbInfoObj) external returns (bytes32 attestationId) {
         _validateTcbInfo(tcbInfoObj);
-        (AttestationRequest memory req, TcbInfoBasic memory tcbInfo) = _buildTcbAttestationRequest(tcbInfoObj);
+        (AttestationRequest memory req, bytes32 key) = _buildTcbAttestationRequest(tcbInfoObj);
         bytes32 hash = sha256(bytes(tcbInfoObj.tcbInfoStr));
-        attestationId = _attestTcb(req, hash);
-        fmspcTcbInfoAttestations[keccak256(abi.encodePacked(uint8(tcbInfo.id), tcbInfo.fmspc, tcbInfo.version))] =
-            attestationId;
+        attestationId = _attestTcb(req, hash, key);
     }
 
     /**
@@ -117,23 +110,22 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
      * @return rootCert - DER encoded Intel SGX Root CA
      */
     function getTcbIssuerChain() public view returns (bytes memory signingCert, bytes memory rootCert) {
-        bytes32 signingCertAttestationId = Pcs.pcsCertAttestations(CA.SIGNING);
-        bytes32 rootCertAttestationId = Pcs.pcsCertAttestations(CA.ROOT);
-        signingCert = getAttestedData(signingCertAttestationId);
-        rootCert = getAttestedData(rootCertAttestationId);
+        signingCert = getAttestedData(Pcs.PCS_KEY(CA.SIGNING, false));
+        rootCert = getAttestedData(Pcs.PCS_KEY(CA.ROOT, false));
     }
 
     /**
-     * @notice computes the key that maps to the corresponding attestation ID
-     * @dev once again I am reminding you that the argument tcbType is to indicate the TEE type for the
-     * particular TCBInfo. i.e. 0: SGX, 1: TDX
+     * @dev implement logic to validate and attest TCBInfo
+     * @param req structure as defined by EAS
+     * https://github.com/ethereum-attestation-service/eas-contracts/blob/52af661748bde9b40ae782907702f885852bc149/contracts/IEAS.sol#L9C1-L23C2
+     * @return attestationId
      */
-    function _getAttestationId(uint256 tcbType, bytes6 fmspc, uint256 version)
-        private
-        view
+    function _attestTcb(AttestationRequest memory req, bytes32 hash, bytes32 key)
+        internal
+        virtual
         returns (bytes32 attestationId)
     {
-        attestationId = fmspcTcbInfoAttestations[keccak256(abi.encodePacked(uint8(tcbType), fmspc, uint32(version)))];
+        (attestationId,) = resolver.attest(key, req.data.data, hash);
     }
 
     /**
@@ -142,11 +134,12 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     function _buildTcbAttestationRequest(TcbInfoJsonObj calldata tcbInfoObj)
         private
         view
-        returns (AttestationRequest memory req, TcbInfoBasic memory tcbInfo)
+        returns (AttestationRequest memory req, bytes32 key)
     {
-        bytes memory attestationData;
-        (attestationData, tcbInfo) = _buildAttestationData(tcbInfoObj.tcbInfoStr, tcbInfoObj.signature);
-        bytes32 predecessorAttestationId = _getAttestationId(uint8(tcbInfo.id), tcbInfo.fmspc, tcbInfo.version);
+        (bytes memory attestationData, TcbInfoBasic memory tcbInfo) =
+            _buildAttestationData(tcbInfoObj.tcbInfoStr, tcbInfoObj.signature);
+        key = FMSPC_TCB_KEY(uint8(tcbInfo.id), tcbInfo.fmspc, tcbInfo.version);
+        bytes32 predecessorAttestationId = resolver.collateralPointer(key);
         if (block.timestamp < tcbInfo.issueDate || block.timestamp > tcbInfo.nextUpdate) {
             revert TCB_Expired();
         }
@@ -183,8 +176,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
 
     function _validateTcbInfo(TcbInfoJsonObj calldata tcbInfoObj) private view {
         // Get TCB Signing Cert
-        bytes32 tcbSigningAttestationId = Pcs.pcsCertAttestations(CA.SIGNING);
-        bytes memory signingDer = getAttestedData(tcbSigningAttestationId);
+        bytes memory signingDer = getAttestedData(Pcs.PCS_KEY(CA.SIGNING, false));
 
         // Validate signature
         bool sigVerified = verifySignature(sha256(bytes(tcbInfoObj.tcbInfoStr)), tcbInfoObj.signature, signingDer);
