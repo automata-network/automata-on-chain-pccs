@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {CA, AttestationRequestData, AttestationRequest} from "../Common.sol";
+import {CA} from "../Common.sol";
 import {PCKHelper, X509CertObj} from "../helpers/PCKHelper.sol";
 import {X509CRLHelper, X509CRLObj} from "../helpers/X509CRLHelper.sol";
 
@@ -156,8 +156,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         (bytes16 qeidBytes, bytes2 pceidBytes,,, bytes18 tcbmBytes) = _parseStringInputs(qeid, pceid, "", "", tcbm);
         bytes32 hash = _validatePck(ca, cert, tcbmBytes, pceidBytes);
         bytes32 key = PCK_KEY(qeidBytes, pceidBytes, tcbmBytes);
-        AttestationRequest memory req = _buildPckCertAttestationRequest(key, cert);
-        attestationId = _attestPck(req, hash, key);
+        attestationId = _attestPck(cert, hash, key);
         _upsertTcbm(qeidBytes, pceidBytes, tcbmBytes);
     }
 
@@ -216,24 +215,15 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
     }
 
     /**
-     * @dev overwrite this method to define the schemaID for the attestation of PCK Certificates
-     */
-    function pckSchemaID() public view virtual returns (bytes32 PCK_SCHEMA_ID);
-
-    function tcbmSchemaID() public view virtual returns (bytes32 TCBM_SCHEMA_ID);
-
-    /**
      * @dev implement logic to validate and attest PCK Certificates
-     * @param req structure as defined by EAS
-     * https://github.com/ethereum-attestation-service/eas-contracts/blob/52af661748bde9b40ae782907702f885852bc149/contracts/IEAS.sol#L9C1-L23C2
      * @return attestationId
      */
-    function _attestPck(AttestationRequest memory req, bytes32 hash, bytes32 key)
+    function _attestPck(bytes memory reqData, bytes32 hash, bytes32 key)
         internal
         virtual
         returns (bytes32 attestationId)
     {
-        (attestationId,) = resolver.attest(key, req.data.data, hash);
+        (attestationId,) = resolver.attest(key, reqData, hash);
     }
 
     /**
@@ -266,26 +256,6 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         uint256 serialNumber = pckLib.getSerialNumber(pck);
         bytes memory crlData = getAttestedData(Pcs.PCS_KEY(ca, true));
         revocable = crlLib.serialNumberIsRevoked(serialNumber, crlData);
-    }
-
-    /**
-     * @notice builds an EAS compliant attestation request
-     */
-    function _buildPckCertAttestationRequest(bytes32 key, bytes calldata cert)
-        internal
-        view
-        returns (AttestationRequest memory req)
-    {
-        bytes32 predecessorAttestationId = resolver.collateralPointer(key);
-        AttestationRequestData memory reqData = AttestationRequestData({
-            recipient: msg.sender,
-            expirationTime: 0,
-            revocable: true,
-            refUID: predecessorAttestationId,
-            data: cert,
-            value: 0
-        });
-        req = AttestationRequest({schema: pckSchemaID(), data: reqData});
     }
 
     function _validatePck(CA ca, bytes memory der, bytes18 tcbm, bytes2 pceid) internal view returns (bytes32 hash) {

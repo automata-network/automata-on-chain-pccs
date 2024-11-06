@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {PcsDao, AttestationRequest, X509CRLHelper} from "../bases/PcsDao.sol";
+import {PcsDao, X509CRLHelper} from "../bases/PcsDao.sol";
 import {Ownable} from "solady/auth/Ownable.sol";
 
 contract AutomataPcsDao is PcsDao, Ownable {
@@ -12,17 +12,5 @@ contract AutomataPcsDao is PcsDao, Ownable {
     function updateDeps(address _x509, address _crl) external onlyOwner {
         x509 = _x509;
         crlLib = X509CRLHelper(_crl);
-    }
-
-    function pcsCertSchemaID() public pure override returns (bytes32) {
-        // NOT-APPLICABLE FOR OUR USE CASE
-        // but this is required by most attestation services, such as EAS, Verax etc
-        return bytes32(0);
-    }
-
-    function pcsCrlSchemaID() public pure override returns (bytes32) {
-        // NOT-APPLICABLE FOR OUR USE CASE
-        // but this is required by most attestation services, such as EAS, Verax etc
-        return bytes32(0);
     }
 }

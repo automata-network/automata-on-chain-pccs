@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {EnclaveIdentityDao, AttestationRequest, PcsDao} from "../bases/EnclaveIdentityDao.sol";
+import {EnclaveIdentityDao, PcsDao} from "../bases/EnclaveIdentityDao.sol";
 
 import {Ownable} from "solady/auth/Ownable.sol";
 
@@ -14,11 +14,5 @@ contract AutomataEnclaveIdentityDao is Ownable, EnclaveIdentityDao {
 
     function setPcs(address _pcs) external onlyOwner {
         Pcs = PcsDao(_pcs);
-    }
-
-    function enclaveIdentitySchemaID() public pure override returns (bytes32) {
-        // NOT-APPLICABLE FOR OUR USE CASE
-        // but this is required by most attestation services, such as EAS, Verax etc
-        return bytes32(0);
     }
 }

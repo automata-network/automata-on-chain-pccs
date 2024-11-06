@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {CA, AttestationRequestData, AttestationRequest} from "../Common.sol";
+import {CA} from "../Common.sol";
 import {
     EnclaveIdentityHelper, EnclaveIdentityJsonObj, EnclaveId, IdentityObj
 } from "../helpers/EnclaveIdentityHelper.sol";
@@ -87,7 +87,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     {
         _validateQeIdentity(enclaveIdentityObj);
         bytes32 key = ENCLAVE_ID_KEY(id, version);
-        AttestationRequest memory req = _buildEnclaveIdentityAttestationRequest(id, key, enclaveIdentityObj);
+        bytes memory req = _buildEnclaveIdentityAttestationRequest(id, key, enclaveIdentityObj);
         bytes32 hash = sha256(bytes(enclaveIdentityObj.identityStr));
         attestationId = _attestEnclaveIdentity(req, hash, key);
     }
@@ -103,22 +103,15 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     }
 
     /**
-     * @dev overwrite this method to define the schemaID for the attestation of Enclave Identities
-     */
-    function enclaveIdentitySchemaID() public view virtual returns (bytes32 ENCLAVE_IDENTITY_SCHEMA_ID);
-
-    /**
      * @dev implement logic to validate and attest the enclave identity
-     * @param req structure as defined by EAS
-     * https://github.com/ethereum-attestation-service/eas-contracts/blob/52af661748bde9b40ae782907702f885852bc149/contracts/IEAS.sol#L9C1-L23C2
      * @return attestationId
      */
-    function _attestEnclaveIdentity(AttestationRequest memory req, bytes32 hash, bytes32 key)
+    function _attestEnclaveIdentity(bytes memory reqData, bytes32 hash, bytes32 key)
         internal
         virtual
         returns (bytes32 attestationId)
     {
-        (attestationId,) = resolver.attest(key, req.data.data, hash);
+        (attestationId,) = resolver.attest(key, reqData, hash);
     }
 
     /**
@@ -128,8 +121,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         uint256 id,
         bytes32 key,
         EnclaveIdentityJsonObj calldata enclaveIdentityObj
-    ) private view returns (AttestationRequest memory req) {
-        bytes32 predecessorAttestationId = resolver.collateralPointer(key);
+    ) private view returns (bytes memory reqData) {
         IdentityObj memory identity = EnclaveIdentityLib.parseIdentityString(enclaveIdentityObj.identityStr);
         if (id != uint256(identity.id)) {
             revert Enclave_Id_Mismatch();
@@ -139,17 +131,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
             revert Enclave_Id_Expired();
         }
 
-        bytes memory attestationData =
-            abi.encode(identity, enclaveIdentityObj.identityStr, enclaveIdentityObj.signature);
-        AttestationRequestData memory reqData = AttestationRequestData({
-            recipient: msg.sender,
-            expirationTime: uint64(identity.nextUpdateTimestamp),
-            revocable: true,
-            refUID: predecessorAttestationId,
-            data: attestationData,
-            value: 0
-        });
-        req = AttestationRequest({schema: enclaveIdentitySchemaID(), data: reqData});
+        reqData = abi.encode(identity, enclaveIdentityObj.identityStr, enclaveIdentityObj.signature);
     }
 
     /**

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {CA, AttestationRequestData, AttestationRequest} from "../Common.sol";
+import {CA} from "../Common.sol";
 import {X509Helper, X509CertObj} from "../helpers/X509Helper.sol";
 import {X509CRLHelper, X509CRLObj} from "../helpers/X509CRLHelper.sol";
 
@@ -88,8 +88,7 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
     function upsertPcsCertificates(CA ca, bytes calldata cert) external returns (bytes32 attestationId) {
         bytes32 hash = _validatePcsCert(ca, cert);
         bytes32 key = PCS_KEY(ca, false);
-        AttestationRequest memory req = _buildPcsAttestationRequest(false, key, cert);
-        attestationId = _attestPcs(req, hash, key);
+        attestationId = _attestPcs(cert, hash, key);
     }
 
     /**
@@ -105,52 +104,22 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
         attestationId = _upsertPcsCrl(CA.ROOT, rootcacrl);
     }
 
-    function pcsCertSchemaID() public view virtual returns (bytes32 PCS_CERT_SCHEMA_ID);
-
-    function pcsCrlSchemaID() public view virtual returns (bytes32 PCS_CRL_SCHEMA_ID);
-
     /**
      * @dev implement logic to validate and attest PCS Certificates or CRLs
-     * @param req structure as defined by EAS
-     * https://github.com/ethereum-attestation-service/eas-contracts/blob/52af661748bde9b40ae782907702f885852bc149/contracts/IEAS.sol#L9C1-L23C2
      * @return attestationId
      */
-    function _attestPcs(AttestationRequest memory req, bytes32 hash, bytes32 key)
+    function _attestPcs(bytes memory reqData, bytes32 hash, bytes32 key)
         internal
         virtual
         returns (bytes32 attestationId)
     {
-        (attestationId,) = resolver.attest(key, req.data.data, hash);
+        (attestationId,) = resolver.attest(key, reqData, hash);
     }
 
     function _upsertPcsCrl(CA ca, bytes calldata crl) private returns (bytes32 attestationId) {
         bytes32 hash = _validatePcsCrl(ca, crl);
         bytes32 key = PCS_KEY(ca, true);
-        AttestationRequest memory req = _buildPcsAttestationRequest(true, key, crl);
-        attestationId = _attestPcs(req, hash, key);
-    }
-
-    /**
-     * @notice builds an EAS compliant attestation request
-     * @param isCrl - true only if the attested data is a CRL
-     * @param der - contains the DER encoded data, specified by isCrl and CA
-     */
-    function _buildPcsAttestationRequest(bool isCrl, bytes32 key, bytes calldata der)
-        private
-        view
-        returns (AttestationRequest memory req)
-    {
-        bytes32 predecessorAttestationId = resolver.collateralPointer(key);
-        AttestationRequestData memory reqData = AttestationRequestData({
-            recipient: msg.sender,
-            expirationTime: 0, // assign zero here because this has already been checked
-            revocable: true,
-            refUID: predecessorAttestationId,
-            data: der,
-            value: 0
-        });
-        bytes32 schemaId = isCrl ? pcsCrlSchemaID() : pcsCertSchemaID();
-        req = AttestationRequest({schema: schemaId, data: reqData});
+        attestationId = _attestPcs(crl, hash, key);
     }
 
     function _validatePcsCert(CA ca, bytes calldata cert) private view returns (bytes32 hash) {
