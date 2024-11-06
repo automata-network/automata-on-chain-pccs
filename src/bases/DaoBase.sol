@@ -14,7 +14,7 @@ abstract contract DaoBase {
      * @dev implement getter logic to retrieve attested data
      * @param key - mapped to a collateral as defined by individual data access objects (DAOs)
      */
-    function getAttestedData(bytes32 key) internal view virtual returns (bytes memory attestationData) {
+    function getAttestedData(bytes32 key) public view virtual returns (bytes memory attestationData) {
         bytes32 attestationId = resolver.collateralPointer(key);
         attestationData = resolver.readAttestation(attestationId);
     }
@@ -23,7 +23,7 @@ abstract contract DaoBase {
      * @dev must store the hash of a collateral (e.g. X509 Cert, TCBInfo JSON etc) in the attestation registry
      * as a separated attestation from the collateral data itself
      */
-    function getCollateralHash(bytes32 key) internal view virtual returns (bytes32 collateralHash) {
+    function getCollateralHash(bytes32 key) public view virtual returns (bytes32 collateralHash) {
         bytes32 attestationId = resolver.collateralHashPointer(key);
         collateralHash = abi.decode(resolver.readAttestation(attestationId), (bytes32));
     }

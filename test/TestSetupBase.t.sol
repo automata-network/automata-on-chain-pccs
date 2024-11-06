@@ -3,11 +3,11 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
-import {AutomataDaoStorage} from "../src/automata_pccs/shared/AutomataDaoStorage.sol";
-import {AutomataFmspcTcbDao} from "../src/automata_pccs/AutomataFmspcTcbDao.sol";
-import {AutomataEnclaveIdentityDao} from "../src/automata_pccs/AutomataEnclaveIdentityDao.sol";
-import {AutomataPcsDao} from "../src/automata_pccs/AutomataPcsDao.sol";
-import {AutomataPckDao} from "../src/automata_pccs/AutomataPckDao.sol";
+import "../src/automata_pccs/shared/AutomataDaoStorage.sol";
+import "../src/automata_pccs/AutomataFmspcTcbDao.sol";
+import "../src/automata_pccs/AutomataEnclaveIdentityDao.sol";
+import "../src/automata_pccs/AutomataPcsDao.sol";
+import "../src/automata_pccs/AutomataPckDao.sol";
 
 import {EnclaveIdentityHelper, EnclaveIdentityJsonObj} from "../src/helpers/EnclaveIdentityHelper.sol";
 import {FmspcTcbHelper, TcbInfoJsonObj} from "../src/helpers/FmspcTcbHelper.sol";

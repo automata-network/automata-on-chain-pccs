@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {FmspcTcbDao, PcsDao} from "../bases/FmspcTcbDao.sol";
-
 import {Ownable} from "solady/auth/Ownable.sol";
 
 contract AutomataFmspcTcbDao is Ownable, FmspcTcbDao {

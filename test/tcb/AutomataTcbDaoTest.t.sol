@@ -27,7 +27,7 @@ contract AutomataFmspcTcbDaoTest is PCSSetupBase, TCBConstants {
 
         TcbInfoJsonObj memory fetched = fmspcTcbDao.getTcbInfo(tcbType, fmspcStr, version);
         assertEq(fetched.signature, tcbInfoObj.signature);
-        assertEq(abi.decode(pccsStorage.readAttestation(bytes32(uint256(attestationId) + 1)), (bytes32)), sha256(bytes(tcbInfoObj.tcbInfoStr)));
+        assertEq(fmspcTcbDao.getCollateralHash(fmspcTcbDao.FMSPC_TCB_KEY(tcbType, fmspcBytes, version)), sha256(bytes(tcbInfoObj.tcbInfoStr)));
     }
 
     function testAttestFmspcTcbSgxV3() public {
@@ -50,7 +50,7 @@ contract AutomataFmspcTcbDaoTest is PCSSetupBase, TCBConstants {
 
         TcbInfoJsonObj memory fetched = fmspcTcbDao.getTcbInfo(tcbType, fmspcStr, version);
         assertEq(fetched.signature, tcbInfoObj.signature);
-        assertEq(abi.decode(pccsStorage.readAttestation(bytes32(uint256(attestationId) + 1)), (bytes32)), sha256(bytes(tcbInfoObj.tcbInfoStr)));
+        assertEq(fmspcTcbDao.getCollateralHash(fmspcTcbDao.FMSPC_TCB_KEY(tcbType, fmspcBytes, version)), sha256(bytes(tcbInfoObj.tcbInfoStr)));
     }
 
     function testAttestFmspcTcbTdxV3() public {
@@ -71,7 +71,7 @@ contract AutomataFmspcTcbDaoTest is PCSSetupBase, TCBConstants {
 
         TcbInfoJsonObj memory fetched = fmspcTcbDao.getTcbInfo(tcbType, fmspcStr, version);
         assertEq(fetched.signature, tcbInfoObj.signature);
-        assertEq(abi.decode(pccsStorage.readAttestation(bytes32(uint256(attestationId) + 1)), (bytes32)), sha256(bytes(tcbInfoObj.tcbInfoStr)));
+        assertEq(fmspcTcbDao.getCollateralHash(fmspcTcbDao.FMSPC_TCB_KEY(tcbType, fmspcBytes, version)), sha256(bytes(tcbInfoObj.tcbInfoStr)));
     }
 
     function testTcbIssuerChain() public {

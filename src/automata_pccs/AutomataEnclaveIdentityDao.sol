@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {EnclaveIdentityDao, PcsDao} from "../bases/EnclaveIdentityDao.sol";
-
 import {Ownable} from "solady/auth/Ownable.sol";
 
 contract AutomataEnclaveIdentityDao is Ownable, EnclaveIdentityDao {
