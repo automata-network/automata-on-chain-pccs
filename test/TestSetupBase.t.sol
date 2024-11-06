@@ -61,6 +61,9 @@ abstract contract TestSetupBase is Test {
             new AutomataPckDao(address(pccsStorage), P256_VERIFIER, address(pcs), address(x509Lib), address(x509CrlLib));
 
         pccsStorage.updateDao(address(pcs), address(pck), address(fmspcTcbDao), address(enclaveIdDao));
+        
+        // Pause caller restrictions to pass tests
+        pccsStorage.pauseCallerRestriction();
 
         vm.stopPrank();
     }

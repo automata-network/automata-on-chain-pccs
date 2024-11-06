@@ -39,25 +39,4 @@ contract ConfigAutomataDao is Script {
 
         AutomataDaoStorage(pccsStorageAddr).revokeDao(dao);
     }
-
-    function updatePcsDaoDependencies() public {
-        AutomataPcsDao pcsDao = AutomataPcsDao(pcsDaoAddr);
-        vm.broadcast(privateKey);
-        pcsDao.updateDeps(x509, x509Crl);
-    }
-
-    function updatePckDaoDependencies() public {
-        AutomataPckDao pckDao = AutomataPckDao(pckDaoAddr);
-        vm.broadcast(privateKey);
-        pckDao.updateDeps(pcsDaoAddr, x509, x509Crl);
-    }
-
-    function updatePcsDependencies() public {
-        address[2] memory daos = [fmspcTcbDaoAddr, enclaveIdDaoAddr];
-
-        for (uint256 i = 0; i < 2; i++) {
-            vm.broadcast(privateKey);
-            IUpdatePcs(daos[i]).setPcs(pcsDaoAddr);
-        }
-    }
 }

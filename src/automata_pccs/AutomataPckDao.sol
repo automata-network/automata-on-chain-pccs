@@ -1,21 +1,25 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {PckDao, PcsDao, X509CRLHelper} from "../bases/PckDao.sol";
+import {PckDao, PcsDao, X509CRLHelper, DaoBase} from "../bases/PckDao.sol";
 import {Ownable} from "solady/auth/Ownable.sol";
 import {AutomataDaoStorage} from "./shared/AutomataDaoStorage.sol";
 
-contract AutomataPckDao is Ownable, PckDao {
+import {AutomataDaoBase} from "./shared/AutomataDaoBase.sol";
+
+contract AutomataPckDao is AutomataDaoBase, PckDao, Ownable {
     constructor(address _storage, address _p256, address _pcs, address _x509, address _crl)
         PckDao(_storage, _p256, _pcs, _x509, _crl)
     {
         _initializeOwner(msg.sender);
     }
 
-    function updateDeps(address _pcs, address _x509, address _crl) external onlyOwner {
-        Pcs = PcsDao(_pcs);
-        x509 = _x509;
-        crlLib = X509CRLHelper(_crl);
+    function getAttestedData(bytes32 key) public view override(AutomataDaoBase, DaoBase) returns (bytes memory) {
+        return super.getAttestedData(key);
+    }
+
+    function getCollateralHash(bytes32 key) public view override(AutomataDaoBase, DaoBase) returns (bytes32 collateralHash) {
+        return super.getCollateralHash(key);
     }
 
     function _upsertTcbm(bytes16 qeid, bytes2 pceid, bytes18 tcbm) internal override {

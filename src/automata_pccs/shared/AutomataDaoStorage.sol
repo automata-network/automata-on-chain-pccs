@@ -24,6 +24,10 @@ contract AutomataDaoStorage is AutomataTCBManager, IDaoAttestationResolver, Paus
         _authorized_readers[address(0)] = true;
     }
 
+    function isAuthorizedCaller(address caller) external view returns (bool) {
+        return _authorized_readers[caller];
+    }
+
     function pauseCallerRestriction() external onlyOwner {
         if (paused()) {
             _unpause();
