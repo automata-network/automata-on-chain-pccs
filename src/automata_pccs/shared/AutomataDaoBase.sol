@@ -5,7 +5,6 @@ import {AutomataDaoStorage} from "./AutomataDaoStorage.sol";
 import {DaoBase} from "../../bases/DaoBase.sol";
 
 abstract contract AutomataDaoBase is DaoBase {
-
     function getAttestedData(bytes32 key) public view virtual override returns (bytes memory data) {
         if (_callerIsAuthorized()) {
             data = super.getAttestedData(key);

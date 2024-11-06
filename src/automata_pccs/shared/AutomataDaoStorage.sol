@@ -55,7 +55,13 @@ contract AutomataDaoStorage is AutomataTCBManager, IDaoAttestationResolver, Paus
         collateralHashAttId = bytes32(uint256(key) + 1);
     }
 
-    function readAttestation(bytes32 attestationId) external view override onlyDao(msg.sender) returns (bytes memory attData) {
+    function readAttestation(bytes32 attestationId)
+        external
+        view
+        override
+        onlyDao(msg.sender)
+        returns (bytes memory attData)
+    {
         attData = _db[attestationId];
     }
 

@@ -17,7 +17,12 @@ contract AutomataEnclaveIdentityDao is AutomataDaoBase, EnclaveIdentityDao, Owna
         return super.getAttestedData(key);
     }
 
-    function getCollateralHash(bytes32 key) public view override(AutomataDaoBase, DaoBase) returns (bytes32 collateralHash) {
+    function getCollateralHash(bytes32 key)
+        public
+        view
+        override(AutomataDaoBase, DaoBase)
+        returns (bytes32 collateralHash)
+    {
         return super.getCollateralHash(key);
     }
 }

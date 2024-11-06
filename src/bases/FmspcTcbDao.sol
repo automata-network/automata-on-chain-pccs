@@ -125,8 +125,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         returns (bytes memory reqData, bytes32 key)
     {
         TcbInfoBasic memory tcbInfo;
-        (reqData, tcbInfo) =
-            _buildAttestationData(tcbInfoObj.tcbInfoStr, tcbInfoObj.signature);
+        (reqData, tcbInfo) = _buildAttestationData(tcbInfoObj.tcbInfoStr, tcbInfoObj.signature);
         key = FMSPC_TCB_KEY(uint8(tcbInfo.id), tcbInfo.fmspc, tcbInfo.version);
         if (block.timestamp < tcbInfo.issueDate || block.timestamp > tcbInfo.nextUpdate) {
             revert TCB_Expired();
