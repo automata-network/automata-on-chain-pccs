@@ -10,8 +10,6 @@ abstract contract PCSSetupBase is TestSetupBase, PCSConstants {
     function setUp() public virtual override {
         super.setUp();
 
-        vm.startPrank(admin);
-
         // insert root CA
         pcs.upsertPcsCertificates(CA.ROOT, rootDer);
 
@@ -26,11 +24,9 @@ abstract contract PCSSetupBase is TestSetupBase, PCSConstants {
 
         // insert PCK CRL
         pcs.upsertPckCrl(CA.PLATFORM, pckCrlDer);
-
-        vm.stopPrank();
     }
 
-    function testPcsSetup() public {
+    function testPcsSetup() public readAsAuthorizedCaller {
         // validate RootCA attestations
         bytes32 key = pcs.PCS_KEY(CA.ROOT, false);
         bytes memory attestedData = pcs.getAttestedData(key);

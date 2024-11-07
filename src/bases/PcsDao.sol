@@ -154,7 +154,7 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
         }
 
         // Step 3: Check Revocation Status
-        bytes memory rootCrlData = _fetchDataFromResolver(PCS_KEY(CA.ROOT, true), false);
+        bytes memory rootCrlData = resolver.readAttestation(resolver.collateralPointer(PCS_KEY(CA.ROOT, true)));
         if (ca == CA.ROOT) {
             bytes memory pubKey = x509Lib.getSubjectPublicKey(cert);
             if (keccak256(pubKey) != ROOT_CA_PUBKEY_HASH) {
@@ -224,9 +224,9 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
         if (ca == CA.PLATFORM || ca == CA.PROCESSOR) {
             // this is applicable to crls only
             // since all certs in the pcsdao are issued by the root
-            issuerCert = _fetchDataFromResolver(PCS_KEY(ca, false), false);
+            issuerCert = resolver.readAttestation(resolver.collateralPointer(PCS_KEY(ca, false)));
         } else {
-            issuerCert = _fetchDataFromResolver(PCS_KEY(CA.ROOT, false), false);
+            issuerCert = resolver.readAttestation(resolver.collateralPointer(PCS_KEY(CA.ROOT, false)));
         }
     }
 }

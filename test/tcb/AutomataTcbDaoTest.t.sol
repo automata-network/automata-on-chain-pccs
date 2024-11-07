@@ -22,12 +22,14 @@ contract AutomataFmspcTcbDaoTest is PCSSetupBase, TCBConstants {
         bytes32 attestationId = fmspcTcbDao.upsertFmspcTcb(tcbInfoObj);
         assertEq(pccsStorage.collateralPointer(fmspcTcbDao.FMSPC_TCB_KEY(tcbType, fmspcBytes, version)), attestationId);
 
+        vm.startPrank(admin);
         TcbInfoJsonObj memory fetched = fmspcTcbDao.getTcbInfo(tcbType, fmspcStr, version);
         assertEq(fetched.signature, tcbInfoObj.signature);
         assertEq(
             fmspcTcbDao.getCollateralHash(fmspcTcbDao.FMSPC_TCB_KEY(tcbType, fmspcBytes, version)),
             sha256(bytes(tcbInfoObj.tcbInfoStr))
         );
+        vm.stopPrank();
     }
 
     function testAttestFmspcTcbSgxV3() public {
@@ -45,12 +47,14 @@ contract AutomataFmspcTcbDaoTest is PCSSetupBase, TCBConstants {
         bytes32 attestationId = fmspcTcbDao.upsertFmspcTcb(tcbInfoObj);
         assertEq(pccsStorage.collateralPointer(fmspcTcbDao.FMSPC_TCB_KEY(tcbType, fmspcBytes, version)), attestationId);
 
+        vm.startPrank(admin);
         TcbInfoJsonObj memory fetched = fmspcTcbDao.getTcbInfo(tcbType, fmspcStr, version);
         assertEq(fetched.signature, tcbInfoObj.signature);
         assertEq(
             fmspcTcbDao.getCollateralHash(fmspcTcbDao.FMSPC_TCB_KEY(tcbType, fmspcBytes, version)),
             sha256(bytes(tcbInfoObj.tcbInfoStr))
         );
+        vm.stopPrank();
     }
 
     function testAttestFmspcTcbTdxV3() public {
@@ -66,15 +70,17 @@ contract AutomataFmspcTcbDaoTest is PCSSetupBase, TCBConstants {
         bytes32 attestationId = fmspcTcbDao.upsertFmspcTcb(tcbInfoObj);
         assertEq(pccsStorage.collateralPointer(fmspcTcbDao.FMSPC_TCB_KEY(tcbType, fmspcBytes, version)), attestationId);
 
+        vm.startPrank(admin);
         TcbInfoJsonObj memory fetched = fmspcTcbDao.getTcbInfo(tcbType, fmspcStr, version);
         assertEq(fetched.signature, tcbInfoObj.signature);
         assertEq(
             fmspcTcbDao.getCollateralHash(fmspcTcbDao.FMSPC_TCB_KEY(tcbType, fmspcBytes, version)),
             sha256(bytes(tcbInfoObj.tcbInfoStr))
         );
+        vm.stopPrank();
     }
 
-    function testTcbIssuerChain() public {
+    function testTcbIssuerChain() public readAsAuthorizedCaller {
         (bytes memory fetchedSigning, bytes memory fetchedRoot) = fmspcTcbDao.getTcbIssuerChain();
         assertEq(keccak256(signingDer), keccak256(fetchedSigning));
         assertEq(keccak256(rootDer), keccak256(fetchedRoot));

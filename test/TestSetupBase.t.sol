@@ -30,6 +30,12 @@ abstract contract TestSetupBase is Test {
 
     address admin = address(1);
 
+    modifier readAsAuthorizedCaller() {
+        vm.startPrank(admin);
+        _;
+        vm.stopPrank();
+    }
+
     function setUp() public virtual {
         // pinned June 19th, 2024, 0833h GMT
         vm.warp(1718785993);
@@ -62,8 +68,8 @@ abstract contract TestSetupBase is Test {
 
         pccsStorage.updateDao(address(pcs), address(pck), address(fmspcTcbDao), address(enclaveIdDao));
 
-        // Pause caller restrictions to pass tests
-        pccsStorage.pauseCallerRestriction();
+        // grants admin address permission to read collaterals
+        pccsStorage.setCallerAuthorization(admin, true);
 
         vm.stopPrank();
     }

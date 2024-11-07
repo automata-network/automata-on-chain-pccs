@@ -14,16 +14,11 @@ contract AutomataPckDaoTest is PCSSetupBase {
 
     function setUp() public override {
         super.setUp();
-
-        vm.startPrank(admin);
-
         pck.upsertPckCert(CA.PLATFORM, qeid, pceid, tcbm, pckDer);
         pck.upsertPlatformTcbs(qeid, pceid, cpusvn, pcesvn, tcbm);
-
-        vm.stopPrank();
     }
 
-    function testGetCert() public {
+    function testGetCert() public readAsAuthorizedCaller {
         bytes memory fetchedCert = pck.getCert(qeid, cpusvn, pcesvn, pceid);
         (bytes16 qeidBytes, bytes2 pceidBytes,,, bytes18 tcbmBytes) =
             _parseStringInputs(qeid, pceid, cpusvn, pcesvn, tcbm);
@@ -38,12 +33,12 @@ contract AutomataPckDaoTest is PCSSetupBase {
         assertEq(keccak256(certs[0]), keccak256(pckDer));
     }
 
-    function testGetPlatformTcb() public {
+    function testGetPlatformTcb() public readAsAuthorizedCaller {
         string memory fetchedTcbm = pck.getPlatformTcbByIdAndSvns(qeid, pceid, cpusvn, pcesvn);
         assertEq(keccak256(bytes(fetchedTcbm)), keccak256(bytes(tcbm)));
     }
 
-    function testPckIssuerChain() public {
+    function testPckIssuerChain() public readAsAuthorizedCaller {
         (bytes memory intermediateCert, bytes memory rootCert) = pck.getPckCertChain(CA.PLATFORM);
         assertEq(keccak256(platformDer), keccak256(intermediateCert));
         assertEq(keccak256(rootDer), keccak256(rootCert));

@@ -187,7 +187,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         bytes32 pckKey = PCK_KEY(qeidBytes, pceidBytes, tcbmBytes);
 
         // parse PCK to check PCEID and tcbm
-        bytes memory der = _fetchDataFromResolver(pckKey, false);
+        bytes memory der = resolver.readAttestation(resolver.collateralPointer(pckKey));
         if (der.length == 0) {
             revert Pck_Not_Found();
         }
@@ -205,7 +205,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
      * @return rootCert - Intel SGX Root CA (DER-encoded)
      */
     function getPckCertChain(CA ca)
-        public
+        external
         view
         pckCACheck(ca)
         returns (bytes memory intermediateCert, bytes memory rootCert)
@@ -249,15 +249,6 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
      */
     function _getAllTcbs(bytes16 qeidBytes, bytes2 pceidBytes) internal view virtual returns (bytes18[] memory tcbms);
 
-    /**
-     * @dev call this method to check whether the provided pck certificate has been revoked
-     */
-    function _checkPckIsRevocable(CA ca, bytes memory pck) internal view pckCACheck(ca) returns (bool revocable) {
-        uint256 serialNumber = pckLib.getSerialNumber(pck);
-        bytes memory crlData = _fetchDataFromResolver(Pcs.PCS_KEY(ca, true), false);
-        revocable = crlLib.serialNumberIsRevoked(serialNumber, crlData);
-    }
-
     function _validatePck(CA ca, bytes memory der, bytes18 tcbm, bytes2 pceid) internal view returns (bytes32 hash) {
         // Step 1: Check whether the pck has expired
         bool notExpired = pckLib.certIsNotExpired(der);
@@ -286,7 +277,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         _validatePckTcb(pceid, tcbm, der, pck.extensionPtr);
 
         // Step 4: Check whether the pck has been revoked
-        bytes memory crlData = _fetchDataFromResolver(Pcs.PCS_KEY(ca, true), false);
+        bytes memory crlData = resolver.readAttestation(resolver.collateralPointer(Pcs.PCS_KEY(ca, true)));
         if (crlData.length > 0) {
             bool revocable = crlLib.serialNumberIsRevoked(pck.serialNumber, crlData);
             if (revocable) {
@@ -295,7 +286,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         }
 
         // Step 5: Check signature
-        (bytes memory issuerCert,) = getPckCertChain(ca);
+        bytes memory issuerCert = resolver.readAttestation(resolver.collateralPointer(Pcs.PCS_KEY(ca, false)));
         if (issuerCert.length > 0) {
             bytes32 digest = sha256(pck.tbs);
             bool sigVerified = verifySignature(digest, pck.signature, issuerCert);
