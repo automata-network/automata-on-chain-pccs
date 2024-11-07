@@ -14,17 +14,13 @@ contract AutomataPckDao is AutomataDaoBase, PckDao, Ownable {
         _initializeOwner(msg.sender);
     }
 
-    function getAttestedData(bytes32 key) public view override(AutomataDaoBase, DaoBase) returns (bytes memory) {
-        return super.getAttestedData(key);
-    }
-
-    function getCollateralHash(bytes32 key)
-        public
+    function _fetchDataFromResolver(bytes32 key, bool hash)
+        internal
         view
         override(AutomataDaoBase, DaoBase)
-        returns (bytes32 collateralHash)
+        returns (bytes memory data)
     {
-        return super.getCollateralHash(key);
+        data = super._fetchDataFromResolver(key, hash);
     }
 
     function _upsertTcbm(bytes16 qeid, bytes2 pceid, bytes18 tcbm) internal override {

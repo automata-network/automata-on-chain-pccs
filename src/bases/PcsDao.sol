@@ -71,13 +71,13 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
      * @return crl - DER-encoded CRLs that is signed by the provided cert
      */
     function getCertificateById(CA ca) external view returns (bytes memory cert, bytes memory crl) {
-        cert = getAttestedData(PCS_KEY(ca, false));
+        cert = _fetchDataFromResolver(PCS_KEY(ca, false), false);
 
         if (cert.length == 0) {
             revert Missing_Certificate(ca);
         }
 
-        crl = getAttestedData(PCS_KEY(ca, true));
+        crl = _fetchDataFromResolver(PCS_KEY(ca, true), false);
     }
 
     /**
@@ -154,7 +154,7 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
         }
 
         // Step 3: Check Revocation Status
-        bytes memory rootCrlData = getAttestedData(PCS_KEY(CA.ROOT, true));
+        bytes memory rootCrlData = _fetchDataFromResolver(PCS_KEY(CA.ROOT, true), false);
         if (ca == CA.ROOT) {
             bytes memory pubKey = x509Lib.getSubjectPublicKey(cert);
             if (keccak256(pubKey) != ROOT_CA_PUBKEY_HASH) {
@@ -224,9 +224,9 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
         if (ca == CA.PLATFORM || ca == CA.PROCESSOR) {
             // this is applicable to crls only
             // since all certs in the pcsdao are issued by the root
-            issuerCert = getAttestedData(PCS_KEY(ca, false));
+            issuerCert = _fetchDataFromResolver(PCS_KEY(ca, false), false);
         } else {
-            issuerCert = getAttestedData(PCS_KEY(CA.ROOT, false));
+            issuerCert = _fetchDataFromResolver(PCS_KEY(CA.ROOT, false), false);
         }
     }
 }

@@ -5,15 +5,15 @@ import {AutomataDaoStorage} from "./AutomataDaoStorage.sol";
 import {DaoBase} from "../../bases/DaoBase.sol";
 
 abstract contract AutomataDaoBase is DaoBase {
-    function getAttestedData(bytes32 key) public view virtual override returns (bytes memory data) {
+    function _fetchDataFromResolver(bytes32 key, bool hash)
+        internal
+        view
+        virtual
+        override
+        returns (bytes memory data)
+    {
         if (_callerIsAuthorized()) {
-            data = super.getAttestedData(key);
-        }
-    }
-
-    function getCollateralHash(bytes32 key) public view virtual override returns (bytes32 collateralHash) {
-        if (_callerIsAuthorized()) {
-            collateralHash = super.getCollateralHash(key);
+            data = super._fetchDataFromResolver(key, hash);
         }
     }
 

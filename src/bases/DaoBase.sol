@@ -14,18 +14,30 @@ abstract contract DaoBase {
      * @dev implement getter logic to retrieve attested data
      * @param key - mapped to a collateral as defined by individual data access objects (DAOs)
      */
-    function getAttestedData(bytes32 key) public view virtual returns (bytes memory attestationData) {
-        bytes32 attestationId = resolver.collateralPointer(key);
-        attestationData = resolver.readAttestation(attestationId);
+    function getAttestedData(bytes32 key) external view returns (bytes memory attestationData) {
+        attestationData = _fetchDataFromResolver(key, false);
     }
 
     /**
      * @dev must store the hash of a collateral (e.g. X509 Cert, TCBInfo JSON etc) in the attestation registry
-     * as a separated attestation from the collateral data itself
+     * as a separate attestation from the collateral data itself
      */
-    function getCollateralHash(bytes32 key) public view virtual returns (bytes32 collateralHash) {
-        bytes32 attestationId = resolver.collateralHashPointer(key);
-        collateralHash = abi.decode(resolver.readAttestation(attestationId), (bytes32));
+    function getCollateralHash(bytes32 key) external view returns (bytes32 collateralHash) {
+        bytes memory attestationData = _fetchDataFromResolver(key, true);
+        collateralHash = abi.decode(attestationData, (bytes32));
+    }
+
+    /**
+     * @dev internal method to fetch data from storage directly by the DAO
+     */
+    function _fetchDataFromResolver(bytes32 key, bool hash) internal view virtual returns (bytes memory) {
+        bytes32 attestationId;
+        if (hash) {
+            attestationId = resolver.collateralHashPointer(key);
+        } else {
+            attestationId = resolver.collateralPointer(key);
+        }
+        return resolver.readAttestation(attestationId);
     }
 
     /// @dev https://github.com/Vectorized/solady/blob/4964e3e2da1bc86b0394f63a90821f51d60a260b/src/utils/JSONParserLib.sol#L339-L364

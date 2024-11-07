@@ -69,7 +69,8 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         returns (TcbInfoJsonObj memory tcbObj)
     {
         bytes6 fmspcBytes = bytes6(uint48(_parseUintFromHex(fmspc)));
-        bytes memory attestedTcbData = getAttestedData(FMSPC_TCB_KEY(uint8(tcbType), fmspcBytes, uint32(version)));
+        bytes memory attestedTcbData =
+            _fetchDataFromResolver(FMSPC_TCB_KEY(uint8(tcbType), fmspcBytes, uint32(version)), false);
         if (version < 3) {
             (,, tcbObj.tcbInfoStr, tcbObj.signature) =
                 abi.decode(attestedTcbData, (TcbInfoBasic, TCBLevelsObj[], string, bytes));
@@ -100,8 +101,8 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
      * @return rootCert - DER encoded Intel SGX Root CA
      */
     function getTcbIssuerChain() public view returns (bytes memory signingCert, bytes memory rootCert) {
-        signingCert = getAttestedData(Pcs.PCS_KEY(CA.SIGNING, false));
-        rootCert = getAttestedData(Pcs.PCS_KEY(CA.ROOT, false));
+        signingCert = _fetchDataFromResolver(Pcs.PCS_KEY(CA.SIGNING, false), false);
+        rootCert = _fetchDataFromResolver(Pcs.PCS_KEY(CA.ROOT, false), false);
     }
 
     /**
@@ -153,7 +154,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
 
     function _validateTcbInfo(TcbInfoJsonObj calldata tcbInfoObj) private view {
         // Get TCB Signing Cert
-        bytes memory signingDer = getAttestedData(Pcs.PCS_KEY(CA.SIGNING, false));
+        bytes memory signingDer = _fetchDataFromResolver(Pcs.PCS_KEY(CA.SIGNING, false), false);
 
         // Validate signature
         bool sigVerified = verifySignature(sha256(bytes(tcbInfoObj.tcbInfoStr)), tcbInfoObj.signature, signingDer);

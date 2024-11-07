@@ -61,7 +61,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         view
         returns (EnclaveIdentityJsonObj memory enclaveIdObj)
     {
-        bytes memory attestedIdentityData = getAttestedData(ENCLAVE_ID_KEY(id, version));
+        bytes memory attestedIdentityData = _fetchDataFromResolver(ENCLAVE_ID_KEY(id, version), false);
         if (attestedIdentityData.length > 0) {
             (, enclaveIdObj.identityStr, enclaveIdObj.signature) =
                 abi.decode(attestedIdentityData, (IdentityObj, string, bytes));
@@ -98,8 +98,8 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
      * @return rootCert - DER encoded Intel SGX Root CA
      */
     function getEnclaveIdentityIssuerChain() public view returns (bytes memory signingCert, bytes memory rootCert) {
-        signingCert = getAttestedData(Pcs.PCS_KEY(CA.SIGNING, false));
-        rootCert = getAttestedData(Pcs.PCS_KEY(CA.ROOT, false));
+        signingCert = _fetchDataFromResolver(Pcs.PCS_KEY(CA.SIGNING, false), false);
+        rootCert = _fetchDataFromResolver(Pcs.PCS_KEY(CA.ROOT, false), false);
     }
 
     /**
@@ -139,7 +139,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
      */
     function _validateQeIdentity(EnclaveIdentityJsonObj calldata enclaveIdentityObj) private view {
         // Get TCB Signing Cert
-        bytes memory signingDer = getAttestedData(Pcs.PCS_KEY(CA.SIGNING, false));
+        bytes memory signingDer = _fetchDataFromResolver(Pcs.PCS_KEY(CA.SIGNING, false), false);
 
         // Validate signature
         bool sigVerified =

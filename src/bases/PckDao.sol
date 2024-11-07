@@ -88,7 +88,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         bytes18 tcbmBytes =
             _tcbrToTcbmMapping(TCB_MAPPING_KEY(qeidBytes, pceidBytes, platformCpuSvnBytes, platformPceSvnBytes));
         if (tcbmBytes != bytes18(0)) {
-            pckCert = getAttestedData(PCK_KEY(qeidBytes, pceidBytes, tcbmBytes));
+            pckCert = _fetchDataFromResolver(PCK_KEY(qeidBytes, pceidBytes, tcbmBytes), false);
         }
     }
 
@@ -107,7 +107,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
 
             for (uint256 i = 0; i < n;) {
                 tcbms[i] = LibString.toHexStringNoPrefix(abi.encodePacked(tcbmBytes[i]));
-                pckCerts[i] = getAttestedData(PCK_KEY(qeidBytes, pceidBytes, tcbmBytes[i]));
+                pckCerts[i] = _fetchDataFromResolver(PCK_KEY(qeidBytes, pceidBytes, tcbmBytes[i]), false);
 
                 unchecked {
                     i++;
@@ -187,7 +187,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         bytes32 pckKey = PCK_KEY(qeidBytes, pceidBytes, tcbmBytes);
 
         // parse PCK to check PCEID and tcbm
-        bytes memory der = getAttestedData(pckKey);
+        bytes memory der = _fetchDataFromResolver(pckKey, false);
         if (der.length == 0) {
             revert Pck_Not_Found();
         }
@@ -210,8 +210,8 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         pckCACheck(ca)
         returns (bytes memory intermediateCert, bytes memory rootCert)
     {
-        intermediateCert = getAttestedData(Pcs.PCS_KEY(ca, false));
-        rootCert = getAttestedData(Pcs.PCS_KEY(CA.ROOT, false));
+        intermediateCert = _fetchDataFromResolver(Pcs.PCS_KEY(ca, false), false);
+        rootCert = _fetchDataFromResolver(Pcs.PCS_KEY(CA.ROOT, false), false);
     }
 
     /**
@@ -254,7 +254,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
      */
     function _checkPckIsRevocable(CA ca, bytes memory pck) internal view pckCACheck(ca) returns (bool revocable) {
         uint256 serialNumber = pckLib.getSerialNumber(pck);
-        bytes memory crlData = getAttestedData(Pcs.PCS_KEY(ca, true));
+        bytes memory crlData = _fetchDataFromResolver(Pcs.PCS_KEY(ca, true), false);
         revocable = crlLib.serialNumberIsRevoked(serialNumber, crlData);
     }
 
@@ -286,7 +286,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         _validatePckTcb(pceid, tcbm, der, pck.extensionPtr);
 
         // Step 4: Check whether the pck has been revoked
-        bytes memory crlData = getAttestedData(Pcs.PCS_KEY(ca, true));
+        bytes memory crlData = _fetchDataFromResolver(Pcs.PCS_KEY(ca, true), false);
         if (crlData.length > 0) {
             bool revocable = crlLib.serialNumberIsRevoked(pck.serialNumber, crlData);
             if (revocable) {
