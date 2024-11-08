@@ -19,15 +19,15 @@ On-chain PCCS provides an open and permissionless service where users can freely
 
 ## Contracts
 
+> ℹ️ **Note**: 
+>
+> The current deployment are based on the un-audited [v0](https://github.com/automata-network/automata-on-chain-pccs/tree/v0) branch. We are currently getting our contracts audited, and will be re-deploying production-ready contracts then.
+
 There are two sets of contracts, i.e. the **Helper** and **Base**.
 
 ### Helper Contracts
 
 The Helper contracts provide APIs for parsing collaterals and converting into Solidity structs, i.e. QEIdentity.json, TCBInfo.json, basic DER-decoder for PCK X509 leaf certificate and extensions and X509 CRLs.
-
-<!-- Click [here](./src/helpers/) to learn more about the implementation details for Helper contracts. -->
-
-The Helper contracts have been deployed to testnet, and can be used by both on-chain and off-chain programs.
 
 #### Testnet
 
@@ -60,9 +60,7 @@ The base contracts are libraries that provide the Data Access Object (DAO) APIs 
 
 Base contracts are dependent on Helper contracts to parse collaterals, and contains implementation of basic collateral authenticity check functions for upserts. Smart contract developers are encouraged to extend the base contracts to build their own custom implementation of on-chain PCCS.
 
-<!-- Click [here](./src/bases/) to learn more about each DAOs. -->
-
-Our DAO implementation can be found in the [`automata_pccs`](./src/automata_pccs/) directory, and are deployed to testnet.
+Our DAO implementation can be found in the [`automata_pccs`](./src/automata_pccs/) directory, and have been deployed to various testnets and Automata mainnet.
 
 #### Testnet
 
