@@ -7,6 +7,11 @@ import {AutomataTCBManager, EnumerableSet} from "./AutomataTCBManager.sol";
 import {Ownable} from "solady/auth/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
+/**
+ * @title Automata PCCS Dao Storage
+ * @notice This contract resolves and stores all collateral data internally
+ */
+
 contract AutomataDaoStorage is AutomataTCBManager, IDaoAttestationResolver, Pausable, Ownable {
     mapping(address => bool) _authorized_writers;
     mapping(address => bool) _authorized_readers;
@@ -73,7 +78,7 @@ contract AutomataDaoStorage is AutomataTCBManager, IDaoAttestationResolver, Paus
      * @notice In AutomataDaoStorage, we will simply assign the key as the attestationid of the collateral
      * @notice whereas the value (key + 1) will be the attestation id to the hash.
      * (It's stupid I know, i will circle back when i come up with
-     * a better approach on storing collateral hashes)
+     * a better approach in indexing collateral hashes)
      */
     function attest(bytes32 key, bytes calldata attData, bytes32 attDataHash)
         external
@@ -98,6 +103,10 @@ contract AutomataDaoStorage is AutomataTCBManager, IDaoAttestationResolver, Paus
     /// TCB Management
     using EnumerableSet for EnumerableSet.Bytes32Set;
 
+    /**
+     * @notice forms a mapping between (qeid, pceid) to tcbm
+     * @dev called AFTER the qeid, pceid and tcbm are all validated by the same PCK Certificate
+     */
     function setTcbm(bytes16 qeid, bytes2 pceid, bytes18 tcbm) external onlyDao(msg.sender) {
         bytes32 k = keccak256(abi.encodePacked(qeid, pceid));
         if (!_tcbmSet[k].contains(bytes32(tcbm))) {
@@ -105,6 +114,9 @@ contract AutomataDaoStorage is AutomataTCBManager, IDaoAttestationResolver, Paus
         }
     }
 
+    /**
+     * @notice prints out a list of tcbms associated with the given qeid and pceid paired values
+     */
     function printTcbmSet(bytes16 qeid, bytes2 pceid) external view returns (bytes18[] memory set) {
         bytes32 k = keccak256(abi.encodePacked(qeid, pceid));
         uint256 n = _tcbmSet[k].length();
@@ -117,6 +129,9 @@ contract AutomataDaoStorage is AutomataTCBManager, IDaoAttestationResolver, Paus
         }
     }
 
+    /**
+     * @notice forms a mapping of rawTcb to tcbm
+     */
     function setTcbrMapping(bytes32 rawTcbKey, bytes18 tcbm) external onlyDao(msg.sender) {
         _tcbMapping[rawTcbKey] = tcbm;
     }

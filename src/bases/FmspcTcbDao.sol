@@ -16,7 +16,7 @@ import {
     TDXModuleIdentity
 } from "../helpers/FmspcTcbHelper.sol";
 
-/// @notice the schema of the attested data is dependent on the version of TCBInfo:
+/// @notice the on-chain schema of the attested data is dependent on the version of TCBInfo:
 /// @notice For TCBInfoV2, it consists of the ABI-encoded tuple of:
 /// @notice (TcbInfoBasic, TCBLevelsObj[], string tcbInfo, bytes signature)
 /// @notice For TCBInfoV3, it consists of the abi-encoded tuple of:
@@ -34,7 +34,9 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     PcsDao public Pcs;
     FmspcTcbHelper public FmspcTcbLib;
 
+    // 8de7233f
     error Invalid_TCB_Cert_Signature();
+    // bae57649
     error TCB_Expired();
 
     constructor(address _resolver, address _p256, address _pcs, address _fmspcHelper, address _x509Helper)
@@ -83,9 +85,6 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
 
     /**
      * @notice Section 4.2.9 (upsertEnclaveIdentity)
-     * @dev Attestation Registry Entrypoint Contracts, such as Portals on Verax are responsible
-     * @dev for performing ECDSA verification on the provided TCBInfo
-     * against the Signing CA key prior to attestations
      * @param tcbInfoObj See {FmspcTcbHelper.sol} to learn more about the structure definition
      */
     function upsertFmspcTcb(TcbInfoJsonObj calldata tcbInfoObj) external returns (bytes32 attestationId) {
@@ -106,7 +105,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     }
 
     /**
-     * @dev implement logic to validate and attest TCBInfo
+     * @notice attests collateral via the Resolver
      * @return attestationId
      */
     function _attestTcb(bytes memory reqData, bytes32 hash, bytes32 key)
@@ -118,7 +117,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     }
 
     /**
-     * @notice builds an EAS compliant attestation request
+     * @notice constructs the Identity.json attestation data
      */
     function _buildTcbAttestationRequest(TcbInfoJsonObj calldata tcbInfoObj)
         private
@@ -156,8 +155,8 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         // Get TCB Signing Cert
         // bytes memory signingDer = _fetchDataFromResolver(Pcs.PCS_KEY(CA.SIGNING, false), false);
         // TEMP: calling _fetchDataFromResolver() would make more sense semantically
-        // TEMP: but I am calling the resolver directly here so that
-        // TEMP: _fetchDataFromResolver() can be overwritten without breaking here...
+        // TEMP: but I am calling the resolver directly here so
+        // TEMP: _fetchDataFromResolver() can be overridden without breaking here...
         bytes memory signingDer = resolver.readAttestation(resolver.collateralPointer(Pcs.PCS_KEY(CA.SIGNING, false)));
 
         // Validate signature

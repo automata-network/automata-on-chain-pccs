@@ -10,24 +10,27 @@ import {DaoBase} from "./DaoBase.sol";
 import {SigVerifyBase} from "./SigVerifyBase.sol";
 import {PcsDao} from "./PcsDao.sol";
 
-/// @notice EnclaveId is stored as ABI-encoded tuple of (EnclaveIdentityHelper.IdentityObj, string, bytes)
+/// @notice The on-chain schema for Identity.json is stored as ABI-encoded tuple of (EnclaveIdentityHelper.IdentityObj, string, bytes)
 /// @notice see {{ EnclaveIdentityHelper.IdentityObj }} for struct definition
-/// @notice - string qeidentityObj
-/// @notice - bytes signature
 
 /**
  * @title Enclave Identity Data Access Object
  * @notice This contract is heavily inspired by Section 4.2.9 in the Intel SGX PCCS Design Guideline
  * https://download.01.org/intel-sgx/sgx-dcap/1.19/linux/docs/SGX_DCAP_Caching_Service_Design_Guide.pdf
- * @dev should extends this contract and use the provided read/write methods to interact with Enclave
- * Identity JSON data published on-chain.
+ * @dev should extends this contract and use the provided read/write methods to interact with
+ * Identity.json data published on-chain.
  */
 abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     PcsDao public Pcs;
     EnclaveIdentityHelper public EnclaveIdentityLib;
 
+    // 289fa0cb
     error Enclave_Id_Mismatch();
+    // 4e0f5696
+    error Incorrect_Enclave_Id_Version();
+    // 8de7233f
     error Invalid_TCB_Cert_Signature();
+    // 9ac04499
     error Enclave_Id_Expired();
 
     constructor(address _resolver, address _p256, address _pcs, address _enclaveIdentityHelper, address _x509Helper)
@@ -53,7 +56,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
      * @notice Gets the enclave identity.
      * @param id 0: QE; 1: QVE; 2: TD_QE
      * https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/39989a42bbbb0c968153a47254b6de79a27eb603/QuoteVerification/QVL/Src/AttestationLibrary/src/Verifiers/EnclaveIdentityV2.h#L49-L52
-     * @param version the input version parameter
+     * @param version the input version parameter (v3 or v4)
      * @return enclaveIdObj See {EnclaveIdentityHelper.sol} to learn more about the structure definition
      */
     function getEnclaveIdentity(uint256 id, uint256 version)
@@ -68,17 +71,11 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         }
     }
 
-    /// @question is there a way we can validate the version input?
-    /// TEMP: Currently, there is no way to quickly distinguish between QuoteV3 vs QuoteV4 Enclave Identity
-
     /**
      * @notice Section 4.2.9 (upsertEnclaveIdentity)
-     * @dev Attestation Registry Entrypoint Contracts, such as Portals on Verax are responsible
-     * @dev for performing ECDSA verification on the provided Enclave Identity
-     * against the Signing CA key prior to attestations
      * @param id 0: QE; 1: QVE; 2: TD_QE
      * https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/39989a42bbbb0c968153a47254b6de79a27eb603/QuoteVerification/QVL/Src/AttestationLibrary/src/Verifiers/EnclaveIdentityV2.h#L49-L52
-     * @param version the input version parameter
+     * @param version the input version parameter (v3 or v4)
      * @param enclaveIdentityObj See {EnclaveIdentityHelper.sol} to learn more about the structure definition
      */
     function upsertEnclaveIdentity(uint256 id, uint256 version, EnclaveIdentityJsonObj calldata enclaveIdentityObj)
@@ -87,7 +84,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     {
         _validateQeIdentity(enclaveIdentityObj);
         bytes32 key = ENCLAVE_ID_KEY(id, version);
-        bytes memory req = _buildEnclaveIdentityAttestationRequest(id, key, enclaveIdentityObj);
+        bytes memory req = _buildEnclaveIdentityAttestationRequest(id, version, enclaveIdentityObj);
         bytes32 hash = sha256(bytes(enclaveIdentityObj.identityStr));
         attestationId = _attestEnclaveIdentity(req, hash, key);
     }
@@ -103,7 +100,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     }
 
     /**
-     * @dev implement logic to validate and attest the enclave identity
+     * @notice attests collateral via the Resolver
      * @return attestationId
      */
     function _attestEnclaveIdentity(bytes memory reqData, bytes32 hash, bytes32 key)
@@ -115,17 +112,24 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     }
 
     /**
-     * @notice builds an EAS compliant attestation request
+     * @notice constructs the Identity.json attestation data
      */
     function _buildEnclaveIdentityAttestationRequest(
         uint256 id,
-        bytes32 key,
+        uint256 version,
         EnclaveIdentityJsonObj calldata enclaveIdentityObj
     ) private view returns (bytes memory reqData) {
         IdentityObj memory identity = EnclaveIdentityLib.parseIdentityString(enclaveIdentityObj.identityStr);
         if (id != uint256(identity.id)) {
             revert Enclave_Id_Mismatch();
         }
+
+        /// @question is there a better way we can validate the version input?
+        /// TEMP: Currently, there is no way to quickly distinguish between QuoteV3 vs QuoteV4 Enclave Identity
+        /// TD_QE is only available in v4, this is the best I can do for now
+        if (id == uint256(EnclaveId.TD_QE) && version != 4) {
+            revert Incorrect_Enclave_Id_Version();
+        } 
 
         if (block.timestamp < identity.issueDateTimestamp || block.timestamp > identity.nextUpdateTimestamp) {
             revert Enclave_Id_Expired();
@@ -135,14 +139,14 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     }
 
     /**
-     * @notice validates QEIdentity is signed by Intel TCB Signing Cert
+     * @notice validates IdentityString is signed by Intel TCB Signing Cert
      */
     function _validateQeIdentity(EnclaveIdentityJsonObj calldata enclaveIdentityObj) private view {
         // Get TCB Signing Cert
         // bytes memory signingDer = _fetchDataFromResolver(Pcs.PCS_KEY(CA.SIGNING, false), false);
         // TEMP: calling _fetchDataFromResolver() would make more sense semantically
-        // TEMP: but I am calling the resolver directly here so that
-        // TEMP: _fetchDataFromResolver() can be overwritten without breaking here...
+        // TEMP: but I am calling the resolver directly here
+        // TEMP: so _fetchDataFromResolver() can be overridden without breaking here...
         bytes memory signingDer = resolver.readAttestation(resolver.collateralPointer(Pcs.PCS_KEY(CA.SIGNING, false)));
 
         // Validate signature

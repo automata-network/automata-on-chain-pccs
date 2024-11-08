@@ -15,9 +15,9 @@ import {LibString} from "solady/utils/LibString.sol";
 
 /**
  * @title Intel PCS Data Access Object
- * @notice This is a core contract of our on-chain PCCS implementation as it provides methods
+ * @notice This is the core contract of our on-chain PCCS implementation as it provides methods
  * @notice to read/write essential collaterals such as the RootCA, Intermediate CAs and CRLs.
- * @notice All other DAOs are expected to configure and make external calls to this contract to fetch those collaterals.
+ * @notice All other DAOs are expected to make external calls to this contract to fetch those collaterals.
  * @notice This contract is heavily inspired by Sections 4.2.5 and 4.2.6 in the Intel SGX PCCS Design Guideline
  * https://download.01.org/intel-sgx/sgx-dcap/1.19/linux/docs/SGX_DCAP_Caching_Service_Design_Guide.pdf
  */
@@ -37,14 +37,27 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
     /// @dev the Intel source code at: https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/39989a42bbbb0c968153a47254b6de79a27eb603/QuoteVerification/QvE/Enclave/qve.cpp#L92-L100
     bytes32 constant ROOT_CA_PUBKEY_HASH = 0x89f72d7c488e5b53a77c23ebcb36970ef7eb5bcf6658e9b8292cfbe4703a8473;
 
+    // 33247a8a
     error Missing_Certificate(CA ca);
+    // 9849e774
     error Invalid_PCK_CA(CA ca);
-    error Invalid_Issuer_Name();
-    error Invalid_Subject_Name();
-    error Certificate_Expired();
+    // e1406f79
     error Root_Key_Mismatch();
+    // 291990cd
     error Certificate_Revoked(CA ca, uint256 serialNum);
+    // dba942a2
+    error Certificate_Expired();
+    // 1e7ab599
+    error Invalid_Issuer_Name();
+    // 92ec707e
+    error Invalid_Subject_Name();
+    // e6612a12
+    error Expired_Certificates();
+    // 4a629e24
+    error TCB_Mismatch();
+    // cd69d374
     error Missing_Issuer();
+    // e7ef341f
     error Invalid_Signature();
 
     constructor(address _resolver, address _p256, address _x509, address _crl)
@@ -100,12 +113,15 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
         attestationId = _upsertPcsCrl(ca, crl);
     }
 
+    /**
+     * Section 4.2.6 (upsertRootCACrl)
+     */
     function upsertRootCACrl(bytes calldata rootcacrl) external returns (bytes32 attestationId) {
         attestationId = _upsertPcsCrl(CA.ROOT, rootcacrl);
     }
 
     /**
-     * @dev implement logic to validate and attest PCS Certificates or CRLs
+     * @notice attests collateral via the Resolver
      * @return attestationId
      */
     function _attestPcs(bytes memory reqData, bytes32 hash, bytes32 key)

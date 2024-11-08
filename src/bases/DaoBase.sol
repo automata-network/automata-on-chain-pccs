@@ -3,6 +3,12 @@ pragma solidity >=0.8.0;
 
 import "../interfaces/IDaoAttestationResolver.sol";
 
+/**
+ * @title Common Data Access Object base contract
+ * @notice This contract provides the generic API methods to fetch collateral data
+ * and its hashes from the Resolver
+ */
+
 abstract contract DaoBase {
     IDaoAttestationResolver public resolver;
 
@@ -11,7 +17,7 @@ abstract contract DaoBase {
     }
 
     /**
-     * @dev implement getter logic to retrieve attested data
+     * @notice getter logic to retrieve attested data from the Resolver
      * @param key - mapped to a collateral as defined by individual data access objects (DAOs)
      */
     function getAttestedData(bytes32 key) external view returns (bytes memory attestationData) {
@@ -19,7 +25,7 @@ abstract contract DaoBase {
     }
 
     /**
-     * @dev must store the hash of a collateral (e.g. X509 Cert, TCBInfo JSON etc) in the attestation registry
+     * @dev SHOULD store the hash of a collateral (e.g. X509 Cert, TCBInfo JSON etc) in the attestation registry
      * as a separate attestation from the collateral data itself
      */
     function getCollateralHash(bytes32 key) external view returns (bytes32 collateralHash) {
@@ -28,7 +34,8 @@ abstract contract DaoBase {
     }
 
     /**
-     * @dev internal method to fetch data from storage directly by the DAO
+     * @notice internal method to be called directly by the DAO
+     * @dev may overwrite this method to implement additional custom business logic
      */
     function _fetchDataFromResolver(bytes32 key, bool hash) internal view virtual returns (bytes memory) {
         bytes32 attestationId;

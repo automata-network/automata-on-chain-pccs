@@ -12,8 +12,9 @@ enum EnclaveId {
 }
 
 /**
- * @title Solidity Structure representing the EnclaveIdentity JSON
- * @param identityStr Identity string object body
+ * @dev This is a simple representation of the Identity.json in string as a Solidity object.
+ * @param identityStr Identity string object body. Needs to be parsed
+ * and converted as IdentityObj.
  * @param signature The signature to be passed as bytes array
  */
 struct EnclaveIdentityJsonObj {
@@ -21,7 +22,7 @@ struct EnclaveIdentityJsonObj {
     bytes signature;
 }
 
-/// @dev Parsed IdentityStr to an object, except for TCBLevels
+/// @dev Full Solidity Object representation of Identity.json
 struct IdentityObj {
     EnclaveId id;
     uint32 version;
@@ -53,7 +54,7 @@ struct Tcb {
 /**
  * @title Enclave Identity Helper Contract
  * @notice This is a standalone contract that can be used by off-chain applications and smart contracts
- * to parse QEIdentity data
+ * to parse Identity.json, and convert as a Solidity object.
  */
 contract EnclaveIdentityHelper {
     using JSONParserLib for JSONParserLib.Item;

@@ -5,6 +5,15 @@ import {AutomataDaoStorage} from "./AutomataDaoStorage.sol";
 import {DaoBase} from "../../bases/DaoBase.sol";
 
 abstract contract AutomataDaoBase is DaoBase {
+    
+    /**
+     * @notice overridden the default method to check caller authorization
+     * this is added as a temporary measure to only allow read operations from
+     * the PCCSRouter contract (Learn more about PCCSRouter at
+     * https://github.com/automata-network/automata-dcap-attestation/blob/DEV-3373/audit/contracts/PCCSRouter.sol)
+     * 
+     * @notice this restriction may be removed in the future
+     */
     function _fetchDataFromResolver(bytes32 key, bool hash)
         internal
         view

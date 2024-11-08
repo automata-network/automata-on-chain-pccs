@@ -17,7 +17,7 @@ enum TcbId {
 }
 
 /**
- * @title Solidity Object representing the TCBInfo JSON
+ * @dev This is a simple representation of the TCBInfo.json in string as a Solidity object.
  * @param tcbInfo: tcbInfoJson.tcbInfo string object body
  * @param signature The signature to be passed as bytes array
  */
@@ -26,6 +26,7 @@ struct TcbInfoJsonObj {
     bytes signature;
 }
 
+/// @dev Solidity object representing TCBInfo.json excluding TCBLevels
 struct TcbInfoBasic {
     /// the name "tcbType" can be confusing/misleading
     /// as the tcbType referred here in this struct is the type
@@ -87,11 +88,6 @@ enum TCBStatus {
  * @title FMSPC TCB Helper Contract
  * @notice This is a standalone contract that can be used by off-chain applications and smart contracts
  * to parse TCBInfo data
- * @notice The TCBInfo Object itself may vary by their version and type.
- * @notice This contract only provides a simple parser that could only extract basic info about the TCBInfo
- * such as, its version, type, fmspc, issue date and next update.
- * @dev should consider extending this contract to implement parsers that could extract detailed TCBInfo
- * using logic that complies to the specific version and type.
  */
 contract FmspcTcbHelper {
     using JSONParserLib for JSONParserLib.Item;
@@ -101,7 +97,6 @@ contract FmspcTcbHelper {
     error TCB_TDX_Version_Invalid();
     error TCB_TDX_ID_Invalid();
 
-    // 544k gas
     function parseTcbString(string calldata tcbInfoStr) external pure returns (TcbInfoBasic memory tcbInfo) {
         JSONParserLib.Item memory root = JSONParserLib.parse(tcbInfoStr);
         JSONParserLib.Item[] memory tcbInfoObj = root.children();
@@ -169,7 +164,6 @@ contract FmspcTcbHelper {
         }
     }
 
-    // 1.4M gas
     function parseTcbLevels(string calldata tcbInfoStr)
         external
         pure
@@ -205,7 +199,6 @@ contract FmspcTcbHelper {
         }
     }
 
-    // 684k gas
     function parseTcbTdxModules(string calldata tcbInfoStr)
         external
         pure

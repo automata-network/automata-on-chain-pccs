@@ -24,18 +24,28 @@ import {SigVerifyBase} from "./SigVerifyBase.sol";
 abstract contract PckDao is DaoBase, SigVerifyBase {
     using EnumerableSet for EnumerableSet.Bytes32Set;
 
+    // 167c231a
     error Certificate_Revoked(uint256 serialNum);
+    // dba942a2
     error Certificate_Expired();
+    // 1e7ab599
     error Invalid_Issuer_Name();
+    // 92ec707e
     error Invalid_Subject_Name();
+    // e6612a12
     error Expired_Certificates();
+    // 4a629e24
     error TCB_Mismatch();
+    // cd69d374
     error Missing_Issuer();
+    // e7ef341f
     error Invalid_Signature();
 
     /// @notice the input CA parameter can only be either PROCESSOR or PLATFORM
+    // 9849e774
     error Invalid_PCK_CA(CA ca);
     /// @notice The corresponding PCK Certificate cannot be found for the given platform
+    // 82fba295
     error Pck_Not_Found();
 
     string constant PCK_PLATFORM_CA_COMMON_NAME = "Intel SGX PCK Platform CA";
@@ -118,8 +128,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
 
     /**
      * @notice Modified from Section 4.2.8 (getPlatformTcbsById)
-     * @dev For simplicity's sake, the contract currently requires all the necessary parameters
-     * to return a single tcbm.
+     * @notice Fetches the mapping for the input raw TCB to an attested tcbm
      */
     function getPlatformTcbByIdAndSvns(
         string calldata qeid,
@@ -141,10 +150,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
      * @notice This method requires an additional CA parameter, because the on-chain PCCS does not
      * store any data that is contained in the PLATFORMS table.
      * @notice Therefore, there is no way to form a mapping between (qeid, pceid) to its corresponding CA.
-     * @notice Hence, it is explicitly required to be stated here.
      * @param cert DER-encoded PCK Leaf Certificate
-     * @dev Attestation Registry Entrypoint Contracts, such as Portals on Verax are responsible
-     * @dev for performing ECDSA verification on the provided PCK Certs prior to attestations
      */
     function upsertPckCert(
         CA ca,
@@ -163,7 +169,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
     /**
      * @notice this method creates a mapping for raw TCB values to a "known" TCBm svns
      * @notice this contract does not provide implementation for determining the best tcbm for
-     * the given tcbr values
+     * the given raw TCB values
      * @dev should override the _setTcbrToTcbmMapping() method
      * to implement their own tcbm selection implementation
      * @dev this function does not require for explicit attestations, but implementers may implement one
@@ -215,7 +221,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
     }
 
     /**
-     * @dev implement logic to validate and attest PCK Certificates
+     * @notice attests collateral via the Resolver
      * @return attestationId
      */
     function _attestPck(bytes memory reqData, bytes32 hash, bytes32 key)
@@ -229,12 +235,12 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
     /**
      * @dev hook that can be called after the tcbm has been verified by a PCK Certificate issued
      * for the given qeid and pceid
-     * @dev this is recommended for creating a (qeid, pceid) => tcbm association
+     * @dev this is essential for creating a (qeid, pceid) => tcbm association
      */
     function _upsertTcbm(bytes16 qeid, bytes2 pceid, bytes18 tcbm) internal virtual;
 
     /**
-     * @dev this is recommended for creating a (qeid, pceid, raw tcb) => tcbm association
+     * @dev this is essential for creating a (qeid, pceid, raw tcb) => tcbm association
      */
     function _setTcbrToTcbmMapping(bytes32 tcbMappingKey, bytes18 tcbmBytes) internal virtual;
 
@@ -244,7 +250,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
     function _tcbrToTcbmMapping(bytes32 tcbMappingKey) internal view virtual returns (bytes18 tcbm);
 
     /**
-     * @notice fetch all tcbm bytes associated with the given qeid and pceid
+     * @notice fetches all tcbm bytes associated with the given qeid and pceid
      * @notice tcbm is a 18-byte data which is a concatenation of PCK cpusvn (16 bytes) and pcesvn (2 bytes)
      */
     function _getAllTcbs(bytes16 qeidBytes, bytes2 pceidBytes) internal view virtual returns (bytes18[] memory tcbms);
@@ -324,6 +330,9 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         }
     }
 
+    /**
+     * @notice converts the hexstring inputs to bytes
+     */
     function _parseStringInputs(
         string memory qeid,
         string memory pceid,

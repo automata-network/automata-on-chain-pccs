@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-contract AutomataTCBManager {
+abstract contract AutomataTCBManager {
     /// mapping (keccak256(qeid ++ pceid) => Enumerable tcbm Set)
     mapping(bytes32 => EnumerableSet.Bytes32Set) _tcbmSet;
 
