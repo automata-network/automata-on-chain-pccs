@@ -98,7 +98,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         bytes18 tcbmBytes =
             _tcbrToTcbmMapping(TCB_MAPPING_KEY(qeidBytes, pceidBytes, platformCpuSvnBytes, platformPceSvnBytes));
         if (tcbmBytes != bytes18(0)) {
-            pckCert = _fetchDataFromResolver(PCK_KEY(qeidBytes, pceidBytes, tcbmBytes), false);
+            pckCert = _onFetchDataFromResolver(PCK_KEY(qeidBytes, pceidBytes, tcbmBytes), false);
         }
     }
 
@@ -117,7 +117,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
 
             for (uint256 i = 0; i < n;) {
                 tcbms[i] = LibString.toHexStringNoPrefix(abi.encodePacked(tcbmBytes[i]));
-                pckCerts[i] = _fetchDataFromResolver(PCK_KEY(qeidBytes, pceidBytes, tcbmBytes[i]), false);
+                pckCerts[i] = _onFetchDataFromResolver(PCK_KEY(qeidBytes, pceidBytes, tcbmBytes[i]), false);
 
                 unchecked {
                     i++;
@@ -193,7 +193,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         bytes32 pckKey = PCK_KEY(qeidBytes, pceidBytes, tcbmBytes);
 
         // parse PCK to check PCEID and tcbm
-        bytes memory der = resolver.readAttestation(resolver.collateralPointer(pckKey));
+        bytes memory der = _fetchDataFromResolver(pckKey, false);
         if (der.length == 0) {
             revert Pck_Not_Found();
         }
@@ -216,8 +216,8 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         pckCACheck(ca)
         returns (bytes memory intermediateCert, bytes memory rootCert)
     {
-        intermediateCert = _fetchDataFromResolver(Pcs.PCS_KEY(ca, false), false);
-        rootCert = _fetchDataFromResolver(Pcs.PCS_KEY(CA.ROOT, false), false);
+        intermediateCert = _onFetchDataFromResolver(Pcs.PCS_KEY(ca, false), false);
+        rootCert = _onFetchDataFromResolver(Pcs.PCS_KEY(CA.ROOT, false), false);
     }
 
     /**
@@ -283,7 +283,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         _validatePckTcb(pceid, tcbm, der, pck.extensionPtr);
 
         // Step 4: Check whether the pck has been revoked
-        bytes memory crlData = resolver.readAttestation(resolver.collateralPointer(Pcs.PCS_KEY(ca, true)));
+        bytes memory crlData = _fetchDataFromResolver(Pcs.PCS_KEY(ca, true), false);
         if (crlData.length > 0) {
             bool revocable = crlLib.serialNumberIsRevoked(pck.serialNumber, crlData);
             if (revocable) {
@@ -292,7 +292,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         }
 
         // Step 5: Check signature
-        bytes memory issuerCert = resolver.readAttestation(resolver.collateralPointer(Pcs.PCS_KEY(ca, false)));
+        bytes memory issuerCert = _fetchDataFromResolver(Pcs.PCS_KEY(ca, false), false);
         if (issuerCert.length > 0) {
             bytes32 digest = sha256(pck.tbs);
             bool sigVerified = verifySignature(digest, pck.signature, issuerCert);

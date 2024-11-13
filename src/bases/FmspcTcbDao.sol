@@ -72,7 +72,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     {
         bytes6 fmspcBytes = bytes6(uint48(_parseUintFromHex(fmspc)));
         bytes memory attestedTcbData =
-            _fetchDataFromResolver(FMSPC_TCB_KEY(uint8(tcbType), fmspcBytes, uint32(version)), false);
+            _onFetchDataFromResolver(FMSPC_TCB_KEY(uint8(tcbType), fmspcBytes, uint32(version)), false);
         if (version < 3) {
             (,, tcbObj.tcbInfoStr, tcbObj.signature) =
                 abi.decode(attestedTcbData, (TcbInfoBasic, TCBLevelsObj[], string, bytes));
@@ -100,8 +100,8 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
      * @return rootCert - DER encoded Intel SGX Root CA
      */
     function getTcbIssuerChain() external view returns (bytes memory signingCert, bytes memory rootCert) {
-        signingCert = _fetchDataFromResolver(Pcs.PCS_KEY(CA.SIGNING, false), false);
-        rootCert = _fetchDataFromResolver(Pcs.PCS_KEY(CA.ROOT, false), false);
+        signingCert = _onFetchDataFromResolver(Pcs.PCS_KEY(CA.SIGNING, false), false);
+        rootCert = _onFetchDataFromResolver(Pcs.PCS_KEY(CA.ROOT, false), false);
     }
 
     /**
@@ -153,12 +153,8 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
 
     function _validateTcbInfo(TcbInfoJsonObj calldata tcbInfoObj) private view {
         // Get TCB Signing Cert
-        // bytes memory signingDer = _fetchDataFromResolver(Pcs.PCS_KEY(CA.SIGNING, false), false);
-        // TEMP: calling _fetchDataFromResolver() would make more sense semantically
-        // TEMP: but I am calling the resolver directly here so
-        // TEMP: _fetchDataFromResolver() can be overridden without breaking here...
-        bytes memory signingDer = resolver.readAttestation(resolver.collateralPointer(Pcs.PCS_KEY(CA.SIGNING, false)));
-
+        bytes memory signingDer = _fetchDataFromResolver(Pcs.PCS_KEY(CA.SIGNING, false), false);
+       
         // Validate signature
         bool sigVerified = verifySignature(sha256(bytes(tcbInfoObj.tcbInfoStr)), tcbInfoObj.signature, signingDer);
 

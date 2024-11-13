@@ -14,7 +14,7 @@ abstract contract AutomataDaoBase is DaoBase {
      * 
      * @notice this restriction may be removed in the future
      */
-    function _fetchDataFromResolver(bytes32 key, bool hash)
+    function _onFetchDataFromResolver(bytes32 key, bool hash)
         internal
         view
         virtual
@@ -22,7 +22,7 @@ abstract contract AutomataDaoBase is DaoBase {
         returns (bytes memory data)
     {
         if (_callerIsAuthorized()) {
-            data = super._fetchDataFromResolver(key, hash);
+            data = super._onFetchDataFromResolver(key, hash);
         }
     }
 

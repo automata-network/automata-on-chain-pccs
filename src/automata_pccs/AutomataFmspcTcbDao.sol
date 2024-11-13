@@ -9,12 +9,12 @@ contract AutomataFmspcTcbDao is AutomataDaoBase, FmspcTcbDao {
         FmspcTcbDao(_storage, _p256, _pcs, _fmspcHelper, _x509Helper)
     {}
 
-    function _fetchDataFromResolver(bytes32 key, bool hash)
+    function _onFetchDataFromResolver(bytes32 key, bool hash)
         internal
         view
         override(AutomataDaoBase, DaoBase)
         returns (bytes memory data)
     {
-        data = super._fetchDataFromResolver(key, hash);
+        data = super._onFetchDataFromResolver(key, hash);
     }
 }

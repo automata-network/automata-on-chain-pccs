@@ -34,10 +34,12 @@ abstract contract DaoBase {
     }
 
     /**
-     * @notice internal method to be called directly by the DAO
-     * @dev may overwrite this method to implement additional custom business logic
+     * @notice the default internal method to be called directly by the DAO
+     * @notice ideally this is called to fetch a "signer" collateral such as a Signing
+     * Certificate to validate a new collateral that is being upserted
+     * @notice there should NOT be additional logic in place other than reading collaterals
      */
-    function _fetchDataFromResolver(bytes32 key, bool hash) internal view virtual returns (bytes memory) {
+    function _fetchDataFromResolver(bytes32 key, bool hash) internal view returns (bytes memory) {
         bytes32 attestationId;
         if (hash) {
             attestationId = resolver.collateralHashPointer(key);
@@ -45,6 +47,15 @@ abstract contract DaoBase {
             attestationId = resolver.collateralPointer(key);
         }
         return resolver.readAttestation(attestationId);
+    }
+
+    /**
+     * @notice similar with "_fetchDataFromResolver()" but this is called ONLY
+     * for collateral reads
+     * @dev may overwrite this method to implement additional custom business logic
+     */
+    function _onFetchDataFromResolver(bytes32 key, bool hash) internal view virtual returns (bytes memory) {
+        return _fetchDataFromResolver(key, hash);
     }
 
     /// @dev https://github.com/Vectorized/solady/blob/4964e3e2da1bc86b0394f63a90821f51d60a260b/src/utils/JSONParserLib.sol#L339-L364

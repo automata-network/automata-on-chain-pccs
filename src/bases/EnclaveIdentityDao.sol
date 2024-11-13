@@ -64,7 +64,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         view
         returns (EnclaveIdentityJsonObj memory enclaveIdObj)
     {
-        bytes memory attestedIdentityData = _fetchDataFromResolver(ENCLAVE_ID_KEY(id, version), false);
+        bytes memory attestedIdentityData = _onFetchDataFromResolver(ENCLAVE_ID_KEY(id, version), false);
         if (attestedIdentityData.length > 0) {
             (, enclaveIdObj.identityStr, enclaveIdObj.signature) =
                 abi.decode(attestedIdentityData, (IdentityObj, string, bytes));
@@ -95,8 +95,8 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
      * @return rootCert - DER encoded Intel SGX Root CA
      */
     function getEnclaveIdentityIssuerChain() external view returns (bytes memory signingCert, bytes memory rootCert) {
-        signingCert = _fetchDataFromResolver(Pcs.PCS_KEY(CA.SIGNING, false), false);
-        rootCert = _fetchDataFromResolver(Pcs.PCS_KEY(CA.ROOT, false), false);
+        signingCert = _onFetchDataFromResolver(Pcs.PCS_KEY(CA.SIGNING, false), false);
+        rootCert = _onFetchDataFromResolver(Pcs.PCS_KEY(CA.ROOT, false), false);
     }
 
     /**
@@ -142,12 +142,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
      * @notice validates IdentityString is signed by Intel TCB Signing Cert
      */
     function _validateQeIdentity(EnclaveIdentityJsonObj calldata enclaveIdentityObj) private view {
-        // Get TCB Signing Cert
-        // bytes memory signingDer = _fetchDataFromResolver(Pcs.PCS_KEY(CA.SIGNING, false), false);
-        // TEMP: calling _fetchDataFromResolver() would make more sense semantically
-        // TEMP: but I am calling the resolver directly here
-        // TEMP: so _fetchDataFromResolver() can be overridden without breaking here...
-        bytes memory signingDer = resolver.readAttestation(resolver.collateralPointer(Pcs.PCS_KEY(CA.SIGNING, false)));
+        bytes memory signingDer = _fetchDataFromResolver(Pcs.PCS_KEY(CA.SIGNING, false), false);
 
         // Validate signature
         bool sigVerified =
