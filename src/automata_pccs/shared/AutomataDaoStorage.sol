@@ -37,12 +37,12 @@ contract AutomataDaoStorage is AutomataTCBManager, IDaoAttestationResolver, Paus
         _authorized_readers[caller] = authorized;
     }
 
-    function pauseCallerRestriction() external onlyOwner {
-        if (paused()) {
-            _unpause();
-        } else {
-            _pause();
-        }
+    function pauseCallerRestriction() external onlyOwner whenNotPaused {
+        _pause();
+    }
+
+    function unpauseCallerRestriction() external onlyOwner whenPaused {
+        _unpause();
     }
 
     function updateDao(address _pcsDao, address _pckDao, address _fmspcTcbDao, address _enclaveIdDao)
@@ -57,11 +57,11 @@ contract AutomataDaoStorage is AutomataTCBManager, IDaoAttestationResolver, Paus
     }
 
     function collateralPointer(bytes32 key) external pure override returns (bytes32 collateralAttId) {
-        collateralAttId = key;
+        collateralAttId = _computeAttestationId(key, false);
     }
 
     function collateralHashPointer(bytes32 key) external pure override returns (bytes32 collateralHashAttId) {
-        collateralHashAttId = bytes32(uint256(key) + 1);
+        collateralHashAttId = _computeAttestationId(key, true);
     }
 
     function readAttestation(bytes32 attestationId)
@@ -86,9 +86,8 @@ contract AutomataDaoStorage is AutomataTCBManager, IDaoAttestationResolver, Paus
         onlyDao(msg.sender)
         returns (bytes32 attestationId, bytes32 hashAttestationid)
     {
-        attestationId = key;
-        hashAttestationid = bytes32(uint256(key) + 1);
-
+        attestationId = _computeAttestationId(key, false);
+        hashAttestationid = _computeAttestationId(key, true);
         _db[attestationId] = attData;
         _db[hashAttestationid] = abi.encodePacked(attDataHash);
     }
@@ -98,6 +97,15 @@ contract AutomataDaoStorage is AutomataTCBManager, IDaoAttestationResolver, Paus
         _authorized_writers[_pckDao] = true;
         _authorized_writers[_fmspcTcbDao] = true;
         _authorized_writers[_enclaveIdDao] = true;
+    }
+
+    /// Attestation ID Computation
+    bytes4 constant DATA_ATTESTATION_MAGIC = 0x54a09e9a;
+    bytes4 constant HASH_ATTESTATION_MAGIC = 0x628ab4d2;
+
+    function _computeAttestationId(bytes32 key, bool hash) private pure returns (bytes32 attestationId) {
+        bytes32 magic = hash ? HASH_ATTESTATION_MAGIC : DATA_ATTESTATION_MAGIC;
+        attestationId = keccak256(abi.encodePacked(magic, key));
     }
 
     /// TCB Management
