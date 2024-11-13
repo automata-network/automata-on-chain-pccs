@@ -34,6 +34,9 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     PcsDao public Pcs;
     FmspcTcbHelper public FmspcTcbLib;
 
+    // first 4 bytes of FMSPC_TCB_MAGIC
+    bytes4 constant FMSPC_TCB_MAGIC = 0xbb69b29c;
+
     // 8de7233f
     error Invalid_TCB_Cert_Signature();
     // bae57649
@@ -52,7 +55,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
      * @return key = keccak256(type ++ FMSPC ++ version)
      */
     function FMSPC_TCB_KEY(uint8 tcbType, bytes6 fmspc, uint32 version) public pure returns (bytes32 key) {
-        key = keccak256(abi.encodePacked(tcbType, fmspc, version));
+        key = keccak256(abi.encodePacked(FMSPC_TCB_MAGIC, tcbType, fmspc, version));
     }
 
     /**

@@ -24,6 +24,11 @@ import {SigVerifyBase} from "./SigVerifyBase.sol";
 abstract contract PckDao is DaoBase, SigVerifyBase {
     using EnumerableSet for EnumerableSet.Bytes32Set;
 
+    // first 4 bytes of keccak256('PCK_MAGIC')
+    bytes4 constant PCK_MAGIC = 0xf0e2a246;
+    // first 4 bytes of keccak256('TCB_MAPPING_MAGIC')
+    bytes4 constant TCB_MAPPING_MAGIC = 0x5b8e7b4e;
+
     // 167c231a
     error Certificate_Revoked(uint256 serialNum);
     // dba942a2
@@ -73,7 +78,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
     }
 
     function PCK_KEY(bytes16 qeidBytes, bytes2 pceidBytes, bytes18 tcbmBytes) public pure returns (bytes32 key) {
-        key = keccak256(abi.encodePacked(qeidBytes, pceidBytes, tcbmBytes));
+        key = keccak256(abi.encodePacked(PCK_MAGIC, qeidBytes, pceidBytes, tcbmBytes));
     }
 
     function TCB_MAPPING_KEY(bytes16 qeid, bytes2 pceid, bytes16 platformCpuSvn, bytes2 platformPceSvn)
@@ -81,7 +86,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         pure
         returns (bytes32 key)
     {
-        key = keccak256(abi.encodePacked(qeid, pceid, platformCpuSvn, platformPceSvn));
+        key = keccak256(abi.encodePacked(TCB_MAPPING_MAGIC, qeid, pceid, platformCpuSvn, platformPceSvn));
     }
 
     /**

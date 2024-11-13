@@ -31,6 +31,9 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
     string constant SIGNING_COMMON_NAME = "Intel SGX TCB Signing";
     string constant ROOT_CA_COMMON_NAME = "Intel SGX Root CA";
 
+    // first 4 bytes of keccak256('PCS_MAGIC')
+    bytes4 constant PCS_MAGIC = 0xe90e3dc7;
+
     /// keccak256(hex"0ba9c4c0c0c86193a3fe23d6b02cda10a8bbd4e88e48b4458561a36e705525f567918e2edc88e40d860bd0cc4ee26aacc988e505a953558c453f6b0904ae7394")
     /// the uncompressed (0x04) prefix is not included in the pubkey pre-image
     /// @dev Must ensure that the public key for the configured Intel Root CA matches with
@@ -68,7 +71,7 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
     }
 
     function PCS_KEY(CA ca, bool isCrl) public pure returns (bytes32 key) {
-        key = keccak256(abi.encodePacked(uint8(ca), isCrl));
+        key = keccak256(abi.encodePacked(PCS_MAGIC, uint8(ca), isCrl));
     }
 
     modifier pckCACheck(CA ca) {

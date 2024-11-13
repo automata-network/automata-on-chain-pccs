@@ -24,6 +24,9 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     PcsDao public Pcs;
     EnclaveIdentityHelper public EnclaveIdentityLib;
 
+    // first 4 bytes of keccak256("ENCLAVE_ID_MAGIC")
+    bytes4 constant ENCLAVE_ID_MAGIC = 0xff818fce;
+
     // 289fa0cb
     error Enclave_Id_Mismatch();
     // 4e0f5696
@@ -45,10 +48,10 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
      * @notice computes the key that is mapped to the collateral attestation ID
      * NOTE: the "version" indicated here is taken from the input parameter (e.g. v3 vs v4);
      * NOT the "version" value found in the Enclave Identity JSON
-     * @return key = keccak256(id ++ version)
+     * @return key = keccak256(ENCLAVE_ID_MAGIC ++ id ++ version)
      */
     function ENCLAVE_ID_KEY(uint256 id, uint256 version) public pure returns (bytes32 key) {
-        key = keccak256(abi.encodePacked(id, version));
+        key = keccak256(abi.encodePacked(ENCLAVE_ID_MAGIC, id, version));
     }
 
     /**
