@@ -2,14 +2,10 @@
 pragma solidity ^0.8.0;
 
 import {PcsDao, X509CRLHelper, DaoBase} from "../bases/PcsDao.sol";
-import {Ownable} from "solady/auth/Ownable.sol";
-
 import {AutomataDaoBase} from "./shared/AutomataDaoBase.sol";
 
-contract AutomataPcsDao is AutomataDaoBase, PcsDao, Ownable {
-    constructor(address _storage, address _p256, address _x509, address _crl) PcsDao(_storage, _p256, _x509, _crl) {
-        _initializeOwner(msg.sender);
-    }
+contract AutomataPcsDao is AutomataDaoBase, PcsDao {
+    constructor(address _storage, address _p256, address _x509, address _crl) PcsDao(_storage, _p256, _x509, _crl) {}
 
     function _fetchDataFromResolver(bytes32 key, bool hash)
         internal
