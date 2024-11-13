@@ -117,7 +117,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     }
 
     /**
-     * @notice constructs the Identity.json attestation data
+     * @notice constructs the TcbInfo.json attestation data
      */
     function _buildTcbAttestationRequest(TcbInfoJsonObj calldata tcbInfoObj)
         private
