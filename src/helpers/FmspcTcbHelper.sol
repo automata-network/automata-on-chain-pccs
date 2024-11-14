@@ -51,6 +51,7 @@ struct TCBLevelsObj {
     uint8[] tdxSvns;
     uint64 tcbDateTimestamp;
     TCBStatus status;
+    string[] advisoryIDs;
 }
 
 struct TDXModule {
@@ -282,6 +283,13 @@ contract FmspcTcbHelper {
                         uint64(DateTimeUtils.fromISOToTimestamp(JSONParserLib.decodeString(tcbObj[j].value())));
                 } else if (tcbKey.eq("tcbStatus")) {
                     tcbLevels[i].status = _getTcbStatus(JSONParserLib.decodeString(tcbObj[j].value()));
+                } else if (tcbKey.eq("advisoryIDs")) {
+                    JSONParserLib.Item[] memory advisoryArr = tcbObj[j].children();
+                    uint256 n = tcbObj[j].size();
+                    tcbLevels[i].advisoryIDs = new string[](n);
+                    for (uint256 k = 0; k < n; k++) {
+                        tcbLevels[i].advisoryIDs[k] = JSONParserLib.decodeString(advisoryArr[k].value());
+                    }
                 }
             }
         }
