@@ -4,6 +4,7 @@ out = "out"
 libs = ["lib"]
 
 fs_permissions = [{ access = "read", path = "./"}]
+ffi = true
 
 solc = "0.8.27"
 optimizer = true

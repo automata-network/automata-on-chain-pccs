@@ -9,10 +9,6 @@ import {AutomataEnclaveIdentityDao} from "../../src/automata_pccs/AutomataEnclav
 import {AutomataPcsDao} from "../../src/automata_pccs/AutomataPcsDao.sol";
 import {AutomataPckDao} from "../../src/automata_pccs/AutomataPckDao.sol";
 
-interface IUpdatePcs {
-    function setPcs(address _pcs) external;
-}
-
 contract ConfigAutomataDao is Script {
     uint256 privateKey = vm.envUint("PRIVATE_KEY");
 
@@ -38,5 +34,11 @@ contract ConfigAutomataDao is Script {
         vm.broadcast(privateKey);
 
         AutomataDaoStorage(pccsStorageAddr).revokeDao(dao);
+    }
+
+    function setAuthorizedCaller(address caller, bool authorized) public {
+        vm.broadcast(privateKey);
+
+        AutomataDaoStorage(pccsStorageAddr).setCallerAuthorization(caller, authorized);
     }
 }
