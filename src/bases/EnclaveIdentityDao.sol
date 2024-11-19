@@ -127,9 +127,6 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
             revert Enclave_Id_Mismatch();
         }
 
-        /// @question is there a better way we can validate the version input?
-        /// TEMP: Currently, there is no way to quickly distinguish between QuoteV3 vs QuoteV4 Enclave Identity
-        /// TD_QE is only available in v4, this is the best I can do for now
         if (id == uint256(EnclaveId.TD_QE) && version != 4) {
             revert Incorrect_Enclave_Id_Version();
         } 

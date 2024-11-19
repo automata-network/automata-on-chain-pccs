@@ -197,11 +197,14 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
 
         bytes32 pckKey = PCK_KEY(qeidBytes, pceidBytes, tcbmBytes);
 
-        // parse PCK to check PCEID and tcbm
         bytes memory der = _fetchDataFromResolver(pckKey, false);
         if (der.length == 0) {
             revert Pck_Not_Found();
         }
+
+        // parse PCK to check for whether the provided PCEID and tcbm values are valid
+        X509CertObj memory pck = pckLib.parseX509DER(der);
+        _validatePckTcb(pceidBytes, tcbmBytes, der, pck.extensionPtr);
 
         bytes32 tcbmMappingKey = TCB_MAPPING_KEY(qeidBytes, pceidBytes, platformCpuSvnBytes, platformPceSvnBytes);
         _setTcbrToTcbmMapping(tcbmMappingKey, tcbmBytes);

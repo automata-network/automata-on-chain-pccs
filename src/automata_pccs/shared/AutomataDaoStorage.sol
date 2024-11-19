@@ -76,9 +76,6 @@ contract AutomataDaoStorage is AutomataTCBManager, IDaoAttestationResolver, Paus
 
     /**
      * @notice In AutomataDaoStorage, we will simply assign the key as the attestationid of the collateral
-     * @notice whereas the value (key + 1) will be the attestation id to the hash.
-     * (It's stupid I know, i will circle back when i come up with
-     * a better approach in indexing collateral hashes)
      */
     function attest(bytes32 key, bytes calldata attData, bytes32 attDataHash)
         external
