@@ -10,7 +10,7 @@ import "../interfaces/IDaoAttestationResolver.sol";
  */
 
 abstract contract DaoBase {
-    IDaoAttestationResolver public resolver;
+    IDaoAttestationResolver public immutable resolver;
 
     constructor(address _resolver) {
         resolver = IDaoAttestationResolver(_resolver);
