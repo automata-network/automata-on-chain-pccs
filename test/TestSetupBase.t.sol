@@ -3,11 +3,11 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
-import {AutomataDaoStorage} from "../src/automata_pccs/shared/AutomataDaoStorage.sol";
-import {AutomataFmspcTcbDao} from "../src/automata_pccs/AutomataFmspcTcbDao.sol";
-import {AutomataEnclaveIdentityDao} from "../src/automata_pccs/AutomataEnclaveIdentityDao.sol";
-import {AutomataPcsDao} from "../src/automata_pccs/AutomataPcsDao.sol";
-import {AutomataPckDao} from "../src/automata_pccs/AutomataPckDao.sol";
+import "../src/automata_pccs/shared/AutomataDaoStorage.sol";
+import "../src/automata_pccs/AutomataFmspcTcbDao.sol";
+import "../src/automata_pccs/AutomataEnclaveIdentityDao.sol";
+import "../src/automata_pccs/AutomataPcsDao.sol";
+import "../src/automata_pccs/AutomataPckDao.sol";
 
 import {EnclaveIdentityHelper, EnclaveIdentityJsonObj} from "../src/helpers/EnclaveIdentityHelper.sol";
 import {FmspcTcbHelper, TcbInfoJsonObj} from "../src/helpers/FmspcTcbHelper.sol";
@@ -26,7 +26,15 @@ abstract contract TestSetupBase is Test {
     AutomataPckDao pck;
     AutomataEnclaveIdentityDao enclaveIdDao;
 
+    address P256_VERIFIER;
+
     address admin = address(1);
+
+    modifier readAsAuthorizedCaller() {
+        vm.startPrank(admin);
+        _;
+        vm.stopPrank();
+    }
 
     function setUp() public virtual {
         // pinned June 19th, 2024, 0833h GMT
@@ -45,18 +53,23 @@ abstract contract TestSetupBase is Test {
         // deploy Automata PCCS
         pccsStorage = new AutomataDaoStorage();
 
-        pcs = new AutomataPcsDao(address(pccsStorage), address(x509Lib), address(x509CrlLib));
+        pcs = new AutomataPcsDao(address(pccsStorage), P256_VERIFIER, address(x509Lib), address(x509CrlLib));
 
         enclaveIdDao = new AutomataEnclaveIdentityDao(
-            address(pccsStorage), address(pcs), address(enclaveIdentityLib), address(x509Lib)
+            address(pccsStorage), P256_VERIFIER, address(pcs), address(enclaveIdentityLib), address(x509Lib)
         );
 
-        fmspcTcbDao =
-            new AutomataFmspcTcbDao(address(pccsStorage), address(pcs), address(fsmpcTcbLib), address(x509Lib));
+        fmspcTcbDao = new AutomataFmspcTcbDao(
+            address(pccsStorage), P256_VERIFIER, address(pcs), address(fsmpcTcbLib), address(x509Lib)
+        );
 
-        pck = new AutomataPckDao(address(pccsStorage), address(pcs), address(x509Lib), address(x509CrlLib));
+        pck =
+            new AutomataPckDao(address(pccsStorage), P256_VERIFIER, address(pcs), address(x509Lib), address(x509CrlLib));
 
         pccsStorage.updateDao(address(pcs), address(pck), address(fmspcTcbDao), address(enclaveIdDao));
+
+        // grants admin address permission to read collaterals
+        pccsStorage.setCallerAuthorization(admin, true);
 
         vm.stopPrank();
     }
@@ -68,7 +81,7 @@ abstract contract TestSetupBase is Test {
         require(succ, "Failed to deploy P256");
 
         // check code
-        address P256_VERIFIER = 0xc2b78104907F722DABAc4C69f826a522B2754De4;
+        P256_VERIFIER = 0xc2b78104907F722DABAc4C69f826a522B2754De4;
         uint256 codesize = P256_VERIFIER.code.length;
         require(codesize > 0, "P256 deployed to the wrong address");
     }

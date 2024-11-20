@@ -1,25 +1,62 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0;
 
+import "../interfaces/IDaoAttestationResolver.sol";
+
+/**
+ * @title Common Data Access Object base contract
+ * @notice This contract provides the generic API methods to fetch collateral data
+ * and its hashes from the Resolver
+ */
+
 abstract contract DaoBase {
-    /**
-     * @dev implement getter logic to retrieve attested data
-     * @param attestationId maps to the data
-     */
-    function getAttestedData(bytes32 attestationId) public view virtual returns (bytes memory attestationData);
+    IDaoAttestationResolver public immutable resolver;
+
+    constructor(address _resolver) {
+        resolver = IDaoAttestationResolver(_resolver);
+    }
 
     /**
-     * @dev must store the hash of a collateral (e.g. X509 Cert, TCBInfo JSON etc) in the attestation registry
-     * @dev it is recommended to store hash as a separate attestation from the actual collateral
-     * @dev this getter can be useful for checking the correctness of the queried attested collateral
-     *
-     * @dev may link the hash attestation with the attestation of the collateral
-     * For example, the content of a hash attestation can be a tuple of bytes32 values consisting of:
-     * (bytes32 collateralHash, bytes32 collateralAttestationId)
-     * @param attestationId - the attestationId pointing to the hash attestation, or the collateral attestation
-     * itself, if the hash is included as part of the attestation data, this varies by how you define the schema.
+     * @notice getter logic to retrieve attested data from the Resolver
+     * @param key - mapped to a collateral as defined by individual data access objects (DAOs)
      */
-    function getCollateralHash(bytes32 attestationId) public view virtual returns (bytes32 collateralHash);
+    function getAttestedData(bytes32 key) external view returns (bytes memory attestationData) {
+        attestationData = _fetchDataFromResolver(key, false);
+    }
+
+    /**
+     * @dev SHOULD store the hash of a collateral (e.g. X509 Cert, TCBInfo JSON etc) in the attestation registry
+     * as a separate attestation from the collateral data itself
+     */
+    function getCollateralHash(bytes32 key) external view returns (bytes32 collateralHash) {
+        bytes memory attestationData = _fetchDataFromResolver(key, true);
+        collateralHash = abi.decode(attestationData, (bytes32));
+    }
+
+    /**
+     * @notice the default internal method to be called directly by the DAO
+     * @notice ideally this is called to fetch a "signer" collateral such as a Signing
+     * Certificate to validate a new collateral that is being upserted
+     * @notice there should NOT be additional logic in place other than reading collaterals
+     */
+    function _fetchDataFromResolver(bytes32 key, bool hash) internal view returns (bytes memory) {
+        bytes32 attestationId;
+        if (hash) {
+            attestationId = resolver.collateralHashPointer(key);
+        } else {
+            attestationId = resolver.collateralPointer(key);
+        }
+        return resolver.readAttestation(attestationId);
+    }
+
+    /**
+     * @notice similar with "_fetchDataFromResolver()" but this is called ONLY
+     * for collateral reads
+     * @dev may overwrite this method to implement additional custom business logic
+     */
+    function _onFetchDataFromResolver(bytes32 key, bool hash) internal view virtual returns (bytes memory) {
+        return _fetchDataFromResolver(key, hash);
+    }
 
     /// @dev https://github.com/Vectorized/solady/blob/4964e3e2da1bc86b0394f63a90821f51d60a260b/src/utils/JSONParserLib.sol#L339-L364
     /// @dev Parses an unsigned integer from a string (in hexadecimal, i.e. base 16).

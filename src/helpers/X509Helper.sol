@@ -27,8 +27,7 @@ struct X509CertObj {
  * @title X509 Certificates Helper Contract
  * @notice This is a standalone contract that can be used by off-chain applications and smart contracts
  * to parse DER-encoded X509 certificates.
- * @dev The Extension sequence in Intel PCK Certificates is a custom ASN.1 Sequence that needs to be
- * @dev parsed further in a more specialized PCKHelper contract.
+ * @dev This parser is only valid for ECDSA signature algorithm and p256 key algorithm.
  */
 contract X509Helper {
     using Asn1Decode for bytes;
@@ -126,8 +125,6 @@ contract X509Helper {
     /// - 1h. Extensions
     /// 2. Signature Algorithm
     /// 3. Signature
-    /// - 3a. X value
-    /// - 3b. Y value
     function parseX509DER(bytes calldata der) external pure returns (X509CertObj memory cert) {
         uint256 root = der.root();
 
@@ -210,12 +207,12 @@ contract X509Helper {
         sigPtr = der.rootOfBitStringAt(sigPtr);
 
         sigPtr = der.firstChildOf(sigPtr);
-        bytes memory sigX = _trimBytes(der.bytesAt(sigPtr), 32);
+        bytes memory r = _trimBytes(der.bytesAt(sigPtr), 32);
 
         sigPtr = der.nextSiblingOf(sigPtr);
-        bytes memory sigY = _trimBytes(der.bytesAt(sigPtr), 32);
+        bytes memory s = _trimBytes(der.bytesAt(sigPtr), 32);
 
-        sig = abi.encodePacked(sigX, sigY);
+        sig = abi.encodePacked(r, s);
     }
 
     /// @dev remove unnecessary prefix from the input

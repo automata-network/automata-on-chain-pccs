@@ -24,6 +24,7 @@ struct X509CRLObj {
  * @title X509 CRL Helper Contract
  * @notice This is a standalone contract that can be used by off-chain applications and smart contracts
  * to parse DER-encoded CRLs.
+ * @dev This parser is only valid for ECDSA signature algorithm and p256 key algorithm.
  */
 contract X509CRLHelper {
     using Asn1Decode for bytes;
@@ -106,8 +107,6 @@ contract X509CRLHelper {
     /// - - 1g(b) Authority Key Identifier
     /// 2. Signature Algorithm
     /// 3. Signature
-    /// - 3a. X value
-    /// - 3b. Y value
     function parseCRLDER(bytes calldata der) external pure returns (X509CRLObj memory crl) {
         uint256 root = der.root();
 
@@ -201,15 +200,14 @@ contract X509CRLHelper {
         sigPtr = der.rootOfBitStringAt(sigPtr);
 
         sigPtr = der.firstChildOf(sigPtr);
-        bytes memory sigX = _trimBytes(der.bytesAt(sigPtr), 32);
+        bytes memory r = _trimBytes(der.bytesAt(sigPtr), 32);
 
         sigPtr = der.nextSiblingOf(sigPtr);
-        bytes memory sigY = _trimBytes(der.bytesAt(sigPtr), 32);
+        bytes memory s = _trimBytes(der.bytesAt(sigPtr), 32);
 
-        sig = abi.encodePacked(sigX, sigY);
+        sig = abi.encodePacked(r, s);
     }
 
-    /// @dev remove unnecessary prefix from the input
     /// @dev remove unnecessary prefix from the input
     function _trimBytes(bytes memory input, uint256 expectedLength) private pure returns (bytes memory output) {
         uint256 n = input.length;

@@ -1,54 +1,42 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {PckDao, PcsDao, X509CRLHelper, DaoBase} from "../bases/PckDao.sol";
+import {AutomataDaoStorage} from "./shared/AutomataDaoStorage.sol";
 import {AutomataDaoBase} from "./shared/AutomataDaoBase.sol";
-import {PckDao, AttestationRequest, PcsDao, X509CRLHelper} from "../bases/PckDao.sol";
 
-import {Ownable} from "solady/auth/Ownable.sol";
+contract AutomataPckDao is AutomataDaoBase, PckDao {
+    constructor(address _storage, address _p256, address _pcs, address _x509, address _crl)
+        PckDao(_storage, _p256, _pcs, _x509, _crl)
+    {}
 
-contract AutomataPckDao is Ownable, AutomataDaoBase, PckDao {
-    constructor(address _storage, address _pcs, address _x509, address _crl)
-        AutomataDaoBase(_storage)
-        PckDao(_pcs, _x509, _crl)
-    {
-        _initializeOwner(msg.sender);
-    }
-
-    function updateDeps(address _pcs, address _x509, address _crl) external onlyOwner {
-        Pcs = PcsDao(_pcs);
-        x509 = _x509;
-        crlLib = X509CRLHelper(_crl);
-    }
-
-    function pckSchemaID() public pure override returns (bytes32) {
-        // NOT-APPLICABLE FOR OUR USE CASE
-        // but this is required by most attestation services, such as EAS, Verax etc
-        return bytes32(0);
-    }
-
-    function tcbmSchemaID() public pure override returns (bytes32) {
-        // NOT-APPLICABLE FOR OUR USE CASE
-        // but this is required by most attestation services, such as EAS, Verax etc
-        return bytes32(0);
-    }
-
-    function _attestPck(AttestationRequest memory req, bytes32 hash)
+    function _onFetchDataFromResolver(bytes32 key, bool hash)
         internal
-        override
-        returns (bytes32 attestationId)
+        view
+        override(AutomataDaoBase, DaoBase)
+        returns (bytes memory data)
     {
-        // delete the predecessor if replacing
-        _deletePredecessor(req.data.refUID);
-        _attestCollateral(hash, req.data.data);
-        attestationId = hash;
+        data = super._onFetchDataFromResolver(key, hash);
     }
 
-    function _attestTcbm(AttestationRequest memory req) internal override returns (bytes32 attestationId) {
-        // delete the predecessor if replacing
-        _deletePredecessor(req.data.refUID);
+    function _upsertTcbm(bytes16 qeid, bytes2 pceid, bytes18 tcbm) internal override {
+        AutomataDaoStorage(address(resolver)).setTcbm(qeid, pceid, tcbm);
+    }
 
-        bytes32 hash = keccak256(req.data.data);
-        _attestCollateral(hash, req.data.data);
-        attestationId = hash;
+    function _getAllTcbs(bytes16 qeidBytes, bytes2 pceidBytes)
+        internal
+        view
+        override
+        returns (bytes18[] memory tcbms)
+    {
+        tcbms = AutomataDaoStorage(address(resolver)).printTcbmSet(qeidBytes, pceidBytes);
+    }
+
+    function _setTcbrToTcbmMapping(bytes32 tcbMappingKey, bytes18 tcbmBytes) internal override {
+        AutomataDaoStorage(address(resolver)).setTcbrMapping(tcbMappingKey, tcbmBytes);
+    }
+
+    function _tcbrToTcbmMapping(bytes32 tcbMappingKey) internal view override returns (bytes18 tcbm) {
+        tcbm = AutomataDaoStorage(address(resolver)).getTcbm(tcbMappingKey);
     }
 }
