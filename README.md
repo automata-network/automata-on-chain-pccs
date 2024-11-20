@@ -36,9 +36,13 @@ The Helper contracts provide APIs for parsing collaterals and converting into So
 |  | Network | Address |
 | --- | --- | --- |
 | `EnclaveIdentityHelper.sol` | Automata Testnet | [0xae27D762EED6958bc34b358bd7C78c7211fe77F8](https://explorer-testnet.ata.network/address/0xae27D762EED6958bc34b358bd7C78c7211fe77F8) |
+| | Base Sepolia | [0xae27D762EED6958bc34b358bd7C78c7211fe77F8](https://sepolia.basescan.org/address/0xae27D762EED6958bc34b358bd7C78c7211fe77F8) |
 | `FmspcTcbHelper.sol` | Automata Testnet | [0x71056B540b4E60D0E8eFb55FAd487C486B09FFF5](https://explorer-testnet.ata.network/address/0x71056B540b4E60D0E8eFb55FAd487C486B09FFF5) |
+| | Base Sepolia | [0x71056B540b4E60D0E8eFb55FAd487C486B09FFF5](https://sepolia.basescan.org/address/0x71056B540b4E60D0E8eFb55FAd487C486B09FFF5) |
 | `PCKHelper.sol` | Automata Testnet | [0x4Aca9C0EB063401C9F5c2Fc4487DBC5ccF1C9E2B](https://explorer-testnet.ata.network/address/0x4Aca9C0EB063401C9F5c2Fc4487DBC5ccF1C9E2B) |
+| | Base Sepolia | [0x4Aca9C0EB063401C9F5c2Fc4487DBC5ccF1C9E2B](https://sepolia.basescan.org/address/0x4Aca9C0EB063401C9F5c2Fc4487DBC5ccF1C9E2B) |
 | `X509CRLHelper.sol` | Automata Testnet | [0x6e204fEAe40F668a06E78a83b66185FFC8892DDA](https://explorer-testnet.ata.network/address/0x6e204fEAe40F668a06E78a83b66185FFC8892DDA) |
+| | Base Sepolia | [0x6e204fEAe40F668a06E78a83b66185FFC8892DDA](https://sepolia.basescan.org/address/0x6e204fEAe40F668a06E78a83b66185FFC8892DDA) |
 
 ### Base libraries and Automata DAO contracts
 
@@ -52,10 +56,14 @@ Our DAO implementation can be found in the [`automata_pccs`](./src/automata_pccs
 
 |  | Network | Address |
 | --- | --- | --- |
-| `AutomataEnclaveIdentityDao.sol` | Automata Testnet | [0x413272890ab9F155a47A5F90a404Fb51aa259087](https://explorer-testnet.ata.network/address/0x413272890ab9F155a47A5F90a404Fb51aa259087) |
+| `AutomataEnclaveIdentityDao.sol` | Automata Testnet | [0x45f91C0d9Cf651785d93fcF7e9E97dE952CdB910](https://explorer-testnet.ata.network/address/0x45f91C0d9Cf651785d93fcF7e9E97dE952CdB910) |
+| | Base Sepolia | [0x45f91C0d9Cf651785d93fcF7e9E97dE952CdB910](https://sepolia.basescan.org/address/0x45f91C0d9Cf651785d93fcF7e9E97dE952CdB910) |
 | `AutomataFmspcTcbDao.sol` | Automata Testnet | [0x9c54C72867b07caF2e6255CE32983c28aFE40F26](https://explorer-testnet.ata.network/address/0x9c54C72867b07caF2e6255CE32983c28aFE40F26) |
+| | Base Sepolia | [0x9c54C72867b07caF2e6255CE32983c28aFE40F26](https://sepolia.basescan.org/address/0x9c54C72867b07caF2e6255CE32983c28aFE40F26) |
 | `AutomataPckDao.sol` | Automata Testnet | [0x722525B96b62e182F8A095af0a79d4EA2037795C](https://explorer-testnet.ata.network/address/0x722525B96b62e182F8A095af0a79d4EA2037795C) |
+| | Base Sepolia | [0x31F18aA7B4cbAD7A726BCBF5AB3e286fC0b02A82](https://sepolia.basescan.org/address/0x31F18aA7B4cbAD7A726BCBF5AB3e286fC0b02A82) |
 | `AutomataPcsDao.sol` | Automata Testnet | [0xcf171ACd6c0a776f9d3E1F6Cac8067c982Ac6Ce1](https://explorer-testnet.ata.network/address/0xcf171ACd6c0a776f9d3E1F6Cac8067c982Ac6Ce1) |
+| | Base Sepolia | [0xcf171ACd6c0a776f9d3E1F6Cac8067c982Ac6Ce1](https://sepolia.basescan.org/address/0xcf171ACd6c0a776f9d3E1F6Cac8067c982Ac6Ce1) |
 
 ---
 

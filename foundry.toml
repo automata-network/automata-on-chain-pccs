@@ -19,3 +19,6 @@ via_ir = true
 # sparse_mode = false
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+
+[etherscan]
+base_sepolia = { key = "${ETHERSCAN_API_KEY_BASE_SEPOLIA}", url = "https://api-sepolia.basescan.org/api" }
