@@ -38,15 +38,19 @@ The Helper contracts provide APIs for parsing collaterals and converting into So
 | `EnclaveIdentityHelper.sol` | Automata Testnet | [0xae27D762EED6958bc34b358bd7C78c7211fe77F8](https://explorer-testnet.ata.network/address/0xae27D762EED6958bc34b358bd7C78c7211fe77F8) |
 | | Base Sepolia | [0xae27D762EED6958bc34b358bd7C78c7211fe77F8](https://sepolia.basescan.org/address/0xae27D762EED6958bc34b358bd7C78c7211fe77F8) |
 | | Holesky | [0xae27D762EED6958bc34b358bd7C78c7211fe77F8](https://holesky.etherscan.io/address/0xae27D762EED6958bc34b358bd7C78c7211fe77F8) |
+| | Sepolia | [0x2247B6dfE1bD9c376ECb58A68fa29603015a54a6](https://sepolia.etherscan.io/address/0x2247B6dfE1bD9c376ECb58A68fa29603015a54a6) |
 | `FmspcTcbHelper.sol` | Automata Testnet | [0x71056B540b4E60D0E8eFb55FAd487C486B09FFF5](https://explorer-testnet.ata.network/address/0x71056B540b4E60D0E8eFb55FAd487C486B09FFF5) |
 | | Base Sepolia | [0x71056B540b4E60D0E8eFb55FAd487C486B09FFF5](https://sepolia.basescan.org/address/0x71056B540b4E60D0E8eFb55FAd487C486B09FFF5) |
 | | Holesky | [0x71056B540b4E60D0E8eFb55FAd487C486B09FFF5](https://holesky.etherscan.io/address/0x71056B540b4E60D0E8eFb55FAd487C486B09FFF5) |
+| | Sepolia | [0x4907280122325DbCeba657210Df2E3EE0e853cD0](https://sepolia.etherscan.io/address/0x4907280122325DbCeba657210Df2E3EE0e853cD0) |
 | `PCKHelper.sol` | Automata Testnet | [0x4Aca9C0EB063401C9F5c2Fc4487DBC5ccF1C9E2B](https://explorer-testnet.ata.network/address/0x4Aca9C0EB063401C9F5c2Fc4487DBC5ccF1C9E2B) |
 | | Base Sepolia | [0x4Aca9C0EB063401C9F5c2Fc4487DBC5ccF1C9E2B](https://sepolia.basescan.org/address/0x4Aca9C0EB063401C9F5c2Fc4487DBC5ccF1C9E2B) |
 | | Holesky | [0x4Aca9C0EB063401C9F5c2Fc4487DBC5ccF1C9E2B](https://holesky.etherscan.io/address/0x4Aca9C0EB063401C9F5c2Fc4487DBC5ccF1C9E2B) |
+| | Sepolia | [0x0a5abD0E175aF826c4c61d1f9b3741014555F05f](https://sepolia.etherscan.io/address/0x0a5abD0E175aF826c4c61d1f9b3741014555F05f) |
 | `X509CRLHelper.sol` | Automata Testnet | [0x6e204fEAe40F668a06E78a83b66185FFC8892DDA](https://explorer-testnet.ata.network/address/0x6e204fEAe40F668a06E78a83b66185FFC8892DDA) |
 | | Base Sepolia | [0x6e204fEAe40F668a06E78a83b66185FFC8892DDA](https://sepolia.basescan.org/address/0x6e204fEAe40F668a06E78a83b66185FFC8892DDA) |
 | | Holesky | [0x6e204fEAe40F668a06E78a83b66185FFC8892DDA](https://holesky.etherscan.io/address/0x6e204fEAe40F668a06E78a83b66185FFC8892DDA) |
+| | Sepolia | [0x5E73f17BD87A191158E2626F67a772A9971B225B](https://sepolia.etherscan.io/address/0x5E73f17BD87A191158E2626F67a772A9971B225B) |
 
 ### Base libraries and Automata DAO contracts
 
@@ -63,15 +67,19 @@ Our DAO implementation can be found in the [`automata_pccs`](./src/automata_pccs
 | `AutomataEnclaveIdentityDao.sol` | Automata Testnet | [0x45f91C0d9Cf651785d93fcF7e9E97dE952CdB910](https://explorer-testnet.ata.network/address/0x45f91C0d9Cf651785d93fcF7e9E97dE952CdB910) |
 | | Base Sepolia | [0x45f91C0d9Cf651785d93fcF7e9E97dE952CdB910](https://sepolia.basescan.org/address/0x45f91C0d9Cf651785d93fcF7e9E97dE952CdB910) |
 | | Holesky | [0x45f91C0d9Cf651785d93fcF7e9E97dE952CdB910](https://holesky.etherscan.io/address/0x45f91C0d9Cf651785d93fcF7e9E97dE952CdB910) |
+| | Sepolia | [0x5eFDd14Bbfba36992f66a64653962BB0B8Ef1E26](https://sepolia.etherscan.io/address/0x5eFDd14Bbfba36992f66a64653962BB0B8Ef1E26) |
 | `AutomataFmspcTcbDao.sol` | Automata Testnet | [0x9c54C72867b07caF2e6255CE32983c28aFE40F26](https://explorer-testnet.ata.network/address/0x9c54C72867b07caF2e6255CE32983c28aFE40F26) |
 | | Base Sepolia | [0x9c54C72867b07caF2e6255CE32983c28aFE40F26](https://sepolia.basescan.org/address/0x9c54C72867b07caF2e6255CE32983c28aFE40F26) |
 | | Holesky | [0x9c54C72867b07caF2e6255CE32983c28aFE40F26](https://holesky.etherscan.io/address/0x9c54C72867b07caF2e6255CE32983c28aFE40F26) |
+| | Sepolia | [0xB87a493684Bb643258Ae4887B444c6cB244db935](https://sepolia.etherscan.io/address/0xB87a493684Bb643258Ae4887B444c6cB244db935) |
 | `AutomataPckDao.sol` | Automata Testnet | [0x722525B96b62e182F8A095af0a79d4EA2037795C](https://explorer-testnet.ata.network/address/0x722525B96b62e182F8A095af0a79d4EA2037795C) |
 | | Base Sepolia | [0x31F18aA7B4cbAD7A726BCBF5AB3e286fC0b02A82](https://sepolia.basescan.org/address/0x31F18aA7B4cbAD7A726BCBF5AB3e286fC0b02A82) |
 | | Holesky | [0x31F18aA7B4cbAD7A726BCBF5AB3e286fC0b02A82](https://holesky.etherscan.io/address/0x31F18aA7B4cbAD7A726BCBF5AB3e286fC0b02A82) |
+| | Sepolia | [0xcCfb6b78B2C30666F41c012627a74768DAACf4ab](https://sepolia.etherscan.io/address/0xcCfb6b78B2C30666F41c012627a74768DAACf4ab) |
 | `AutomataPcsDao.sol` | Automata Testnet | [0xcf171ACd6c0a776f9d3E1F6Cac8067c982Ac6Ce1](https://explorer-testnet.ata.network/address/0xcf171ACd6c0a776f9d3E1F6Cac8067c982Ac6Ce1) |
 | | Base Sepolia | [0xcf171ACd6c0a776f9d3E1F6Cac8067c982Ac6Ce1](https://sepolia.basescan.org/address/0xcf171ACd6c0a776f9d3E1F6Cac8067c982Ac6Ce1) |
 | | Holesky | [0xcf171ACd6c0a776f9d3E1F6Cac8067c982Ac6Ce1](https://holesky.etherscan.io/address/0xcf171ACd6c0a776f9d3E1F6Cac8067c982Ac6Ce1) |
+| | Sepolia | [0x980AEAdb3fa7c2c58A81091D93A819a24A103E6C](https://sepolia.etherscan.io/address/0x980AEAdb3fa7c2c58A81091D93A819a24A103E6C) |
 
 ---
 
