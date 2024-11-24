@@ -40,6 +40,15 @@ The Helper contracts provide APIs for parsing collaterals and converting into So
 | `PCKHelper.sol` | Automata Testnet | [0x4Aca9C0EB063401C9F5c2Fc4487DBC5ccF1C9E2B](https://explorer-testnet.ata.network/address/0x4Aca9C0EB063401C9F5c2Fc4487DBC5ccF1C9E2B) |
 | `X509CRLHelper.sol` | Automata Testnet | [0x6e204fEAe40F668a06E78a83b66185FFC8892DDA](https://explorer-testnet.ata.network/address/0x6e204fEAe40F668a06E78a83b66185FFC8892DDA) |
 
+#### Mainnet
+
+|  | Network | Address |
+| --- | --- | --- |
+| `EnclaveIdentityHelper.sol` | Automata Mainnet | [0xae27D762EED6958bc34b358bd7C78c7211fe77F8](https://explorer.ata.network/address/0xae27D762EED6958bc34b358bd7C78c7211fe77F8) |
+| `FmspcTcbHelper.sol` | Automata Mainnet | [0x71056B540b4E60D0E8eFb55FAd487C486B09FFF5](https://explorer.ata.network/address/0x71056B540b4E60D0E8eFb55FAd487C486B09FFF5) |
+| `PCKHelper.sol` | Automata Mainnet | [0x4Aca9C0EB063401C9F5c2Fc4487DBC5ccF1C9E2B](https://explorer.ata.network/address/0x4Aca9C0EB063401C9F5c2Fc4487DBC5ccF1C9E2B) |
+| `X509CRLHelper.sol` | Automata Mainnet | [0x6e204fEAe40F668a06E78a83b66185FFC8892DDA](https://explorer.ata.network/address/0x6e204fEAe40F668a06E78a83b66185FFC8892DDA) |
+
 ### Base libraries and Automata DAO contracts
 
 The base contracts are libraries that provide the Data Access Object (DAO) APIs with similar designs inspired from the [Design Guide for Intel SGX PCCS](https://download.01.org/intel-sgx/sgx-dcap/1.21/linux/docs/SGX_DCAP_Caching_Service_Design_Guide.pdf).
@@ -52,10 +61,19 @@ Our DAO implementation can be found in the [`automata_pccs`](./src/automata_pccs
 
 |  | Network | Address |
 | --- | --- | --- |
-| `AutomataEnclaveIdentityDao.sol` | Automata Testnet | [0x413272890ab9F155a47A5F90a404Fb51aa259087](https://explorer-testnet.ata.network/address/0x413272890ab9F155a47A5F90a404Fb51aa259087) |
+| `AutomataEnclaveIdentityDao.sol` | Automata Testnet | [0x45f91C0d9Cf651785d93fcF7e9E97dE952CdB910](https://explorer-testnet.ata.network/address/0x45f91C0d9Cf651785d93fcF7e9E97dE952CdB910) |
 | `AutomataFmspcTcbDao.sol` | Automata Testnet | [0x9c54C72867b07caF2e6255CE32983c28aFE40F26](https://explorer-testnet.ata.network/address/0x9c54C72867b07caF2e6255CE32983c28aFE40F26) |
 | `AutomataPckDao.sol` | Automata Testnet | [0x722525B96b62e182F8A095af0a79d4EA2037795C](https://explorer-testnet.ata.network/address/0x722525B96b62e182F8A095af0a79d4EA2037795C) |
 | `AutomataPcsDao.sol` | Automata Testnet | [0xcf171ACd6c0a776f9d3E1F6Cac8067c982Ac6Ce1](https://explorer-testnet.ata.network/address/0xcf171ACd6c0a776f9d3E1F6Cac8067c982Ac6Ce1) |
+
+#### Mainnet
+
+|  | Network | Address |
+| --- | --- | --- |
+| `AutomataEnclaveIdentityDao.sol` | Automata Mainnet | [0x45f91C0d9Cf651785d93fcF7e9E97dE952CdB910](https://explorer.ata.network/address/0x45f91C0d9Cf651785d93fcF7e9E97dE952CdB910) |
+| `AutomataFmspcTcbDao.sol` | Automata Mainnet | [0x9c54C72867b07caF2e6255CE32983c28aFE40F26](https://explorer.ata.network/address/0x9c54C72867b07caF2e6255CE32983c28aFE40F26) |
+| `AutomataPckDao.sol` | Automata Mainnet | [0x31F18aA7B4cbAD7A726BCBF5AB3e286fC0b02A82](https://explorer.ata.network/address/0x31F18aA7B4cbAD7A726BCBF5AB3e286fC0b02A82) |
+| `AutomataPcsDao.sol` | Automata Mainnet | [0xcf171ACd6c0a776f9d3E1F6Cac8067c982Ac6Ce1](https://explorer.ata.network/address/0xcf171ACd6c0a776f9d3E1F6Cac8067c982Ac6Ce1) |
 
 ---
 
