@@ -164,10 +164,12 @@ contract FmspcTcbHelper {
         }
 
         // Step 3: decode the string
-        parsed.advisoryIDs = LibString.split(
-            string(encoded[64: encoded.length]),
-            "\n"
-        );
+        if (encoded.length > 64) {
+            parsed.advisoryIDs = LibString.split(
+                string(encoded[64: encoded.length]),
+                "\n"
+            );
+        }
     }
 
     function parseTcbString(string calldata tcbInfoStr) external pure returns (TcbInfoBasic memory tcbInfo) {
