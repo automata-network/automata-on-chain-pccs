@@ -112,11 +112,18 @@ contract FmspcTcbHelper {
             uint256 v1Shift = 8 * ((2 * n) - i - 1);
             secondSlot |= uint256(obj.sgxComponentCpuSvns[i]) << v1Shift;
 
-            uint256 v2Shift = 8 * (n - i - 1);
-            secondSlot |= uint256(obj.tdxSvns[i]) << v2Shift;
-
             unchecked {
                 i++;
+            }
+        }
+        if (obj.tdxSvns.length > 0) {
+            for (uint256 i = 0; i < n;) {
+                uint256 v2Shift = 8 * (n - i - 1);
+                secondSlot |= uint256(obj.tdxSvns[i]) << v2Shift;
+
+                unchecked {
+                    i++;
+                }
             }
         }
 
@@ -148,8 +155,12 @@ contract FmspcTcbHelper {
         parsed.tdxSvns = new uint8[](16);
         bytes32 encodedSlot2 = bytes32(encoded[32:64]);
         for (uint256 i = 0; i < 16; i++) {
-            parsed.sgxComponentCpuSvns[i] = uint8(bytes1(encodedSlot2[i]));
-            parsed.tdxSvns[i] = uint8(bytes1(encodedSlot2[i + 16]));
+            if (encodedSlot2[i] != 0) {
+                parsed.sgxComponentCpuSvns[i] = uint8(bytes1(encodedSlot2[i]));
+            }
+            if (encodedSlot2[i + 16] != 0) {
+                parsed.tdxSvns[i] = uint8(bytes1(encodedSlot2[i + 16]));
+            }
         }
 
         // Step 3: decode the string

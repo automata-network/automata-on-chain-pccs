@@ -76,13 +76,15 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         bytes6 fmspcBytes = bytes6(uint48(_parseUintFromHex(fmspc)));
         bytes memory attestedTcbData =
             _onFetchDataFromResolver(FMSPC_TCB_KEY(uint8(tcbType), fmspcBytes, uint32(version)), false);
-        if (version < 3) {
-            (,, tcbObj.tcbInfoStr, tcbObj.signature) =
-                abi.decode(attestedTcbData, (TcbInfoBasic, TCBLevelsObj[], string, bytes));
-        } else {
-            (,,,, tcbObj.tcbInfoStr, tcbObj.signature) = abi.decode(
-                attestedTcbData, (TcbInfoBasic, TDXModule, TDXModuleIdentity[], TCBLevelsObj[], string, bytes)
-            );
+        if (attestedTcbData.length > 0) {
+            if (version < 3) {
+                (,, tcbObj.tcbInfoStr, tcbObj.signature) =
+                    abi.decode(attestedTcbData, (TcbInfoBasic, bytes, string, bytes));
+            } else {
+                (,,,, tcbObj.tcbInfoStr, tcbObj.signature) = abi.decode(
+                    attestedTcbData, (TcbInfoBasic, TDXModule, TDXModuleIdentity[], bytes, string, bytes)
+                );
+            }
         }
     }
 
@@ -142,15 +144,16 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     {
         (, TCBLevelsObj[] memory tcbLevels) = FmspcTcbLib.parseTcbLevels(tcbInfoStr);
         tcbInfo = FmspcTcbLib.parseTcbString(tcbInfoStr);
+        bytes memory encodedTcbLevels = _encodeTcbLevels(tcbLevels);
         if (tcbInfo.version < 3) {
-            attestationData = abi.encode(tcbInfo, tcbLevels, tcbInfoStr, signature);
+            attestationData = abi.encode(tcbInfo, encodedTcbLevels, tcbInfoStr, signature);
         } else {
             TDXModule memory module;
             TDXModuleIdentity[] memory moduleIdentities;
             if (tcbInfo.id == TcbId.TDX) {
                 (module, moduleIdentities) = FmspcTcbLib.parseTcbTdxModules(tcbInfoStr);
             }
-            attestationData = abi.encode(tcbInfo, module, moduleIdentities, tcbLevels, tcbInfoStr, signature);
+            attestationData = abi.encode(tcbInfo, module, moduleIdentities, encodedTcbLevels, tcbInfoStr, signature);
         }
     }
 
@@ -164,5 +167,20 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         if (!sigVerified) {
             revert Invalid_TCB_Cert_Signature();
         }
+    }
+
+    function _encodeTcbLevels(TCBLevelsObj[] memory tcbLevels) private view returns (bytes memory encoded) {
+        uint256 n = tcbLevels.length;
+        bytes[] memory arr = new bytes[](n);
+
+        for (uint256 i = 0; i < n;) {
+            arr[i] = FmspcTcbLib.tcbLevelsObjToBytes(tcbLevels[i]);
+            
+            unchecked {
+                i++;
+            }
+        }
+
+        encoded = abi.encode(arr);
     }
 }
