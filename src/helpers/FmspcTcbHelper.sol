@@ -98,6 +98,80 @@ contract FmspcTcbHelper {
     error TCB_TDX_Version_Invalid();
     error TCB_TDX_ID_Invalid();
 
+    function tcbLevelsObjToBytes(TCBLevelsObj memory obj) external pure returns (bytes memory serialized) {
+        // first slot = (uint64, uint64, uint64)
+        uint256 firstSlot = 
+            uint256(obj.pcesvn) << (2 * 64) | 
+            uint256(obj.tcbDateTimestamp) << 64 | 
+            uint8(obj.status);
+
+        // second slot = (padded uint16 sgxCpuSvns (16 bytes) + padded uint16 tdxCpuSvns (16 bytes))
+        uint256 secondSlot;
+        uint256 n = obj.sgxComponentCpuSvns.length;
+        for (uint256 i = 0; i < n;) {
+            uint256 v1Shift = 8 * ((2 * n) - i - 1);
+            secondSlot |= uint256(obj.sgxComponentCpuSvns[i]) << v1Shift;
+
+            unchecked {
+                i++;
+            }
+        }
+        if (obj.tdxSvns.length > 0) {
+            for (uint256 i = 0; i < n;) {
+                uint256 v2Shift = 8 * (n - i - 1);
+                secondSlot |= uint256(obj.tdxSvns[i]) << v2Shift;
+
+                unchecked {
+                    i++;
+                }
+            }
+        }
+
+        // string slot = padding all advisory IDs together using '\n' as a delimiter
+        bytes memory stringSlot;
+        if (obj.advisoryIDs.length > 0) {
+            string memory concat = obj.advisoryIDs[0];
+            for (uint256 j = 1; j < obj.advisoryIDs.length; j++) {
+                concat = string.concat(concat, "\n", obj.advisoryIDs[j]);
+            }
+            stringSlot = bytes(concat);
+        }
+
+        serialized = abi.encodePacked(
+            firstSlot,
+            secondSlot,
+            stringSlot
+        );
+    }
+
+    function tcbLevelsObjFromBytes(bytes calldata encoded) external pure returns (TCBLevelsObj memory parsed) {
+        // Step 1: decode first slot
+        parsed.pcesvn = uint16(bytes2(encoded[14:16]));
+        parsed.tcbDateTimestamp = uint64(bytes8(encoded[16:24]));
+        parsed.status = TCBStatus(uint8(bytes1(encoded[31:32])));
+
+        // Step 2: decode second slot
+        parsed.sgxComponentCpuSvns = new uint8[](16);
+        parsed.tdxSvns = new uint8[](16);
+        bytes32 encodedSlot2 = bytes32(encoded[32:64]);
+        for (uint256 i = 0; i < 16; i++) {
+            if (encodedSlot2[i] != 0) {
+                parsed.sgxComponentCpuSvns[i] = uint8(bytes1(encodedSlot2[i]));
+            }
+            if (encodedSlot2[i + 16] != 0) {
+                parsed.tdxSvns[i] = uint8(bytes1(encodedSlot2[i + 16]));
+            }
+        }
+
+        // Step 3: decode the string
+        if (encoded.length > 64) {
+            parsed.advisoryIDs = LibString.split(
+                string(encoded[64: encoded.length]),
+                "\n"
+            );
+        }
+    }
+
     function parseTcbString(string calldata tcbInfoStr) external pure returns (TcbInfoBasic memory tcbInfo) {
         JSONParserLib.Item memory root = JSONParserLib.parse(tcbInfoStr);
         JSONParserLib.Item[] memory tcbInfoObj = root.children();
