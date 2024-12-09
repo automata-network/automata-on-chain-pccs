@@ -88,7 +88,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
                     abi.decode(attestedTcbData, (TcbInfoBasic, bytes, string, bytes));
             } else {
                 (,,,, tcbObj.tcbInfoStr, tcbObj.signature) = abi.decode(
-                    attestedTcbData, (TcbInfoBasic, TDXModule, TDXModuleIdentity[], bytes, string, bytes)
+                    attestedTcbData, (TcbInfoBasic, TDXModule, bytes, bytes, string, bytes)
                 );
             }
         }
@@ -161,10 +161,12 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         } else {
             TDXModule memory module;
             TDXModuleIdentity[] memory moduleIdentities;
+            bytes memory encodedModuleIdentities;
             if (tcbInfo.id == TcbId.TDX) {
                 (module, moduleIdentities) = FmspcTcbLib.parseTcbTdxModules(tcbInfoStr);
+                encodedModuleIdentities = _encodeTdxModuleIdentities(moduleIdentities);
             }
-            attestationData = abi.encode(tcbInfo, module, moduleIdentities, encodedTcbLevels, tcbInfoStr, signature);
+            attestationData = abi.encode(tcbInfo, module, encodedModuleIdentities, encodedTcbLevels, tcbInfoStr, signature);
         }
     }
 
@@ -187,6 +189,21 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         for (uint256 i = 0; i < n;) {
             arr[i] = FmspcTcbLib.tcbLevelsObjToBytes(tcbLevels[i]);
             
+            unchecked {
+                i++;
+            }
+        }
+
+        encoded = abi.encode(arr);
+    }
+
+    function _encodeTdxModuleIdentities(TDXModuleIdentity[] memory tdxModuleIdentities) private view returns (bytes memory encoded) {
+        uint256 n = tdxModuleIdentities.length;
+        bytes[] memory arr = new bytes[](n);
+
+        for (uint256 i = 0; i < n;) {
+            arr[i] = FmspcTcbLib.tdxModuleIdentityToBytes(tdxModuleIdentities[i]);
+
             unchecked {
                 i++;
             }
