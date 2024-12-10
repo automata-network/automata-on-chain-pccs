@@ -242,24 +242,6 @@ contract FmspcTcbHelper {
         }
     }
 
-    function _tdxModuleTcbLevelsObjToSlot(TDXModuleTCBLevelsObj memory tdxModuleTcbLevelsObj) private pure returns (uint256 tdxTcbPacked) {
-        // tcb levels within tdx module can be packed into a single slot
-        // (uint64 packedIsvsvn, uint64 packedTcbDateTimestamp, uint64 packedStatus)
-
-        tdxTcbPacked = 
-            uint256(tdxModuleTcbLevelsObj.isvsvn) << (2 * 64) | 
-            uint256(tdxModuleTcbLevelsObj.tcbDateTimestamp) << 64 | 
-            uint8(tdxModuleTcbLevelsObj.status);
-    }
-
-    function _tdxModuleTcbLevelsObjFromSlot(uint256 tdxTcbPacked) private pure returns (TDXModuleTCBLevelsObj memory tdxModuleTcbLevelsObj) {
-        uint64 mask = 0xFFFFFFFFFFFFFFFF;
-
-        tdxModuleTcbLevelsObj.status = TCBStatus(uint8(uint64(tdxTcbPacked & mask)));
-        tdxModuleTcbLevelsObj.tcbDateTimestamp = uint64((tdxTcbPacked >> 64) & mask);
-        tdxModuleTcbLevelsObj.isvsvn = uint8(uint64((tdxTcbPacked >> 128) & mask));
-    }
-
     function parseTcbString(string calldata tcbInfoStr) external pure returns (TcbInfoBasic memory tcbInfo) {
         JSONParserLib.Item memory root = JSONParserLib.parse(tcbInfoStr);
         JSONParserLib.Item[] memory tcbInfoObj = root.children();
@@ -413,6 +395,24 @@ contract FmspcTcbHelper {
     }
 
     /// ====== INTERNAL METHODS BELOW ======
+
+    function _tdxModuleTcbLevelsObjToSlot(TDXModuleTCBLevelsObj memory tdxModuleTcbLevelsObj) private pure returns (uint256 tdxTcbPacked) {
+        // tcb levels within tdx module can be packed into a single slot
+        // (uint64 packedIsvsvn, uint64 packedTcbDateTimestamp, uint64 packedStatus)
+
+        tdxTcbPacked = 
+            uint256(tdxModuleTcbLevelsObj.isvsvn) << (2 * 64) | 
+            uint256(tdxModuleTcbLevelsObj.tcbDateTimestamp) << 64 | 
+            uint8(tdxModuleTcbLevelsObj.status);
+    }
+
+    function _tdxModuleTcbLevelsObjFromSlot(uint256 tdxTcbPacked) private pure returns (TDXModuleTCBLevelsObj memory tdxModuleTcbLevelsObj) {
+        uint64 mask = 0xFFFFFFFFFFFFFFFF;
+
+        tdxModuleTcbLevelsObj.status = TCBStatus(uint8(uint64(tdxTcbPacked & mask)));
+        tdxModuleTcbLevelsObj.tcbDateTimestamp = uint64((tdxTcbPacked >> 64) & mask);
+        tdxModuleTcbLevelsObj.isvsvn = uint8(uint64((tdxTcbPacked >> 128) & mask));
+    }
 
     function _parseTCBLevels(uint256 version, JSONParserLib.Item[] memory tcbLevelsObj)
         private
