@@ -178,14 +178,7 @@ contract FmspcTcbHelper {
     }
 
     function tdxModuleIdentityToBytes(TDXModuleIdentity calldata tdxModuleIdentity) external pure returns (bytes memory packedTdxModuleIdentity) {
-        // the first slot can occupied by (attributes, attributesMask and string id)
-        // string id occupies the upper 16 bytes of the slot (including length stored as a uint8);
-        // whereas the lower 16 bytes is reserved for both the attributes and attributesMask
-        uint256 slot1 = 
-            uint64(tdxModuleIdentity.attributesMask) |
-            uint256(uint64(tdxModuleIdentity.attributes) << 64) |
-            uint256(bytes(tdxModuleIdentity.id).length << 2 * 64) |
-            uint256(bytes32(bytes(tdxModuleIdentity.id)));
+        bytes32 slot1 = LibString.packOne(tdxModuleIdentity.id);
 
         // mrsigner is split into two slots
         // first slot: contains the first 32 bytes of mrsigner
@@ -195,6 +188,12 @@ contract FmspcTcbHelper {
             slot2,
             tdxModuleIdentity.mrsigner.substring(32, 16)
         ));
+
+        // Slot 4 is occupied by packing both the attributes and attributes mask
+        // Slot 4 = (attributes, attributesMask)
+        bytes32 slot4 =
+            bytes32(tdxModuleIdentity.attributes) |
+            bytes32(tdxModuleIdentity.attributesMask) >> 128;
 
         // encode the tdx module array
         uint256 n = tdxModuleIdentity.tcbLevels.length;
@@ -212,26 +211,24 @@ contract FmspcTcbHelper {
             slot1,
             slot2,
             slot3,
-            n,
+            slot4,
             abi.encodePacked(tdxTcbSlots)
         );
     }
 
     function tdxModuleIdentityFromBytes(bytes calldata packedTdxModuleIdentity) external pure returns (TDXModuleIdentity memory tdxModuleIdentity) {
         // decode slot 1
-        uint64 idLength = uint64(bytes8(packedTdxModuleIdentity[8:16]));
-        require(idLength <= 8, "tdx id length too long");
-        tdxModuleIdentity.id = string(packedTdxModuleIdentity[0:idLength]);
-        tdxModuleIdentity.attributes = bytes8(packedTdxModuleIdentity[16:24]);
-        tdxModuleIdentity.attributesMask = bytes8(packedTdxModuleIdentity[24:32]);
+        tdxModuleIdentity.id = LibString.unpackOne(bytes32(packedTdxModuleIdentity[0:32]));
 
         // decode slots 2 and 3 to get mrsigner
         tdxModuleIdentity.mrsigner = packedTdxModuleIdentity[32:80];
 
         // decode tdx module identity tcb level array
-        uint256 n = uint256(bytes32(packedTdxModuleIdentity[96:128]));
-        tdxModuleIdentity.tcbLevels = new TDXModuleTCBLevelsObj[](n);
+        tdxModuleIdentity.attributes = bytes8(packedTdxModuleIdentity[96:104]);
+        tdxModuleIdentity.attributesMask = bytes8(packedTdxModuleIdentity[112:120]);
         uint256 offset = 128;
+        uint256 n = (packedTdxModuleIdentity.length - offset) / 32;
+        tdxModuleIdentity.tcbLevels = new TDXModuleTCBLevelsObj[](n);
 
         for (uint256 i = 0; i < n;) {
             uint256 end = offset + 32;
@@ -243,8 +240,6 @@ contract FmspcTcbHelper {
                 i++;
             }
         }
-
-        assert(offset == packedTdxModuleIdentity.length);
     }
 
     function _tdxModuleTcbLevelsObjToSlot(TDXModuleTCBLevelsObj memory tdxModuleTcbLevelsObj) private pure returns (uint256 tdxTcbPacked) {
