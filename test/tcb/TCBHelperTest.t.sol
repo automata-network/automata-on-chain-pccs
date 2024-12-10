@@ -7,7 +7,7 @@ import "../../src/helpers/FmspcTcbHelper.sol";
 import "./TCBConstants.t.sol";
 import "./TDXConstants.t.sol";
 
-contract IdentityHelperTest is TCBConstants, TDXConstants, Test {
+contract TCBHelperTest is TCBConstants, TDXConstants, Test {
     FmspcTcbHelper fmspcTcbLib;
 
     function setUp() public {
@@ -18,7 +18,14 @@ contract IdentityHelperTest is TCBConstants, TDXConstants, Test {
 
         string memory str = "{\"id\":\"SGX\",\"version\":3,\"issueDate\":\"2024-11-22T15:44:38Z\",\"nextUpdate\":\"2024-12-22T15:44:38Z\",\"fmspc\":\"00606A000000\",\"pceId\":\"0000\",\"tcbType\":0,\"tcbEvaluationDataNumber\":17,\"tcbLevels\":[{\"tcb\":{\"sgxtcbcomponents\":[{\"svn\":14,\"category\":\"BIOS\",\"type\":\"Early Microcode Update\"},{\"svn\":14,\"category\":\"OS/VMM\",\"type\":\"SGX Late Microcode Update\"},{\"svn\":3,\"category\":\"OS/VMM\",\"type\":\"TXT SINIT\"},{\"svn\":3,\"category\":\"BIOS\"},{\"svn\":255},{\"svn\":255},{\"svn\":1},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0}],\"pcesvn\":13},\"tcbDate\":\"2024-03-13T00:00:00Z\",\"tcbStatus\":\"SWHardeningNeeded\",\"advisoryIDs\":[\"INTEL-SA-00615\"]},{\"tcb\":{\"sgxtcbcomponents\":[{\"svn\":14,\"category\":\"BIOS\",\"type\":\"Early Microcode Update\"},{\"svn\":14,\"category\":\"OS/VMM\",\"type\":\"SGX Late Microcode Update\"},{\"svn\":3,\"category\":\"OS/VMM\",\"type\":\"TXT SINIT\"},{\"svn\":3,\"category\":\"BIOS\"},{\"svn\":255},{\"svn\":255},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0}],\"pcesvn\":13},\"tcbDate\":\"2024-03-13T00:00:00Z\",\"tcbStatus\":\"ConfigurationAndSWHardeningNeeded\",\"advisoryIDs\":[\"INTEL-SA-00657\",\"INTEL-SA-00767\",\"INTEL-SA-00615\"]},{\"tcb\":{\"sgxtcbcomponents\":[{\"svn\":12,\"category\":\"BIOS\",\"type\":\"Early Microcode Update\"},{\"svn\":12,\"category\":\"OS/VMM\",\"type\":\"SGX Late Microcode Update\"},{\"svn\":3,\"category\":\"OS/VMM\",\"type\":\"TXT SINIT\"},{\"svn\":3,\"category\":\"BIOS\"},{\"svn\":255},{\"svn\":255},{\"svn\":1},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0}],\"pcesvn\":13},\"tcbDate\":\"2023-08-09T00:00:00Z\",\"tcbStatus\":\"OutOfDate\",\"advisoryIDs\":[\"INTEL-SA-00960\",\"INTEL-SA-00657\",\"INTEL-SA-00767\",\"INTEL-SA-00615\"]},{\"tcb\":{\"sgxtcbcomponents\":[{\"svn\":12,\"category\":\"BIOS\",\"type\":\"Early Microcode Update\"},{\"svn\":12,\"category\":\"OS/VMM\",\"type\":\"SGX Late Microcode Update\"},{\"svn\":3,\"category\":\"OS/VMM\",\"type\":\"TXT SINIT\"},{\"svn\":3,\"category\":\"BIOS\"},{\"svn\":255},{\"svn\":255},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0}],\"pcesvn\":13},\"tcbDate\":\"2023-08-09T00:00:00Z\",\"tcbStatus\":\"OutOfDateConfigurationNeeded\",\"advisoryIDs\":[\"INTEL-SA-00657\",\"INTEL-SA-00767\",\"INTEL-SA-00960\",\"INTEL-SA-00615\"]},{\"tcb\":{\"sgxtcbcomponents\":[{\"svn\":11,\"category\":\"BIOS\",\"type\":\"Early Microcode Update\"},{\"svn\":11,\"category\":\"OS/VMM\",\"type\":\"SGX Late Microcode Update\"},{\"svn\":3,\"category\":\"OS/VMM\",\"type\":\"TXT SINIT\"},{\"svn\":3,\"category\":\"BIOS\"},{\"svn\":255},{\"svn\":255},{\"svn\":1},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0}],\"pcesvn\":13},\"tcbDate\":\"2023-02-15T00:00:00Z\",\"tcbStatus\":\"OutOfDate\",\"advisoryIDs\":[\"INTEL-SA-00828\",\"INTEL-SA-00837\",\"INTEL-SA-00657\",\"INTEL-SA-00767\",\"INTEL-SA-00960\",\"INTEL-SA-00615\"]},{\"tcb\":{\"sgxtcbcomponents\":[{\"svn\":11,\"category\":\"BIOS\",\"type\":\"Early Microcode Update\"},{\"svn\":11,\"category\":\"OS/VMM\",\"type\":\"SGX Late Microcode Update\"},{\"svn\":3,\"category\":\"OS/VMM\",\"type\":\"TXT SINIT\"},{\"svn\":3,\"category\":\"BIOS\"},{\"svn\":255},{\"svn\":255},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0}],\"pcesvn\":13},\"tcbDate\":\"2023-02-15T00:00:00Z\",\"tcbStatus\":\"OutOfDateConfigurationNeeded\",\"advisoryIDs\":[\"INTEL-SA-00828\",\"INTEL-SA-00837\",\"INTEL-SA-00657\",\"INTEL-SA-00767\",\"INTEL-SA-00960\",\"INTEL-SA-00615\"]},{\"tcb\":{\"sgxtcbcomponents\":[{\"svn\":7,\"category\":\"BIOS\",\"type\":\"Early Microcode Update\"},{\"svn\":9,\"category\":\"OS/VMM\",\"type\":\"SGX Late Microcode Update\"},{\"svn\":3,\"category\":\"OS/VMM\",\"type\":\"TXT SINIT\"},{\"svn\":3,\"category\":\"BIOS\"},{\"svn\":255},{\"svn\":255},{\"svn\":1},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0}],\"pcesvn\":13},\"tcbDate\":\"2022-08-10T00:00:00Z\",\"tcbStatus\":\"OutOfDate\",\"advisoryIDs\":[\"INTEL-SA-00657\",\"INTEL-SA-00730\",\"INTEL-SA-00738\",\"INTEL-SA-00767\",\"INTEL-SA-00828\",\"INTEL-SA-00837\",\"INTEL-SA-00960\",\"INTEL-SA-00615\"]},{\"tcb\":{\"sgxtcbcomponents\":[{\"svn\":7,\"category\":\"BIOS\",\"type\":\"Early Microcode Update\"},{\"svn\":9,\"category\":\"OS/VMM\",\"type\":\"SGX Late Microcode Update\"},{\"svn\":3,\"category\":\"OS/VMM\",\"type\":\"TXT SINIT\"},{\"svn\":3,\"category\":\"BIOS\"},{\"svn\":255},{\"svn\":255},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0}],\"pcesvn\":13},\"tcbDate\":\"2022-08-10T00:00:00Z\",\"tcbStatus\":\"OutOfDateConfigurationNeeded\",\"advisoryIDs\":[\"INTEL-SA-00657\",\"INTEL-SA-00730\",\"INTEL-SA-00738\",\"INTEL-SA-00767\",\"INTEL-SA-00828\",\"INTEL-SA-00837\",\"INTEL-SA-00960\",\"INTEL-SA-00615\"]},{\"tcb\":{\"sgxtcbcomponents\":[{\"svn\":4,\"category\":\"BIOS\",\"type\":\"Early Microcode Update\"},{\"svn\":4,\"category\":\"OS/VMM\",\"type\":\"SGX Late Microcode Update\"},{\"svn\":3,\"category\":\"OS/VMM\",\"type\":\"TXT SINIT\"},{\"svn\":3,\"category\":\"BIOS\"},{\"svn\":255},{\"svn\":255},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0}],\"pcesvn\":11},\"tcbDate\":\"2021-11-10T00:00:00Z\",\"tcbStatus\":\"OutOfDate\",\"advisoryIDs\":[\"INTEL-SA-00586\",\"INTEL-SA-00614\",\"INTEL-SA-00615\",\"INTEL-SA-00657\",\"INTEL-SA-00730\",\"INTEL-SA-00738\",\"INTEL-SA-00767\",\"INTEL-SA-00828\",\"INTEL-SA-00837\",\"INTEL-SA-00960\"]},{\"tcb\":{\"sgxtcbcomponents\":[{\"svn\":4,\"category\":\"BIOS\",\"type\":\"Early Microcode Update\"},{\"svn\":4,\"category\":\"OS/VMM\",\"type\":\"SGX Late Microcode Update\"},{\"svn\":3,\"category\":\"OS/VMM\",\"type\":\"TXT SINIT\"},{\"svn\":3,\"category\":\"BIOS\"},{\"svn\":255},{\"svn\":255},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0}],\"pcesvn\":10},\"tcbDate\":\"2020-11-11T00:00:00Z\",\"tcbStatus\":\"OutOfDate\",\"advisoryIDs\":[\"INTEL-SA-00477\",\"INTEL-SA-00586\",\"INTEL-SA-00614\",\"INTEL-SA-00615\",\"INTEL-SA-00657\",\"INTEL-SA-00730\",\"INTEL-SA-00738\",\"INTEL-SA-00767\",\"INTEL-SA-00828\",\"INTEL-SA-00837\",\"INTEL-SA-00960\"]},{\"tcb\":{\"sgxtcbcomponents\":[{\"svn\":4,\"category\":\"BIOS\",\"type\":\"Early Microcode Update\"},{\"svn\":4,\"category\":\"OS/VMM\",\"type\":\"SGX Late Microcode Update\"},{\"svn\":3,\"category\":\"OS/VMM\",\"type\":\"TXT SINIT\"},{\"svn\":3,\"category\":\"BIOS\"},{\"svn\":255},{\"svn\":255},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0},{\"svn\":0}],\"pcesvn\":5},\"tcbDate\":\"2018-01-04T00:00:00Z\",\"tcbStatus\":\"OutOfDate\",\"advisoryIDs\":[\"INTEL-SA-00106\",\"INTEL-SA-00115\",\"INTEL-SA-00135\",\"INTEL-SA-00203\",\"INTEL-SA-00220\",\"INTEL-SA-00233\",\"INTEL-SA-00270\",\"INTEL-SA-00293\",\"INTEL-SA-00320\",\"INTEL-SA-00329\",\"INTEL-SA-00381\",\"INTEL-SA-00389\",\"INTEL-SA-00477\",\"INTEL-SA-00586\",\"INTEL-SA-00614\",\"INTEL-SA-00615\",\"INTEL-SA-00657\",\"INTEL-SA-00730\",\"INTEL-SA-00738\",\"INTEL-SA-00767\",\"INTEL-SA-00828\",\"INTEL-SA-00837\",\"INTEL-SA-00960\"]}]}";
 
-        (, TCBLevelsObj[] memory tcbLevels) = fmspcTcbLib.parseTcbLevels(str);
+        (
+            TcbInfoBasic memory tcbInfo,
+            string memory tcbLevelsString,
+            ,
+            
+        ) = fmspcTcbLib.parseTcbString(str);
+
+        TCBLevelsObj[] memory tcbLevels = fmspcTcbLib.parseTcbLevels(tcbInfo.version, tcbLevelsString);
 
         TCBLevelsObj memory tcb = tcbLevels[1];
 
@@ -69,7 +76,12 @@ contract IdentityHelperTest is TCBConstants, TDXConstants, Test {
     }
 
     function testTcbStringBasicParser() public {
-        TcbInfoBasic memory tcbInfo = fmspcTcbLib.parseTcbString(string(tdx_tcbStr));
+        (
+            TcbInfoBasic memory tcbInfo,
+            ,
+            ,
+            
+        ) = fmspcTcbLib.parseTcbString(string(tdx_tcbStr));
         assertEq(tcbInfo.tcbType, 0);
         assertEq(uint8(tcbInfo.id), uint8(TcbId.TDX));
 
@@ -80,8 +92,15 @@ contract IdentityHelperTest is TCBConstants, TDXConstants, Test {
     }
 
     function testV3TcbLevelsParser() public {
-        (uint256 version, TCBLevelsObj[] memory tcbLevels) = fmspcTcbLib.parseTcbLevels(string(tdx_tcbStr));
-        assertEq(version, 3);
+       (
+            TcbInfoBasic memory tcbInfo,
+            string memory tcbLevelsString,
+            ,
+            
+        ) = fmspcTcbLib.parseTcbString(string(tdx_tcbStr));
+        assertEq(tcbInfo.version, 3);
+
+        TCBLevelsObj[] memory tcbLevels = fmspcTcbLib.parseTcbLevels(tcbInfo.version, tcbLevelsString);
 
         // TODO: add test cases for the remaining tcblevels
         _assertTcbLevel(
@@ -95,8 +114,21 @@ contract IdentityHelperTest is TCBConstants, TDXConstants, Test {
     }
 
     function testTdxModulesParser() public {
-        (TDXModule memory module, TDXModuleIdentity[] memory moduleIdentities) =
-            fmspcTcbLib.parseTcbTdxModules(string(tdx_tcbStr));
+        (
+            TcbInfoBasic memory tcbInfo,
+            ,
+            string memory tdxModuleString,
+            string memory tdxModuleIdentitiesString
+        ) = fmspcTcbLib.parseTcbString(string(tdx_tcbStr));
+        assertEq(tcbInfo.version, 3);
+
+        (
+            TDXModule memory module, 
+            TDXModuleIdentity[] memory moduleIdentities
+        ) = fmspcTcbLib.parseTcbTdxModules(
+            tdxModuleString,
+            tdxModuleIdentitiesString
+        );
 
         // module assertions
         assertEq(keccak256(module.mrsigner), keccak256(mrsigner));
