@@ -53,6 +53,13 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
     // 82fba295
     error Pck_Not_Found();
 
+    event UpsertedPckCollateral(
+        CA indexed ca, 
+        bytes16 indexed qeid,
+        bytes2 indexed pceid,
+        bytes18 tcbm
+    );
+
     string constant PCK_PLATFORM_CA_COMMON_NAME = "Intel SGX PCK Platform CA";
     string constant PCK_PROCESSOR_CA_COMMON_NAME = "Intel SGX PCK Processor CA";
     string constant PCK_COMMON_NAME = "Intel SGX PCK Certificate";
@@ -169,6 +176,8 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         bytes32 key = PCK_KEY(qeidBytes, pceidBytes, tcbmBytes);
         attestationId = _attestPck(cert, hash, key);
         _upsertTcbm(qeidBytes, pceidBytes, tcbmBytes);
+
+        emit UpsertedPckCollateral(ca, qeidBytes, pceidBytes, tcbmBytes);
     }
 
     /**
