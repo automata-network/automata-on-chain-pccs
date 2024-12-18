@@ -42,6 +42,12 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     // bae57649
     error TCB_Expired();
 
+    event UpsertedFmpscTcb(
+        uint8 indexed tcbType,
+        bytes6 indexed fmspcTcbBytes,
+        uint32 indexed version
+    );
+
     constructor(address _resolver, address _p256, address _pcs, address _fmspcHelper, address _x509Helper)
         SigVerifyBase(_p256, _x509Helper)
         DaoBase(_resolver)
@@ -94,9 +100,12 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
      */
     function upsertFmspcTcb(TcbInfoJsonObj calldata tcbInfoObj) external returns (bytes32 attestationId) {
         _validateTcbInfo(tcbInfoObj);
-        (bytes memory req, bytes32 key) = _buildTcbAttestationRequest(tcbInfoObj);
+        (bytes memory req, uint8 tcbId, bytes6 fmspc, uint32 version) = _buildTcbAttestationRequest(tcbInfoObj);
+        bytes32 key = FMSPC_TCB_KEY(tcbId, fmspc, version);
         bytes32 hash = sha256(bytes(tcbInfoObj.tcbInfoStr));
         attestationId = _attestTcb(req, hash, key);
+
+        emit UpsertedFmpscTcb(tcbId, fmspc, version);
     }
 
     /**
@@ -127,11 +136,13 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     function _buildTcbAttestationRequest(TcbInfoJsonObj calldata tcbInfoObj)
         private
         view
-        returns (bytes memory reqData, bytes32 key)
+        returns (bytes memory reqData, uint8 tcbId, bytes6 fmspc, uint32 version)
     {
         TcbInfoBasic memory tcbInfo;
         (reqData, tcbInfo) = _buildAttestationData(tcbInfoObj.tcbInfoStr, tcbInfoObj.signature);
-        key = FMSPC_TCB_KEY(uint8(tcbInfo.id), tcbInfo.fmspc, tcbInfo.version);
+        tcbId = uint8(tcbInfo.id);
+        fmspc = tcbInfo.fmspc;
+        version = tcbInfo.version;
         if (block.timestamp < tcbInfo.issueDate || block.timestamp > tcbInfo.nextUpdate) {
             revert TCB_Expired();
         }

@@ -36,6 +36,8 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     // 9ac04499
     error Enclave_Id_Expired();
 
+    event UpsertedEnclaveIdentity(uint256 indexed id, uint256 indexed version);
+
     constructor(address _resolver, address _p256, address _pcs, address _enclaveIdentityHelper, address _x509Helper)
         DaoBase(_resolver)
         SigVerifyBase(_p256, _x509Helper)
@@ -90,6 +92,8 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         bytes memory req = _buildEnclaveIdentityAttestationRequest(id, version, enclaveIdentityObj);
         bytes32 hash = sha256(bytes(enclaveIdentityObj.identityStr));
         attestationId = _attestEnclaveIdentity(req, hash, key);
+
+        emit UpsertedEnclaveIdentity(id, version);
     }
 
     /**

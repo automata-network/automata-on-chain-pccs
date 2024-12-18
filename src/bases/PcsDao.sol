@@ -63,6 +63,8 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
     // e7ef341f
     error Invalid_Signature();
 
+    event UpsertedPCSCollateral(CA indexed ca, bool isCrl);
+
     constructor(address _resolver, address _p256, address _x509, address _crl)
         SigVerifyBase(_p256, _x509)
         DaoBase(_resolver)
@@ -105,6 +107,8 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
         bytes32 hash = _validatePcsCert(ca, cert);
         bytes32 key = PCS_KEY(ca, false);
         attestationId = _attestPcs(cert, hash, key);
+
+        emit UpsertedPCSCollateral(ca, false);
     }
 
     /**
@@ -139,6 +143,8 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
         bytes32 hash = _validatePcsCrl(ca, crl);
         bytes32 key = PCS_KEY(ca, true);
         attestationId = _attestPcs(crl, hash, key);
+
+        emit UpsertedPCSCollateral(ca, true);
     }
 
     function _validatePcsCert(CA ca, bytes calldata cert) private view returns (bytes32 hash) {
