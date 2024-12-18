@@ -56,6 +56,36 @@ contract RollbackTest is PCSSetupBase {
         _checkFmspcTcbMatch(newTcbInfoObj, tcbType, fmspcStr, version);
     }
 
+    function testEnclaveIdentityRollbackPrevention() public readAsAuthorizedCaller {
+        uint256 id = 0; // QE
+        uint256 version = 3;
+
+        EnclaveIdentityJsonObj memory oldQeIdObj = EnclaveIdentityJsonObj({
+            identityStr: "{\"id\":\"QE\",\"version\":2,\"issueDate\":\"2024-12-18T05:33:29Z\",\"nextUpdate\":\"2025-01-17T05:33:29Z\",\"tcbEvaluationDataNumber\":17,\"miscselect\":\"00000000\",\"miscselectMask\":\"FFFFFFFF\",\"attributes\":\"11000000000000000000000000000000\",\"attributesMask\":\"FBFFFFFFFFFFFFFF0000000000000000\",\"mrsigner\":\"8C4F5775D796503E96137F77C68A829A0056AC8DED70140B081B094490C57BFF\",\"isvprodid\":1,\"tcbLevels\":[{\"tcb\":{\"isvsvn\":8},\"tcbDate\":\"2024-03-13T00:00:00Z\",\"tcbStatus\":\"UpToDate\"},{\"tcb\":{\"isvsvn\":6},\"tcbDate\":\"2021-11-10T00:00:00Z\",\"tcbStatus\":\"OutOfDate\",\"advisoryIDs\":[\"INTEL-SA-00615\"]},{\"tcb\":{\"isvsvn\":5},\"tcbDate\":\"2020-11-11T00:00:00Z\",\"tcbStatus\":\"OutOfDate\",\"advisoryIDs\":[\"INTEL-SA-00477\",\"INTEL-SA-00615\"]},{\"tcb\":{\"isvsvn\":4},\"tcbDate\":\"2019-11-13T00:00:00Z\",\"tcbStatus\":\"OutOfDate\",\"advisoryIDs\":[\"INTEL-SA-00334\",\"INTEL-SA-00477\",\"INTEL-SA-00615\"]},{\"tcb\":{\"isvsvn\":2},\"tcbDate\":\"2019-05-15T00:00:00Z\",\"tcbStatus\":\"OutOfDate\",\"advisoryIDs\":[\"INTEL-SA-00219\",\"INTEL-SA-00293\",\"INTEL-SA-00334\",\"INTEL-SA-00477\",\"INTEL-SA-00615\"]},{\"tcb\":{\"isvsvn\":1},\"tcbDate\":\"2018-08-15T00:00:00Z\",\"tcbStatus\":\"OutOfDate\",\"advisoryIDs\":[\"INTEL-SA-00202\",\"INTEL-SA-00219\",\"INTEL-SA-00293\",\"INTEL-SA-00334\",\"INTEL-SA-00477\",\"INTEL-SA-00615\"]}]}",
+            signature: hex"0bf8e82b60da77590319adaa104ae3cdccc84cbdc6a3de2399cd193d9a9776e71b4a080a0481f48fa62b1844a2a086988500591fc714a1b3c2959402f6dc726d"
+        });
+
+        EnclaveIdentityJsonObj memory newQeIdObj = EnclaveIdentityJsonObj({
+            identityStr: "{\"id\":\"QE\",\"version\":2,\"issueDate\":\"2024-12-18T07:33:34Z\",\"nextUpdate\":\"2025-01-17T07:33:34Z\",\"tcbEvaluationDataNumber\":17,\"miscselect\":\"00000000\",\"miscselectMask\":\"FFFFFFFF\",\"attributes\":\"11000000000000000000000000000000\",\"attributesMask\":\"FBFFFFFFFFFFFFFF0000000000000000\",\"mrsigner\":\"8C4F5775D796503E96137F77C68A829A0056AC8DED70140B081B094490C57BFF\",\"isvprodid\":1,\"tcbLevels\":[{\"tcb\":{\"isvsvn\":8},\"tcbDate\":\"2024-03-13T00:00:00Z\",\"tcbStatus\":\"UpToDate\"},{\"tcb\":{\"isvsvn\":6},\"tcbDate\":\"2021-11-10T00:00:00Z\",\"tcbStatus\":\"OutOfDate\",\"advisoryIDs\":[\"INTEL-SA-00615\"]},{\"tcb\":{\"isvsvn\":5},\"tcbDate\":\"2020-11-11T00:00:00Z\",\"tcbStatus\":\"OutOfDate\",\"advisoryIDs\":[\"INTEL-SA-00477\",\"INTEL-SA-00615\"]},{\"tcb\":{\"isvsvn\":4},\"tcbDate\":\"2019-11-13T00:00:00Z\",\"tcbStatus\":\"OutOfDate\",\"advisoryIDs\":[\"INTEL-SA-00334\",\"INTEL-SA-00477\",\"INTEL-SA-00615\"]},{\"tcb\":{\"isvsvn\":2},\"tcbDate\":\"2019-05-15T00:00:00Z\",\"tcbStatus\":\"OutOfDate\",\"advisoryIDs\":[\"INTEL-SA-00219\",\"INTEL-SA-00293\",\"INTEL-SA-00334\",\"INTEL-SA-00477\",\"INTEL-SA-00615\"]},{\"tcb\":{\"isvsvn\":1},\"tcbDate\":\"2018-08-15T00:00:00Z\",\"tcbStatus\":\"OutOfDate\",\"advisoryIDs\":[\"INTEL-SA-00202\",\"INTEL-SA-00219\",\"INTEL-SA-00293\",\"INTEL-SA-00334\",\"INTEL-SA-00477\",\"INTEL-SA-00615\"]}]}",
+            signature: hex"3e5675f6dcf65413ec48e2be73de00da8fb111347ff31a6b8ed2ac261f3e300d502ac48622c40cb3f4363f085dc7b6db62da4ed3b75eb8dfcf737b57ba8cb1e0"
+        });
+
+        // begin the test at December 18th, 2024, 5:45am GMT
+        vm.warp(1734500700);
+        enclaveIdDao.upsertEnclaveIdentity(id, version, oldQeIdObj);
+        _checkQeIdHash(oldQeIdObj, id, version);
+
+        // two hours later
+        vm.warp(1734507900);
+        enclaveIdDao.upsertEnclaveIdentity(id, version, newQeIdObj);
+        _checkQeIdHash(newQeIdObj, id, version);
+
+        // rollback attempt
+        vm.expectRevert(EnclaveIdentityDao.Enclave_Id_Replaced.selector);
+        enclaveIdDao.upsertEnclaveIdentity(id, version, oldQeIdObj);
+        _checkQeIdHash(newQeIdObj, id, version);
+    }
+
     function _checkCrlHash(bytes memory crl) private {
         (, bytes memory expectedCrl) = pcs.getCertificateById(CA.PLATFORM);
         assertEq(keccak256(crl), keccak256(expectedCrl));
@@ -70,5 +100,15 @@ contract RollbackTest is PCSSetupBase {
         TcbInfoJsonObj memory fetched = fmspcTcbDao.getTcbInfo(tcbType, fmspcStr, version);
         assertEq(tcbInfoObj.signature, fetched.signature);
         assertEq(tcbInfoObj.tcbInfoStr, fetched.tcbInfoStr);
+    }
+
+    function _checkQeIdHash(
+        EnclaveIdentityJsonObj memory qeidObj,
+        uint256 id,
+        uint256 version
+    ) private {
+        EnclaveIdentityJsonObj memory fetched = enclaveIdDao.getEnclaveIdentity(id, version);
+        assertEq(qeidObj.identityStr, fetched.identityStr);
+        assertEq(qeidObj.signature, fetched.signature);
     }
 }

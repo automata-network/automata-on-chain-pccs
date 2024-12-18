@@ -35,6 +35,8 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     error Invalid_TCB_Cert_Signature();
     // 9ac04499
     error Enclave_Id_Expired();
+    // 0ed074b4
+    error Enclave_Id_Replaced();
 
     constructor(address _resolver, address _p256, address _pcs, address _enclaveIdentityHelper, address _x509Helper)
         DaoBase(_resolver)
@@ -86,8 +88,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         returns (bytes32 attestationId)
     {
         _validateQeIdentity(enclaveIdentityObj);
-        bytes32 key = ENCLAVE_ID_KEY(id, version);
-        bytes memory req = _buildEnclaveIdentityAttestationRequest(id, version, enclaveIdentityObj);
+        (bytes32 key, bytes memory req) = _buildEnclaveIdentityAttestationRequest(id, version, enclaveIdentityObj);
         bytes32 hash = sha256(bytes(enclaveIdentityObj.identityStr));
         attestationId = _attestEnclaveIdentity(req, hash, key);
     }
@@ -121,18 +122,32 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         uint256 id,
         uint256 version,
         EnclaveIdentityJsonObj calldata enclaveIdentityObj
-    ) private view returns (bytes memory reqData) {
+    ) private view returns (bytes32 key, bytes memory reqData) {
         IdentityObj memory identity = EnclaveIdentityLib.parseIdentityString(enclaveIdentityObj.identityStr);
         if (id != uint256(identity.id)) {
             revert Enclave_Id_Mismatch();
         }
 
-        if (id == uint256(EnclaveId.TD_QE) && version != 4) {
+        if (id == uint256(EnclaveId.TD_QE) && version < 4) {
             revert Incorrect_Enclave_Id_Version();
         } 
 
         if (block.timestamp < identity.issueDateTimestamp || block.timestamp > identity.nextUpdateTimestamp) {
             revert Enclave_Id_Expired();
+        }
+
+        // make sure new collateral is "newer"
+        key = ENCLAVE_ID_KEY(id, version);
+        bytes memory existingData = _onFetchDataFromResolver(key, false);
+        if (existingData.length > 0) {
+            (IdentityObj memory existingIdentity, , ) =
+                abi.decode(existingData, (IdentityObj, string, bytes));
+            if (
+                existingIdentity.tcbEvaluationDataNumber > identity.tcbEvaluationDataNumber ||
+                existingIdentity.issueDateTimestamp > identity.issueDateTimestamp
+            ) {
+                revert Enclave_Id_Replaced();
+            }
         }
 
         reqData = abi.encode(identity, enclaveIdentityObj.identityStr, enclaveIdentityObj.signature);
