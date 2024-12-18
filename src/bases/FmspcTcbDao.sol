@@ -41,6 +41,8 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     error Invalid_TCB_Cert_Signature();
     // bae57649
     error TCB_Expired();
+    // fd2153cd
+    error TCB_Replaced();
 
     constructor(address _resolver, address _p256, address _pcs, address _fmspcHelper, address _x509Helper)
         SigVerifyBase(_p256, _x509Helper)
@@ -130,20 +132,46 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         returns (bytes memory reqData, bytes32 key)
     {
         TcbInfoBasic memory tcbInfo;
-        (reqData, tcbInfo) = _buildAttestationData(tcbInfoObj.tcbInfoStr, tcbInfoObj.signature);
-        key = FMSPC_TCB_KEY(uint8(tcbInfo.id), tcbInfo.fmspc, tcbInfo.version);
-        if (block.timestamp < tcbInfo.issueDate || block.timestamp > tcbInfo.nextUpdate) {
-            revert TCB_Expired();
-        }
+        (reqData, tcbInfo, key) = _buildAttestationData(tcbInfoObj.tcbInfoStr, tcbInfoObj.signature);
     }
 
     function _buildAttestationData(string memory tcbInfoStr, bytes memory signature)
         private
         view
-        returns (bytes memory attestationData, TcbInfoBasic memory tcbInfo)
+        returns (bytes memory attestationData, TcbInfoBasic memory tcbInfo, bytes32 key)
     {
         (, TCBLevelsObj[] memory tcbLevels) = FmspcTcbLib.parseTcbLevels(tcbInfoStr);
         tcbInfo = FmspcTcbLib.parseTcbString(tcbInfoStr);
+
+        // check expiration before continuing...
+        if (block.timestamp < tcbInfo.issueDate || block.timestamp > tcbInfo.nextUpdate) {
+            revert TCB_Expired();
+        }
+
+        // Make sure new collateral is "newer"
+        key = FMSPC_TCB_KEY(uint8(tcbInfo.id), tcbInfo.fmspc, tcbInfo.version);
+        bytes memory existingTcbData = _onFetchDataFromResolver(key, false);
+        if (existingTcbData.length > 0) {
+            TcbInfoBasic memory existingTcbInfo;
+            if (tcbInfo.version < 3) {
+                (existingTcbInfo,,,) =
+                    abi.decode(existingTcbData, (TcbInfoBasic, bytes, string, bytes));
+            } else {
+                (existingTcbInfo,,,,,) = abi.decode(
+                    existingTcbData, (TcbInfoBasic, TDXModule, TDXModuleIdentity[], bytes, string, bytes)
+                );
+            }
+
+            /// I don't think there can be a scenario where an existing tcbinfo with a higher evaluation data number
+            /// to be issued BEFORE a new tcbinfo with a lower evaluation data number
+            if (
+                tcbInfo.evaluationDataNumber < existingTcbInfo.evaluationDataNumber ||
+                tcbInfo.issueDate < existingTcbInfo.issueDate
+            ) {
+                revert TCB_Replaced();
+            }
+        }
+
         bytes memory encodedTcbLevels = _encodeTcbLevels(tcbLevels);
         if (tcbInfo.version < 3) {
             attestationData = abi.encode(tcbInfo, encodedTcbLevels, tcbInfoStr, signature);
