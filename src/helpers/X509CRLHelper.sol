@@ -111,6 +111,7 @@ contract X509CRLHelper {
         uint256 root = der.root();
 
         uint256 tbsParentPtr = der.firstChildOf(root);
+        crl.tbs = der.allBytesAt(tbsParentPtr);
 
         uint256 tbsPtr = der.firstChildOf(tbsParentPtr);
 
