@@ -62,6 +62,8 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
     error Missing_Issuer();
     // e7ef341f
     error Invalid_Signature();
+    // e071faac
+    error Certificate_Replaced();
 
     event UpsertedPCSCollateral(CA indexed ca, bool isCrl);
 
@@ -149,17 +151,28 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
 
     function _validatePcsCert(CA ca, bytes calldata cert) private view returns (bytes32 hash) {
         X509Helper x509Lib = X509Helper(x509);
+        X509CertObj memory currentCert = x509Lib.parseX509DER(cert);
 
         // Step 1: Check whether cert has expired
-        bool notExpired = x509Lib.certIsNotExpired(cert);
-        if (!notExpired) {
+        bool validTimestamp = 
+            block.timestamp > currentCert.validityNotBefore && 
+            block.timestamp < currentCert.validityNotAfter;
+        if (!validTimestamp) {
             revert Certificate_Expired();
         }
 
-        // Step 2: Check issuer and subject common names are valid
-        string memory issuerName = x509Lib.getIssuerCommonName(cert);
-        string memory subjectName = x509Lib.getSubjectCommonName(cert);
-        string memory expectedIssuer = ROOT_CA_COMMON_NAME;
+        // Step 2: Rollback prevention: new certificate should not have an issued date
+        // that is older than the existing certificate
+        bytes memory existingData = _fetchDataFromResolver(PCS_KEY(ca, false), false);
+        if (existingData.length > 0) {
+            X509CertObj memory existingCert = x509Lib.parseX509DER(existingData);
+            bool replaced = existingCert.validityNotBefore > currentCert.validityNotBefore;
+            if (replaced) {
+                revert Certificate_Replaced();
+            }
+        }
+
+        // Step 3: Check issuer and subject common names are valid
         string memory expectedSubject;
         if (ca == CA.PLATFORM) {
             expectedSubject = PCK_PLATFORM_CA_COMMON_NAME;
@@ -171,22 +184,22 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
             expectedSubject = ROOT_CA_COMMON_NAME;
         }
 
-        if (!LibString.eq(issuerName, expectedIssuer)) {
+        if (!LibString.eq(currentCert.issuerCommonName, ROOT_CA_COMMON_NAME)) {
             revert Invalid_Issuer_Name();
         }
-        if (!LibString.eq(subjectName, expectedSubject)) {
+        if (!LibString.eq(currentCert.subjectCommonName, expectedSubject)) {
             revert Invalid_Subject_Name();
         }
 
-        // Step 3: Check Revocation Status
+        // Step 4: Check Revocation Status
         bytes memory rootCrlData = _fetchDataFromResolver(PCS_KEY(CA.ROOT, true), false);
         if (ca == CA.ROOT) {
-            bytes memory pubKey = x509Lib.getSubjectPublicKey(cert);
+            bytes memory pubKey = currentCert.subjectPublicKey;
             if (keccak256(pubKey) != ROOT_CA_PUBKEY_HASH) {
                 revert Root_Key_Mismatch();
             }
         } else if (rootCrlData.length > 0) {
-            uint256 serialNum = x509Lib.getSerialNumber(cert);
+            uint256 serialNum = currentCert.serialNumber;
             bool revoked = crlLib.serialNumberIsRevoked(serialNum, rootCrlData);
             if (revoked) {
                 revert Certificate_Revoked(ca, serialNum);
@@ -195,14 +208,13 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
 
         // Step 4: Check signature
         bytes memory rootCert = _getIssuer(CA.ROOT);
-        (bytes memory tbs, bytes memory signature) = x509Lib.getTbsAndSig(cert);
-        bytes32 digest = sha256(tbs);
+        bytes32 digest = sha256(currentCert.tbs);
         bool sigVerified;
         if (ca == CA.ROOT) {
             // the root certificate is issued by its own key
-            sigVerified = verifySignature(digest, signature, cert);
+            sigVerified = verifySignature(digest, currentCert.signature, cert);
         } else if (rootCert.length > 0) {
-            sigVerified = verifySignature(digest, signature, rootCert);
+            sigVerified = verifySignature(digest, currentCert.signature, rootCert);
         } else {
             // all other certificates should already have an iusuer configured
             revert Missing_Issuer();
@@ -212,37 +224,50 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
             revert Invalid_Signature();
         }
 
-        hash = keccak256(tbs);
+        hash = keccak256(currentCert.tbs);
     }
 
     function _validatePcsCrl(CA ca, bytes calldata crl) private view returns (bytes32 hash) {
+        X509CRLObj memory currentCrl = crlLib.parseCRLDER(crl);
+        
         // Step 1: Check whether CRL has expired
-        bool notExpired = crlLib.crlIsNotExpired(crl);
-        if (!notExpired) {
+        bool validTimestamp = 
+            block.timestamp > currentCrl.validityNotBefore && 
+            block.timestamp < currentCrl.validityNotAfter;
+        if (!validTimestamp) {
             revert Certificate_Expired();
         }
 
-        // Step 2: Check CRL issuer
-        string memory issuerCommonName = crlLib.getIssuerCommonName(crl);
+        // Step 2: Rollback prevention: new CRL should not have an issued date
+        // that is older than the existing CRL
+        bytes memory existingData = _fetchDataFromResolver(PCS_KEY(ca, true), false);
+        if (existingData.length > 0) {
+            X509CRLObj memory existingCrl = crlLib.parseCRLDER(existingData);
+            bool replaced = existingCrl.validityNotBefore > currentCrl.validityNotBefore;
+            if (replaced) {
+                revert Certificate_Replaced();
+            }
+        }
+
+        // Step 3: Check CRL issuer
         string memory expectedIssuer;
         if (ca == CA.PLATFORM || ca == CA.PROCESSOR) {
             expectedIssuer = ca == CA.PLATFORM ? PCK_PLATFORM_CA_COMMON_NAME : PCK_PROCESSOR_CA_COMMON_NAME;
         } else {
             expectedIssuer = ROOT_CA_COMMON_NAME;
         }
-        if (!LibString.eq(issuerCommonName, expectedIssuer)) {
+        if (!LibString.eq(currentCrl.issuerCommonName, expectedIssuer)) {
             revert Invalid_Issuer_Name();
         }
 
-        // Step 3: Verify signature
-        (bytes memory tbs, bytes memory signature) = crlLib.getTbsAndSig(crl);
-        bytes32 digest = sha256(tbs);
-        bool sigVerified = verifySignature(digest, signature, _getIssuer(ca));
+        // Step 4: Verify signature
+        bytes32 digest = sha256(currentCrl.tbs);
+        bool sigVerified = verifySignature(digest, currentCrl.signature, _getIssuer(ca));
         if (!sigVerified) {
             revert Invalid_Signature();
         }
 
-        hash = keccak256(tbs);
+        hash = keccak256(currentCrl.tbs);
     }
 
     function _getIssuer(CA ca) private view returns (bytes memory issuerCert) {
