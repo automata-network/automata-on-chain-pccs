@@ -241,20 +241,6 @@ contract FmspcTcbHelper {
             }
         }
     }
-    
-    struct ParseFlag {
-        bool tcbTypeFound;
-        bool fmspcFound;
-        bool versionFound;
-        bool issueDateFound;
-        bool nextUpdateFound;
-        bool pceidFound;
-        bool evaluationFound;
-        bool idFound;
-        bool tcbLevelsFound;
-        bool tdxModuleFound;
-        bool tdxModuleIdentitiesFound;
-    }
 
     function parseTcbString(string calldata tcbInfoStr) external pure returns (
         TcbInfoBasic memory tcbInfo,
@@ -265,79 +251,81 @@ contract FmspcTcbHelper {
         JSONParserLib.Item memory root = JSONParserLib.parse(tcbInfoStr);
         JSONParserLib.Item[] memory tcbInfoObj = root.children();
 
-        // move flags to memory to avoid stack too deep
-        ParseFlag memory f;
+        // declare uint16 with bits location representing the keys found
+        // all tcb types regardless of version and tee types should have these keys described below:
+        // [version, issueDate, nextUpdate, fmspc, pceId, tcbType, tcbEvaluationDataNumber, tcbLevels]
+        // Bits are sorted in the order of the keys above from LSB to MSB
+        // e.g. if version is found, the bytes would look like 00000001
+        // e.g. if both version and fmspc were found, the bytes would look like 00001001
+
+        // the next byte contains the keys only found for V3, and TDX TCBInfos
+        // [id, tdxModule, tdxModuleIdentities]
+
+        uint16 f;
         bool isTdx;
 
         for (uint256 y = 0; y < root.size(); y++) {
             JSONParserLib.Item memory current = tcbInfoObj[y];
             string memory decodedKey = JSONParserLib.decodeString(current.key());
             string memory val = current.value();
-            if (decodedKey.eq("tcbType")) {
-                tcbInfo.tcbType = uint8(JSONParserLib.parseUint(val));
-                f.tcbTypeFound = true;
-            } else if (decodedKey.eq("id")) {
+
+            if (decodedKey.eq("id")) {
                 string memory idStr = JSONParserLib.decodeString(val);
                 if (idStr.eq("SGX")) {
                     tcbInfo.id = TcbId.SGX;
+                    f |= 2 ** 8;
                 } else if (idStr.eq("TDX")) {
                     tcbInfo.id = TcbId.TDX;
+                    f |= 2 ** 8;
+                    isTdx = true;
                 } else {
                     revert TCBInfo_Invalid();
                 }
-                f.idFound = true;
-            } else if (decodedKey.eq("fmspc")) {
-                tcbInfo.fmspc = bytes6(uint48(JSONParserLib.parseUintFromHex(JSONParserLib.decodeString(val))));
-                f.fmspcFound = true;
             } else if (decodedKey.eq("version")) {
                 tcbInfo.version = uint32(JSONParserLib.parseUint(val));
-                f.versionFound = true;
+                f |= 2 ** 0;
             } else if (decodedKey.eq("issueDate")) {
                 tcbInfo.issueDate = uint64(DateTimeUtils.fromISOToTimestamp(JSONParserLib.decodeString(val)));
-                f.issueDateFound = true;
+                f |= 2 ** 1;
             } else if (decodedKey.eq("nextUpdate")) {
                 tcbInfo.nextUpdate = uint64(DateTimeUtils.fromISOToTimestamp(JSONParserLib.decodeString(val)));
-                f.nextUpdateFound = true;
+                f |= 2 ** 2;
+            } else if (decodedKey.eq("fmspc")) {
+                tcbInfo.fmspc = bytes6(uint48(JSONParserLib.parseUintFromHex(JSONParserLib.decodeString(val))));
+                f |= 2 ** 3;
             } else if (decodedKey.eq("pceId")) {
                 tcbInfo.pceid = bytes2(uint16(JSONParserLib.parseUintFromHex(JSONParserLib.decodeString(val))));
-                f.pceidFound = true;
+                f |= 2 ** 4;
+            } else if (decodedKey.eq("tcbType")) {
+                tcbInfo.tcbType = uint8(JSONParserLib.parseUint(val));
+                f |= 2 ** 5;
             } else if (decodedKey.eq("tcbEvaluationDataNumber")) {
                 tcbInfo.evaluationDataNumber = uint32(JSONParserLib.parseUint(val));
-                f.evaluationFound = true;
+                f |= 2 ** 6;
             } else if (decodedKey.eq("tcbLevels")) {
                 tcbLevelsString = val;
-                f.tcbLevelsFound = true;
-            }
-
-            isTdx = tcbInfo.version > 2 && tcbInfo.id == TcbId.TDX;
+                f |= 2 ** 7;
+            } 
+            
             if (isTdx) {
                 if (decodedKey.eq("tdxModule")) {
                     tdxModuleString = val;
-                    f.tdxModuleFound = true;
+                    f |= 2 ** 9;
                 } else if (decodedKey.eq("tdxModuleIdentities")) {
                     tdxModuleIdentitiesString = val;
-                    f.tdxModuleIdentitiesFound = true;
+                    f |= 2 ** 10;
                 }
             }
         }
 
-        bool allFound;
-
-        allFound = f.tcbLevelsFound
-            && f.tcbTypeFound 
-            && f.fmspcFound 
-            && f.issueDateFound 
-            && f.nextUpdateFound 
-            && f.pceidFound 
-            && f.evaluationFound; 
-
-        if (isTdx) {
-            allFound = allFound 
-                && f.tdxModuleFound
-                && f.tdxModuleIdentitiesFound;
+        bool ret;
+        if (tcbInfo.version < 3) {
+            ret = f == 0xff;
+        } else {
+            ret = isTdx ? f == 0x7ff : f == 0x1ff;
         }
 
-        if (!allFound) {
+        if (!ret) {
             revert TCBInfo_Invalid();
         }
     }
