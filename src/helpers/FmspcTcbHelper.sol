@@ -194,12 +194,12 @@ contract FmspcTcbHelper {
         uint16 f;
         bool isTdx;
 
-        for (uint256 y = 0; y < root.size(); y++) {
-            JSONParserLib.Item memory current = tcbInfoObj[y];
+        for (uint256 i = 0; i < root.size();) {
+            JSONParserLib.Item memory current = tcbInfoObj[i];
             string memory decodedKey = JSONParserLib.decodeString(current.key());
             string memory val = current.value();
 
-            if (decodedKey.eq("id")) {
+            if (f & (2 ** 8) == 0 && decodedKey.eq("id")) {
                 string memory idStr = JSONParserLib.decodeString(val);
                 if (idStr.eq("SGX")) {
                     tcbInfo.id = TcbId.SGX;
@@ -211,28 +211,28 @@ contract FmspcTcbHelper {
                 } else {
                     revert TCBInfo_Invalid();
                 }
-            } else if (decodedKey.eq("version")) {
+            } else if (f & (2 ** 0) == 0 && decodedKey.eq("version")) {
                 tcbInfo.version = uint32(JSONParserLib.parseUint(val));
                 f |= 2 ** 0;
-            } else if (decodedKey.eq("issueDate")) {
+            } else if (f & (2 ** 1) == 0 && decodedKey.eq("issueDate")) {
                 tcbInfo.issueDate = uint64(DateTimeUtils.fromISOToTimestamp(JSONParserLib.decodeString(val)));
                 f |= 2 ** 1;
-            } else if (decodedKey.eq("nextUpdate")) {
+            } else if (f & (2 ** 2) == 0 && decodedKey.eq("nextUpdate")) {
                 tcbInfo.nextUpdate = uint64(DateTimeUtils.fromISOToTimestamp(JSONParserLib.decodeString(val)));
                 f |= 2 ** 2;
-            } else if (decodedKey.eq("fmspc")) {
+            } else if (f & (2 ** 3) == 0 && decodedKey.eq("fmspc")) {
                 tcbInfo.fmspc = bytes6(uint48(JSONParserLib.parseUintFromHex(JSONParserLib.decodeString(val))));
                 f |= 2 ** 3;
-            } else if (decodedKey.eq("pceId")) {
+            } else if (f & (2 ** 4) == 0 && decodedKey.eq("pceId")) {
                 tcbInfo.pceid = bytes2(uint16(JSONParserLib.parseUintFromHex(JSONParserLib.decodeString(val))));
                 f |= 2 ** 4;
-            } else if (decodedKey.eq("tcbType")) {
+            } else if (f & (2 ** 5) == 0 && decodedKey.eq("tcbType")) {
                 tcbInfo.tcbType = uint8(JSONParserLib.parseUint(val));
                 f |= 2 ** 5;
-            } else if (decodedKey.eq("tcbEvaluationDataNumber")) {
+            } else if (f & (2 ** 6) == 0 && decodedKey.eq("tcbEvaluationDataNumber")) {
                 tcbInfo.evaluationDataNumber = uint32(JSONParserLib.parseUint(val));
                 f |= 2 ** 6;
-            } else if (decodedKey.eq("tcbLevels")) {
+            } else if (f & (2 ** 7) == 0 && decodedKey.eq("tcbLevels")) {
                 tcbLevelsString = val;
                 f |= 2 ** 7;
             } 
@@ -245,6 +245,10 @@ contract FmspcTcbHelper {
                     tdxModuleIdentitiesString = val;
                     f |= 2 ** 10;
                 }
+            }
+
+            unchecked {
+                i++;
             }
         }
 
@@ -267,34 +271,6 @@ contract FmspcTcbHelper {
     {
         JSONParserLib.Item memory root = JSONParserLib.parse(tcbLevelsString);
         JSONParserLib.Item[] memory tcbLevelsObj = root.children();
-        tcbLevels = _parseTCBLevels(version, tcbLevelsObj);
-    }
-
-    function parseTcbTdxModules(
-        string calldata tdxModuleString,
-        string calldata tdxModuleIdentitiesString
-    )
-        external
-        pure
-        returns (TDXModule memory module, TDXModuleIdentity[] memory moduleIdentities)
-    {
-        JSONParserLib.Item memory tdxModuleRoot = JSONParserLib.parse(tdxModuleString);
-        JSONParserLib.Item[] memory tdxModuleItems = tdxModuleRoot.children();
-
-        JSONParserLib.Item memory tdxModuleIdentitiesRoot = JSONParserLib.parse(tdxModuleIdentitiesString);
-        JSONParserLib.Item[] memory tdxModuleIdentitiesItems = tdxModuleIdentitiesRoot.children();
-
-        module = _parseTdxModule(tdxModuleItems);
-        moduleIdentities = _parseTdxModuleIdentities(tdxModuleIdentitiesItems);
-    }
-
-    /// ====== INTERNAL METHODS BELOW ======
-
-    function _parseTCBLevels(uint256 version, JSONParserLib.Item[] memory tcbLevelsObj)
-        private
-        pure
-        returns (TCBLevelsObj[] memory tcbLevels)
-    {
         uint256 tcbLevelsSize = tcbLevelsObj.length;
         tcbLevels = new TCBLevelsObj[](tcbLevelsSize);
 
@@ -332,6 +308,26 @@ contract FmspcTcbHelper {
             }
         }
     }
+
+    function parseTcbTdxModules(
+        string calldata tdxModuleString,
+        string calldata tdxModuleIdentitiesString
+    )
+        external
+        pure
+        returns (TDXModule memory module, TDXModuleIdentity[] memory moduleIdentities)
+    {
+        JSONParserLib.Item memory tdxModuleRoot = JSONParserLib.parse(tdxModuleString);
+        JSONParserLib.Item[] memory tdxModuleItems = tdxModuleRoot.children();
+
+        JSONParserLib.Item memory tdxModuleIdentitiesRoot = JSONParserLib.parse(tdxModuleIdentitiesString);
+        JSONParserLib.Item[] memory tdxModuleIdentitiesItems = tdxModuleIdentitiesRoot.children();
+
+        module = _parseTdxModule(tdxModuleItems);
+        moduleIdentities = _parseTdxModuleIdentities(tdxModuleIdentitiesItems);
+    }
+
+    /// ====== INTERNAL METHODS BELOW ======
 
     function _getTcbStatus(string memory statusStr) private pure returns (TCBStatus status) {
         if (statusStr.eq("UpToDate")) {
