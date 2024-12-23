@@ -263,22 +263,20 @@ contract FmspcTcbHelper {
 
         uint16 f;
         bool isTdx;
+        uint256 n = root.size();
 
-        for (uint256 i = 0; i < root.size();) {
+        for (uint256 i = 0; i < n;) {
             JSONParserLib.Item memory current = tcbInfoObj[i];
             string memory decodedKey = JSONParserLib.decodeString(current.key());
             string memory val = current.value();
 
             if (f & (2 ** 8) == 0 && decodedKey.eq("id")) {
                 string memory idStr = JSONParserLib.decodeString(val);
-                if (idStr.eq("SGX")) {
-                    tcbInfo.id = TcbId.SGX;
-                    f |= 2 ** 8;
-                } else if (idStr.eq("TDX")) {
+                f |= 2 ** 8;
+                if (idStr.eq("TDX")) {
                     tcbInfo.id = TcbId.TDX;
-                    f |= 2 ** 8;
                     isTdx = true;
-                } else {
+                } else if (!idStr.eq("SGX")) {
                     revert TCBInfo_Invalid();
                 }
             } else if (f & (2 ** 0) == 0 && decodedKey.eq("version")) {
@@ -302,32 +300,27 @@ contract FmspcTcbHelper {
             } else if (f & (2 ** 6) == 0 && decodedKey.eq("tcbEvaluationDataNumber")) {
                 tcbInfo.evaluationDataNumber = uint32(JSONParserLib.parseUint(val));
                 f |= 2 ** 6;
-            } else if (f & (2 ** 7) == 0 && decodedKey.eq("tcbLevels")) {
-                tcbLevelsString = val;
-                f |= 2 ** 7;
-            } 
-            
-            if (isTdx) {
-                if (decodedKey.eq("tdxModule")) {
+            } else if ((f & (2 ** 9) == 0 || f & (2 ** 10) == 0) && isTdx && tcbInfo.version > 2) {
+                if (f & (2 ** 9) == 0 && decodedKey.eq("tdxModule")) {
                     tdxModuleString = val;
                     f |= 2 ** 9;
-                } else if (decodedKey.eq("tdxModuleIdentities")) {
+                } else if (f & (2 ** 10) == 0 && decodedKey.eq("tdxModuleIdentities")) {
                     tdxModuleIdentitiesString = val;
                     f |= 2 ** 10;
                 }
+            } else if (f & (2 ** 7) == 0 && decodedKey.eq("tcbLevels")) {
+                tcbLevelsString = val;
+                f |= 2 ** 7;
             }
-
+            
             unchecked {
                 i++;
             }
         }
 
-        bool ret;
-        if (tcbInfo.version < 3) {
-            ret = f == 0xff;
-        } else {
-            ret = isTdx ? f == 0x7ff : f == 0x1ff;
-        }
+
+        uint256 allFound = f & ((2 ** n) - 1);
+        bool ret = allFound == f;
 
         if (!ret) {
             revert TCBInfo_Invalid();
