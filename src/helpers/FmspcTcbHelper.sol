@@ -261,7 +261,7 @@ contract FmspcTcbHelper {
         // the next byte contains the keys only found for V3, and TDX TCBInfos
         // [id, tdxModule, tdxModuleIdentities]
 
-        uint16 f;
+        uint256 f;
         bool isTdx;
         uint256 n = root.size();
 
@@ -282,6 +282,9 @@ contract FmspcTcbHelper {
             } else if (f & (2 ** 0) == 0 && decodedKey.eq("version")) {
                 tcbInfo.version = uint32(JSONParserLib.parseUint(val));
                 f |= 2 ** 0;
+                if (tcbInfo.version < 3) {
+                    f |= 2 ** 8;
+                }
             } else if (f & (2 ** 1) == 0 && decodedKey.eq("issueDate")) {
                 tcbInfo.issueDate = uint64(DateTimeUtils.fromISOToTimestamp(JSONParserLib.decodeString(val)));
                 f |= 2 ** 1;
@@ -300,7 +303,7 @@ contract FmspcTcbHelper {
             } else if (f & (2 ** 6) == 0 && decodedKey.eq("tcbEvaluationDataNumber")) {
                 tcbInfo.evaluationDataNumber = uint32(JSONParserLib.parseUint(val));
                 f |= 2 ** 6;
-            } else if ((f & (2 ** 9) == 0 || f & (2 ** 10) == 0) && isTdx && tcbInfo.version > 2) {
+            } else if (tcbInfo.version > 2 && isTdx && (f & (2 ** 9) == 0 || f & (2 ** 10) == 0)) {
                 if (f & (2 ** 9) == 0 && decodedKey.eq("tdxModule")) {
                     tdxModuleString = val;
                     f |= 2 ** 9;
@@ -318,6 +321,12 @@ contract FmspcTcbHelper {
             }
         }
 
+        // v2 tcbinfo does not explicitly have the "id" field
+        // but we set the bit to 1 anyway to save gas by skipping the check
+        // incrementing n prevents from the "id" bit to be set to 0 by masking
+        if (tcbInfo.version < 3) {
+            n++;
+        }
 
         uint256 allFound = f & ((2 ** n) - 1);
         bool ret = allFound == f;
