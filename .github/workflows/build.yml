@@ -32,8 +32,21 @@ jobs:
 
       - name: Run Forge tests
         run: |
-          forge test -vvv
+          forge test --gas-report > gasreport.ansi
         id: test
 
-      - name: Run snapshot and Generate Summary
-        run: NO_COLOR=1 forge snapshot --gas-report >> $GITHUB_STEP_SUMMARY
+      - name: Compare gas reports
+        uses: Rubilmax/foundry-gas-diff@v3.18
+        with:
+          sortCriteria: avg,max # sort diff rows by criteria
+          sortOrders: desc,asc # and directions
+          ignore: test-foundry/**/* # filter out gas reports from specific paths (test/ is included by default)
+        id: gas_diff
+
+      - name: Add gas diff to sticky comment
+        if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          # delete the comment in case changes no longer impact gas costs
+          delete: ${{ !steps.gas_diff.outputs.markdown }}
+          message: ${{ steps.gas_diff.outputs.markdown }}
