@@ -153,8 +153,16 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         view
         returns (bytes memory attestationData, TcbInfoBasic memory tcbInfo)
     {
-        (, TCBLevelsObj[] memory tcbLevels) = FmspcTcbLib.parseTcbLevels(tcbInfoStr);
-        tcbInfo = FmspcTcbLib.parseTcbString(tcbInfoStr);
+        string memory tcbLevelsString;
+        string memory tdxModuleString;
+        string memory tdxModuleIdentitiesString;
+        (
+            tcbInfo, 
+            tcbLevelsString, 
+            tdxModuleString, 
+            tdxModuleIdentitiesString
+        ) = FmspcTcbLib.parseTcbString(tcbInfoStr);
+        TCBLevelsObj[] memory tcbLevels = FmspcTcbLib.parseTcbLevels(tcbInfo.version, tcbLevelsString);
         bytes memory encodedTcbLevels = _encodeTcbLevels(tcbLevels);
         if (tcbInfo.version < 3) {
             attestationData = abi.encode(tcbInfo, encodedTcbLevels, tcbInfoStr, signature);
@@ -162,7 +170,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
             TDXModule memory module;
             TDXModuleIdentity[] memory moduleIdentities;
             if (tcbInfo.id == TcbId.TDX) {
-                (module, moduleIdentities) = FmspcTcbLib.parseTcbTdxModules(tcbInfoStr);
+                (module, moduleIdentities) = FmspcTcbLib.parseTcbTdxModules(tdxModuleString, tdxModuleIdentitiesString);
             }
             attestationData = abi.encode(tcbInfo, module, moduleIdentities, encodedTcbLevels, tcbInfoStr, signature);
         }
