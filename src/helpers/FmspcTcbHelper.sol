@@ -355,7 +355,42 @@ contract FmspcTcbHelper {
     {
         JSONParserLib.Item memory root = JSONParserLib.parse(tcbLevelsString);
         JSONParserLib.Item[] memory tcbLevelsObj = root.children();
-        tcbLevels = _parseTCBLevels(version, tcbLevelsObj);
+        uint256 tcbLevelsSize = tcbLevelsObj.length;
+        tcbLevels = new TCBLevelsObj[](tcbLevelsSize);
+
+        // iterating through the array
+        for (uint256 i = 0; i < tcbLevelsSize; i++) {
+            JSONParserLib.Item[] memory tcbObj = tcbLevelsObj[i].children();
+            // iterating through individual tcb objects
+            for (uint256 j = 0; j < tcbLevelsObj[i].size(); j++) {
+                string memory tcbKey = JSONParserLib.decodeString(tcbObj[j].key());
+                if (tcbKey.eq("tcb")) {
+                    string memory tcbStr = tcbObj[j].value();
+                    JSONParserLib.Item memory tcbParent = JSONParserLib.parse(tcbStr);
+                    JSONParserLib.Item[] memory tcbComponents = tcbParent.children();
+                    if (version == 2) {
+                        (tcbLevels[i].sgxComponentCpuSvns, tcbLevels[i].pcesvn) = _parseV2Tcb(tcbComponents);
+                    } else if (version == 3) {
+                        (tcbLevels[i].sgxComponentCpuSvns, tcbLevels[i].tdxSvns, tcbLevels[i].pcesvn) =
+                            _parseV3Tcb(tcbComponents);
+                    } else {
+                        revert TCBInfo_Invalid();
+                    }
+                } else if (tcbKey.eq("tcbDate")) {
+                    tcbLevels[i].tcbDateTimestamp =
+                        uint64(DateTimeUtils.fromISOToTimestamp(JSONParserLib.decodeString(tcbObj[j].value())));
+                } else if (tcbKey.eq("tcbStatus")) {
+                    tcbLevels[i].status = _getTcbStatus(JSONParserLib.decodeString(tcbObj[j].value()));
+                } else if (tcbKey.eq("advisoryIDs")) {
+                    JSONParserLib.Item[] memory advisoryArr = tcbObj[j].children();
+                    uint256 n = tcbObj[j].size();
+                    tcbLevels[i].advisoryIDs = new string[](n);
+                    for (uint256 k = 0; k < n; k++) {
+                        tcbLevels[i].advisoryIDs[k] = JSONParserLib.decodeString(advisoryArr[k].value());
+                    }
+                }
+            }
+        }
     }
 
     function parseTcbTdxModules(
@@ -394,49 +429,6 @@ contract FmspcTcbHelper {
         tdxModuleTcbLevelsObj.status = TCBStatus(uint8(uint64(tdxTcbPacked & mask)));
         tdxModuleTcbLevelsObj.tcbDateTimestamp = uint64((tdxTcbPacked >> 64) & mask);
         tdxModuleTcbLevelsObj.isvsvn = uint8(uint64((tdxTcbPacked >> 128) & mask));
-    }
-
-    function _parseTCBLevels(uint256 version, JSONParserLib.Item[] memory tcbLevelsObj)
-        private
-        pure
-        returns (TCBLevelsObj[] memory tcbLevels)
-    {
-        uint256 tcbLevelsSize = tcbLevelsObj.length;
-        tcbLevels = new TCBLevelsObj[](tcbLevelsSize);
-
-        // iterating through the array
-        for (uint256 i = 0; i < tcbLevelsSize; i++) {
-            JSONParserLib.Item[] memory tcbObj = tcbLevelsObj[i].children();
-            // iterating through individual tcb objects
-            for (uint256 j = 0; j < tcbLevelsObj[i].size(); j++) {
-                string memory tcbKey = JSONParserLib.decodeString(tcbObj[j].key());
-                if (tcbKey.eq("tcb")) {
-                    string memory tcbStr = tcbObj[j].value();
-                    JSONParserLib.Item memory tcbParent = JSONParserLib.parse(tcbStr);
-                    JSONParserLib.Item[] memory tcbComponents = tcbParent.children();
-                    if (version == 2) {
-                        (tcbLevels[i].sgxComponentCpuSvns, tcbLevels[i].pcesvn) = _parseV2Tcb(tcbComponents);
-                    } else if (version == 3) {
-                        (tcbLevels[i].sgxComponentCpuSvns, tcbLevels[i].tdxSvns, tcbLevels[i].pcesvn) =
-                            _parseV3Tcb(tcbComponents);
-                    } else {
-                        revert TCBInfo_Invalid();
-                    }
-                } else if (tcbKey.eq("tcbDate")) {
-                    tcbLevels[i].tcbDateTimestamp =
-                        uint64(DateTimeUtils.fromISOToTimestamp(JSONParserLib.decodeString(tcbObj[j].value())));
-                } else if (tcbKey.eq("tcbStatus")) {
-                    tcbLevels[i].status = _getTcbStatus(JSONParserLib.decodeString(tcbObj[j].value()));
-                } else if (tcbKey.eq("advisoryIDs")) {
-                    JSONParserLib.Item[] memory advisoryArr = tcbObj[j].children();
-                    uint256 n = tcbObj[j].size();
-                    tcbLevels[i].advisoryIDs = new string[](n);
-                    for (uint256 k = 0; k < n; k++) {
-                        tcbLevels[i].advisoryIDs[k] = JSONParserLib.decodeString(advisoryArr[k].value());
-                    }
-                }
-            }
-        }
     }
 
     function _getTcbStatus(string memory statusStr) private pure returns (TCBStatus status) {
