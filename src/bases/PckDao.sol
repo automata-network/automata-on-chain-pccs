@@ -53,6 +53,9 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
     // 82fba295
     error Pck_Not_Found();
 
+    // 645146bf
+    error Pck_Replaced();
+
     event UpsertedPckCollateral(
         CA indexed ca, 
         bytes16 indexed qeid,
@@ -172,8 +175,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         bytes calldata cert
     ) external pckCACheck(ca) returns (bytes32 attestationId) {
         (bytes16 qeidBytes, bytes2 pceidBytes,,, bytes18 tcbmBytes) = _parseStringInputs(qeid, pceid, "", "", tcbm);
-        bytes32 hash = _validatePck(ca, cert, tcbmBytes, pceidBytes);
-        bytes32 key = PCK_KEY(qeidBytes, pceidBytes, tcbmBytes);
+        (bytes32 hash, bytes32 key) = _validatePck(ca, cert, qeidBytes, pceidBytes, tcbmBytes);
         attestationId = _attestPck(cert, hash, key);
         _upsertTcbm(qeidBytes, pceidBytes, tcbmBytes);
 
@@ -272,16 +274,28 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
      */
     function _getAllTcbs(bytes16 qeidBytes, bytes2 pceidBytes) internal view virtual returns (bytes18[] memory tcbms);
 
-    function _validatePck(CA ca, bytes memory der, bytes18 tcbm, bytes2 pceid) internal view returns (bytes32 hash) {
+    function _validatePck(CA ca, bytes memory der, bytes16 qeid, bytes2 pceid, bytes18 tcbm) internal view returns (bytes32 hash, bytes32 key) {
         X509CertObj memory pck = pckLib.parseX509DER(der);
         
-        // Step 1: Check whether the pck has expired
+        // Step 0: Check whether the pck has expired
         bool notExpired = block.timestamp > pck.validityNotBefore && block.timestamp < pck.validityNotAfter;
         if (!notExpired) {
             revert Certificate_Expired();
         }
 
         hash = keccak256(pck.tbs);
+        key = PCK_KEY(qeid, pceid, tcbm);
+
+        // Step 1: Rollback prevention: new certificate should not have an issued date
+        // that is older than the existing certificate
+        bytes memory existingData = _fetchDataFromResolver(key, false);
+        if (existingData.length > 0) {
+            (uint256 existingCertNotValidBefore, ) = crlLib.getCrlValidity(existingData);
+            bool replaced = existingCertNotValidBefore > pck.validityNotBefore;
+            if (replaced) {
+                revert Pck_Replaced();
+            }
+        }
 
         // Step 2: Check Issuer and Subject names
         string memory expectedIssuer;
