@@ -11,12 +11,22 @@ contract RollbackTest is PCSSetupBase {
     function testCrlRollbackPrevention() public readAsAuthorizedCaller {
         // test begins at December 2nd, 2024, Midnight GMT
         vm.warp(1733097600);
+
+        uint256 a = gasleft();
         pcs.upsertPckCrl(CA.PLATFORM, old_pck_crl);
+        uint256 b = gasleft();
+        console.log("Initial upsert gas: ", a - b);
+
         _checkCrlHash(old_pck_crl);
 
         // about one week later on December 11th, 2024, 0930 GMT
         vm.warp(1733909400);
+
+        uint256 c = gasleft();
         pcs.upsertPckCrl(CA.PLATFORM, new_pck_crl);
+        uint256 d = gasleft();
+        console.log("Replacement upsert gas: ", c - d);
+
         _checkCrlHash(new_pck_crl);
 
         // rollback attempt
@@ -42,12 +52,22 @@ contract RollbackTest is PCSSetupBase {
 
         // begin the test at December 11th, 2024, Midnight UTC
         vm.warp(1733875200);
+
+        uint256 a = gasleft();
         fmspcTcbDao.upsertFmspcTcb(oldTcbInfoObj);
+        uint256 b = gasleft();
+        console.log("Initial upsert gas: ", a - b);
+
         _checkFmspcTcbMatch(oldTcbInfoObj, tcbType, fmspcStr, version);
 
         // one week later, at December 19th, 2024, Midnight UTC
         vm.warp(1734566400);
+
+        uint256 c = gasleft();
         fmspcTcbDao.upsertFmspcTcb(newTcbInfoObj);
+        uint256 d = gasleft();
+        console.log("Replacement upsert gas: ", c - d);
+
         _checkFmspcTcbMatch(newTcbInfoObj, tcbType, fmspcStr, version);
 
         // attempt to rollback with oldTcbInfoObj
@@ -72,12 +92,22 @@ contract RollbackTest is PCSSetupBase {
 
         // begin the test at December 18th, 2024, 5:45am GMT
         vm.warp(1734500700);
+
+        uint256 a = gasleft();
         enclaveIdDao.upsertEnclaveIdentity(id, version, oldQeIdObj);
+        uint256 b = gasleft();
+        console.log("Initial upsert gas: ", a - b);
+
         _checkQeIdHash(oldQeIdObj, id, version);
 
         // two hours later
         vm.warp(1734507900);
+
+        uint256 c = gasleft();
         enclaveIdDao.upsertEnclaveIdentity(id, version, newQeIdObj);
+        uint256 d = gasleft();
+        console.log("Replacement upsert gas: ", c - d);
+
         _checkQeIdHash(newQeIdObj, id, version);
 
         // rollback attempt

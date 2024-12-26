@@ -273,13 +273,14 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
     function _getAllTcbs(bytes16 qeidBytes, bytes2 pceidBytes) internal view virtual returns (bytes18[] memory tcbms);
 
     function _validatePck(CA ca, bytes memory der, bytes18 tcbm, bytes2 pceid) internal view returns (bytes32 hash) {
+        X509CertObj memory pck = pckLib.parseX509DER(der);
+        
         // Step 1: Check whether the pck has expired
-        bool notExpired = pckLib.certIsNotExpired(der);
+        bool notExpired = block.timestamp > pck.validityNotBefore && block.timestamp < pck.validityNotAfter;
         if (!notExpired) {
             revert Certificate_Expired();
         }
 
-        X509CertObj memory pck = pckLib.parseX509DER(der);
         hash = keccak256(pck.tbs);
 
         // Step 2: Check Issuer and Subject names
