@@ -102,7 +102,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
      */
     function upsertFmspcTcb(TcbInfoJsonObj calldata tcbInfoObj) external returns (bytes32 attestationId) {
         _validateTcbInfo(tcbInfoObj);
-        (bytes memory req, bytes32 key) = _buildTcbAttestationRequest(tcbInfoObj);
+        (bytes memory req, bytes32 key, uint8 tcbId, bytes6 fmspc, uint32 version) = _buildTcbAttestationRequest(tcbInfoObj);
         bytes32 hash = sha256(bytes(tcbInfoObj.tcbInfoStr));
         attestationId = _attestTcb(req, hash, key);
 
@@ -137,17 +137,10 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     function _buildTcbAttestationRequest(TcbInfoJsonObj calldata tcbInfoObj)
         private
         view
-        returns (bytes memory reqData, bytes32 key)
+        returns (bytes memory reqData, bytes32 key, uint8 id, bytes6 fmspc, uint32 version)
     {
         TcbInfoBasic memory tcbInfo;
-        (reqData, tcbInfo, key) = _buildAttestationData(tcbInfoObj.tcbInfoStr, tcbInfoObj.signature);
-    }
 
-    function _buildAttestationData(string memory tcbInfoStr, bytes memory signature)
-        private
-        view
-        returns (bytes memory attestationData, TcbInfoBasic memory tcbInfo, bytes32 key)
-    {
         string memory tcbLevelsString;
         string memory tdxModuleString;
         string memory tdxModuleIdentitiesString;
@@ -156,7 +149,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
             tcbLevelsString, 
             tdxModuleString, 
             tdxModuleIdentitiesString
-        ) = FmspcTcbLib.parseTcbString(tcbInfoStr);
+        ) = FmspcTcbLib.parseTcbString(tcbInfoObj.tcbInfoStr);
 
         // check expiration before continuing...
         if (block.timestamp < tcbInfo.issueDate || block.timestamp > tcbInfo.nextUpdate) {
@@ -164,7 +157,10 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         }
 
         // Make sure new collateral is "newer"
-        key = FMSPC_TCB_KEY(uint8(tcbInfo.id), tcbInfo.fmspc, tcbInfo.version);
+        id = uint8(tcbInfo.id);
+        fmspc = tcbInfo.fmspc;
+        version = tcbInfo.version;
+        key = FMSPC_TCB_KEY(id, fmspc, version);
         bytes memory existingTcbData = _onFetchDataFromResolver(key, false);
         if (existingTcbData.length > 0) {
             TcbInfoBasic memory existingTcbInfo;
@@ -190,7 +186,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         TCBLevelsObj[] memory tcbLevels = FmspcTcbLib.parseTcbLevels(tcbInfo.version, tcbLevelsString);
         bytes memory encodedTcbLevels = _encodeTcbLevels(tcbLevels);
         if (tcbInfo.version < 3) {
-            attestationData = abi.encode(tcbInfo, encodedTcbLevels, tcbInfoStr, signature);
+            reqData = abi.encode(tcbInfo, encodedTcbLevels, tcbInfoObj.tcbInfoStr, tcbInfoObj.signature);
         } else {
             TDXModule memory module;
             TDXModuleIdentity[] memory moduleIdentities;
@@ -199,7 +195,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
                 (module, moduleIdentities) = FmspcTcbLib.parseTcbTdxModules(tdxModuleString, tdxModuleIdentitiesString);
                 encodedModuleIdentities = _encodeTdxModuleIdentities(moduleIdentities);
             }
-            attestationData = abi.encode(tcbInfo, module, encodedModuleIdentities, encodedTcbLevels, tcbInfoStr, signature);
+            reqData = abi.encode(tcbInfo, module, encodedModuleIdentities, encodedTcbLevels, tcbInfoObj.tcbInfoStr, tcbInfoObj.signature);
         }
     }
 
