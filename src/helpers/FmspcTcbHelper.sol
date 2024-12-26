@@ -340,10 +340,9 @@ contract FmspcTcbHelper {
             n++;
         }
 
-        uint256 allFound = f & ((2 ** n) - 1);
-        bool ret = allFound == f;
+        bool allFound = f == (2**n) - 1;
 
-        if (!ret) {
+        if (!allFound) {
             revert TCBInfo_Invalid();
         }
     }
