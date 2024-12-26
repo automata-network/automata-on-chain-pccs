@@ -17,4 +17,31 @@ contract AutomataFmspcTcbDao is AutomataDaoBase, FmspcTcbDao {
     {
         data = super._onFetchDataFromResolver(key, hash);
     }
+
+    /// @dev submit tcb issue date timestamp and evaluation data number as a separate attestation
+    /// TEMP: it is not the most efficient approach, since it's storing duplicate data
+    /// @dev if i could extract the required info directly from the attestation,
+    /// this method will no longer be needed
+    /// @dev this is a good TODO for future optimization
+    function _cacheTcbInfoIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint32 evaluationDataNumber) internal override {
+        bytes32 tcbIssueEvaluationKey = _computeTcbIssueEvaluationKey(tcbKey);
+        uint256 slot = (uint256(issueDateTimestamp) << 128) | evaluationDataNumber;
+        resolver.attest(tcbIssueEvaluationKey, abi.encode(slot), bytes32(0));
+    }
+
+    /// TEMP it just reads from the separate attestation for now
+    /// @dev we will have to come up with hacky low-level storage reads
+    function _loadTcbInfoIssueEvaluation(bytes32 tcbKey) internal view override returns (uint64 issueDateTimestamp, uint32 evaluationDataNumber) {
+        bytes32 tcbIssueEvaluationKey = _computeTcbIssueEvaluationKey(tcbKey);
+        bytes memory data = resolver.readAttestation(resolver.collateralPointer(tcbIssueEvaluationKey));
+        if (data.length > 0) {
+            (uint256 slot) = abi.decode(data, (uint256));
+            issueDateTimestamp = uint64(slot >> 128);
+            evaluationDataNumber = uint32(slot);
+        }
+    }
+
+    function _computeTcbIssueEvaluationKey(bytes32 key) private pure returns (bytes32 ret) {
+        ret = keccak256(abi.encodePacked(key, "tcbIssueEvaluation"));
+    }
 }

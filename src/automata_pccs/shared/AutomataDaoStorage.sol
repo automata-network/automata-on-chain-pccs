@@ -84,9 +84,13 @@ contract AutomataDaoStorage is AutomataTCBManager, IDaoAttestationResolver, Paus
         returns (bytes32 attestationId, bytes32 hashAttestationid)
     {
         attestationId = _computeAttestationId(key, false);
-        hashAttestationid = _computeAttestationId(key, true);
         _db[attestationId] = attData;
-        _db[hashAttestationid] = abi.encodePacked(attDataHash);
+
+        // this makes storing hash optional
+        if (attDataHash != bytes32(0)) {
+            hashAttestationid = _computeAttestationId(key, true);
+            _db[hashAttestationid] = abi.encodePacked(attDataHash);
+        }
     }
 
     function _updateDao(address _pcsDao, address _pckDao, address _fmspcTcbDao, address _enclaveIdDao) private {

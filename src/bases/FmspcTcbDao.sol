@@ -102,10 +102,18 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
      */
     function upsertFmspcTcb(TcbInfoJsonObj calldata tcbInfoObj) external returns (bytes32 attestationId) {
         _validateTcbInfo(tcbInfoObj);
-        (bytes memory req, bytes32 key, uint8 tcbId, bytes6 fmspc, uint32 version) = _buildTcbAttestationRequest(tcbInfoObj);
+        (
+            bytes memory req, 
+            bytes32 key, 
+            uint8 tcbId, 
+            bytes6 fmspc, 
+            uint32 version, 
+            uint64 issueDateTimestamp,
+            uint32 evaluationDataNumber
+        ) = _buildTcbAttestationRequest(tcbInfoObj);
         bytes32 hash = sha256(bytes(tcbInfoObj.tcbInfoStr));
         attestationId = _attestTcb(req, hash, key);
-
+        _cacheTcbInfoIssueEvaluation(key, issueDateTimestamp, evaluationDataNumber);
         emit UpsertedFmpscTcb(tcbId, fmspc, version);
     }
 
@@ -137,7 +145,16 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     function _buildTcbAttestationRequest(TcbInfoJsonObj calldata tcbInfoObj)
         private
         view
-        returns (bytes memory reqData, bytes32 key, uint8 id, bytes6 fmspc, uint32 version)
+        returns 
+        (
+            bytes memory reqData, 
+            bytes32 key, 
+            uint8 id,
+            bytes6 fmspc, 
+            uint32 version,
+            uint64 issueDateTimestamp,
+            uint32 evaluationDataNumber
+        )
     {
         TcbInfoBasic memory tcbInfo;
 
@@ -161,28 +178,20 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         fmspc = tcbInfo.fmspc;
         version = tcbInfo.version;
         key = FMSPC_TCB_KEY(id, fmspc, version);
-        bytes memory existingTcbData = _onFetchDataFromResolver(key, false);
-        if (existingTcbData.length > 0) {
-            TcbInfoBasic memory existingTcbInfo;
-            if (tcbInfo.version < 3) {
-                (existingTcbInfo,,,) =
-                    abi.decode(existingTcbData, (TcbInfoBasic, bytes, string, bytes));
-            } else {
-                (existingTcbInfo,,,,,) = abi.decode(
-                    existingTcbData, (TcbInfoBasic, TDXModule, TDXModuleIdentity[], bytes, string, bytes)
-                );
-            }
-
+        (uint64 existingIssueDate, uint32 existingEvaluationDataNumber) = _loadTcbInfoIssueEvaluation(key);
+        if (existingIssueDate > 0) {
             /// I don't think there can be a scenario where an existing tcbinfo with a higher evaluation data number
             /// to be issued BEFORE a new tcbinfo with a lower evaluation data number
             if (
-                tcbInfo.evaluationDataNumber < existingTcbInfo.evaluationDataNumber ||
-                tcbInfo.issueDate < existingTcbInfo.issueDate
+                tcbInfo.evaluationDataNumber < existingEvaluationDataNumber ||
+                tcbInfo.issueDate < existingIssueDate
             ) {
                 revert TCB_Replaced();
             }
         }
 
+        issueDateTimestamp = tcbInfo.issueDate;
+        evaluationDataNumber = tcbInfo.evaluationDataNumber;
         TCBLevelsObj[] memory tcbLevels = FmspcTcbLib.parseTcbLevels(tcbInfo.version, tcbLevelsString);
         bytes memory encodedTcbLevels = _encodeTcbLevels(tcbLevels);
         if (tcbInfo.version < 3) {
@@ -240,4 +249,13 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
 
         encoded = abi.encode(arr);
     }
+
+    /// @dev for the time being, we will require a method to "cache" the tcbinfo issued timestamp
+    /// @dev and the evaluation data number
+    /// @dev this reduces the amount of data to read, when performing the rollback check
+    /// @dev the functions defined below can be overriden by the inheriting contract
+
+    function _cacheTcbInfoIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint32 evaluationDataNumber) internal virtual;
+
+    function _loadTcbInfoIssueEvaluation(bytes32 tcbKey) internal view virtual returns (uint64 issueDateTimestamp, uint32 evaluationDataNumber);
 }
