@@ -49,7 +49,7 @@ struct TcbInfoBasic {
 struct TCBLevelsObj {
     uint16 pcesvn;
     uint8[] sgxComponentCpuSvns;
-    uint8[] tdxSvns;
+    uint8[] tdxComponentCpuSvns;
     uint64 tcbDateTimestamp;
     TCBStatus status;
     string[] advisoryIDs;
@@ -118,10 +118,10 @@ contract FmspcTcbHelper {
                 i++;
             }
         }
-        if (obj.tdxSvns.length > 0) {
+        if (obj.tdxComponentCpuSvns.length > 0) {
             for (uint256 i = 0; i < n;) {
                 uint256 v2Shift = 8 * (n - i - 1);
-                secondSlot |= uint256(obj.tdxSvns[i]) << v2Shift;
+                secondSlot |= uint256(obj.tdxComponentCpuSvns[i]) << v2Shift;
 
                 unchecked {
                     i++;
@@ -154,14 +154,14 @@ contract FmspcTcbHelper {
 
         // Step 2: decode second slot
         parsed.sgxComponentCpuSvns = new uint8[](16);
-        parsed.tdxSvns = new uint8[](16);
+        parsed.tdxComponentCpuSvns = new uint8[](16);
         bytes32 encodedSlot2 = bytes32(encoded[32:64]);
         for (uint256 i = 0; i < 16; ) {
             if (encodedSlot2[i] != 0) {
                 parsed.sgxComponentCpuSvns[i] = uint8(bytes1(encodedSlot2[i]));
             }
             if (encodedSlot2[i + 16] != 0) {
-                parsed.tdxSvns[i] = uint8(bytes1(encodedSlot2[i + 16]));
+                parsed.tdxComponentCpuSvns[i] = uint8(bytes1(encodedSlot2[i + 16]));
             }
             unchecked {
                 i++;
@@ -370,7 +370,7 @@ contract FmspcTcbHelper {
                     if (version == 2) {
                         (tcbLevels[i].sgxComponentCpuSvns, tcbLevels[i].pcesvn) = _parseV2Tcb(tcbComponents);
                     } else if (version == 3) {
-                        (tcbLevels[i].sgxComponentCpuSvns, tcbLevels[i].tdxSvns, tcbLevels[i].pcesvn) =
+                        (tcbLevels[i].sgxComponentCpuSvns, tcbLevels[i].tdxComponentCpuSvns, tcbLevels[i].pcesvn) =
                             _parseV3Tcb(tcbComponents);
                     } else {
                         revert TCBInfo_Invalid();
@@ -474,10 +474,10 @@ contract FmspcTcbHelper {
     function _parseV3Tcb(JSONParserLib.Item[] memory tcbComponents)
         private
         pure
-        returns (uint8[] memory sgxComponentCpuSvns, uint8[] memory tdxSvns, uint16 pcesvn)
+        returns (uint8[] memory sgxComponentCpuSvns, uint8[] memory tdxComponentCpuSvns, uint16 pcesvn)
     {
         sgxComponentCpuSvns = new uint8[](TCB_CPUSVN_SIZE);
-        tdxSvns = new uint8[](TCB_CPUSVN_SIZE);
+        tdxComponentCpuSvns = new uint8[](TCB_CPUSVN_SIZE);
         for (uint256 i = 0; i < tcbComponents.length; i++) {
             string memory key = JSONParserLib.decodeString(tcbComponents[i].key());
             if (key.eq("pcesvn")) {
@@ -492,7 +492,7 @@ contract FmspcTcbHelper {
                         key = JSONParserLib.decodeString(component[k].key());
                         if (key.eq("svn")) {
                             if (componentKey.eq("tdxtcbcomponents")) {
-                                tdxSvns[cpusvnCounter++] = uint8(JSONParserLib.parseUint(component[k].value()));
+                                tdxComponentCpuSvns[cpusvnCounter++] = uint8(JSONParserLib.parseUint(component[k].value()));
                             } else {
                                 sgxComponentCpuSvns[cpusvnCounter++] =
                                     uint8(JSONParserLib.parseUint(component[k].value()));

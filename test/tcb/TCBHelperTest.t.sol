@@ -39,7 +39,7 @@ contract TCBHelperTest is TCBConstants, TDXConstants, Test {
         
         for (uint256 i = 0; i < 16; i++) {
             assertEq(tcb.sgxComponentCpuSvns[i], ret.sgxComponentCpuSvns[i]);
-            assertEq(tcb.tdxSvns[i], ret.tdxSvns[i]);
+            assertEq(tcb.tdxComponentCpuSvns[i], ret.tdxComponentCpuSvns[i]);
         }
 
         for (uint256 j = 0; j < tcb.advisoryIDs.length; j++) {
@@ -158,8 +158,8 @@ contract TCBHelperTest is TCBConstants, TDXConstants, Test {
 
     function _assertTcbLevel(
         TCBLevelsObj memory tcbLevel,
-        uint8[16] memory expectedCpuSvns,
-        uint8[16] memory expectedTdxSvns,
+        uint8[16] memory expectedSgxComponentCpuSvns,
+        uint8[16] memory expectedTdxComponentCpuSvns,
         uint256 expectedPcesvn,
         uint256 expectedTimestamp,
         TCBStatus expectedStatus
@@ -168,8 +168,8 @@ contract TCBHelperTest is TCBConstants, TDXConstants, Test {
         assertEq(tcbLevel.tcbDateTimestamp, expectedTimestamp);
         assertEq(uint8(tcbLevel.status), uint8(expectedStatus));
         for (uint256 i = 0; i < 16; i++) {
-            assertEq(tcbLevel.sgxComponentCpuSvns[i], expectedCpuSvns[i]);
-            assertEq(tcbLevel.tdxSvns[i], expectedTdxSvns[i]);
+            assertEq(tcbLevel.sgxComponentCpuSvns[i], expectedSgxComponentCpuSvns[i]);
+            assertEq(tcbLevel.tdxComponentCpuSvns[i], expectedTdxComponentCpuSvns[i]);
         }
     }
 
