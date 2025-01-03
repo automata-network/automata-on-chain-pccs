@@ -132,7 +132,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
             revert Enclave_Id_Mismatch();
         }
 
-        if (id == uint256(EnclaveId.TD_QE) && version < 4) {
+        if (id == uint256(EnclaveId.TD_QE) && version != 4 && version != 5) {
             revert Incorrect_Enclave_Id_Version();
         } 
 
