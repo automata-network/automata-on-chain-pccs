@@ -290,7 +290,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         // that is older than the existing certificate
         bytes memory existingData = _fetchDataFromResolver(key, false);
         if (existingData.length > 0) {
-            (uint256 existingCertNotValidBefore, ) = crlLib.getCrlValidity(existingData);
+            (uint256 existingCertNotValidBefore, ) = pckLib.getCertValidity(existingData);
             bool replaced = existingCertNotValidBefore > pck.validityNotBefore;
             if (replaced) {
                 revert Pck_Replaced();

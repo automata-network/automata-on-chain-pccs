@@ -164,7 +164,7 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
         key = PCS_KEY(ca, false);
         bytes memory existingData = _fetchDataFromResolver(key, false);
         if (existingData.length > 0) {
-            (uint256 existingCertNotValidBefore, ) = crlLib.getCrlValidity(existingData);
+            (uint256 existingCertNotValidBefore, ) = x509Lib.getCertValidity(existingData);
             bool replaced = existingCertNotValidBefore > currentCert.validityNotBefore;
             if (replaced) {
                 revert Certificate_Replaced();
