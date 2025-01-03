@@ -82,7 +82,7 @@ contract MockTcbDao is FmspcTcbDao {
         }
     }
 
-    function _cacheTcbInfoIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint32 evaluationDataNumber) internal override {
+    function _storeTcbInfoIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint32 evaluationDataNumber) internal override {
         bytes32 tcbIssueEvaluationKey = _computeTcbIssueEvaluationKey(tcbKey);
         uint256 slot = (uint256(issueDateTimestamp) << 2 ** 128) | evaluationDataNumber;
         resolver.attest(tcbIssueEvaluationKey, abi.encode(slot), bytes32(0));

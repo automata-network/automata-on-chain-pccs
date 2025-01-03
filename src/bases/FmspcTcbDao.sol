@@ -113,7 +113,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         ) = _buildTcbAttestationRequest(tcbInfoObj);
         bytes32 hash = sha256(bytes(tcbInfoObj.tcbInfoStr));
         attestationId = _attestTcb(req, hash, key);
-        _cacheTcbInfoIssueEvaluation(key, issueDateTimestamp, evaluationDataNumber);
+        _storeTcbInfoIssueEvaluation(key, issueDateTimestamp, evaluationDataNumber);
         emit UpsertedFmpscTcb(tcbId, fmspc, version);
     }
 
@@ -254,7 +254,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     /// @dev this reduces the amount of data to read, when performing the rollback check
     /// @dev the functions defined below can be overriden by the inheriting contract
 
-    function _cacheTcbInfoIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint32 evaluationDataNumber) internal virtual;
+    function _storeTcbInfoIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint32 evaluationDataNumber) internal virtual;
 
     function _loadTcbInfoIssueEvaluation(bytes32 tcbKey) internal view virtual returns (uint64 issueDateTimestamp, uint32 evaluationDataNumber);
 }

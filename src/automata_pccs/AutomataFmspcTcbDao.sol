@@ -23,7 +23,7 @@ contract AutomataFmspcTcbDao is AutomataDaoBase, FmspcTcbDao {
     /// @dev if i could extract the required info directly from the attestation,
     /// this method will no longer be needed
     /// @dev this is a good TODO for future optimization
-    function _cacheTcbInfoIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint32 evaluationDataNumber) internal override {
+    function _storeTcbInfoIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint32 evaluationDataNumber) internal override {
         bytes32 tcbIssueEvaluationKey = _computeTcbIssueEvaluationKey(tcbKey);
         uint256 slot = (uint256(issueDateTimestamp) << 128) | evaluationDataNumber;
         resolver.attest(tcbIssueEvaluationKey, abi.encode(slot), bytes32(0));
