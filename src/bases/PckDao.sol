@@ -53,8 +53,8 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
     // 82fba295
     error Pck_Not_Found();
 
-    // 645146bf
-    error Pck_Replaced();
+    // bf00a30d
+    error Pck_Out_Of_Date();
 
     event UpsertedPckCollateral(
         CA indexed ca, 
@@ -291,9 +291,9 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         bytes memory existingData = _fetchDataFromResolver(key, false);
         if (existingData.length > 0) {
             (uint256 existingCertNotValidBefore, ) = pckLib.getCertValidity(existingData);
-            bool replaced = existingCertNotValidBefore > pck.validityNotBefore;
-            if (replaced) {
-                revert Pck_Replaced();
+            bool outOfDate = existingCertNotValidBefore > pck.validityNotBefore;
+            if (outOfDate) {
+                revert Pck_Out_Of_Date();
             }
         }
 

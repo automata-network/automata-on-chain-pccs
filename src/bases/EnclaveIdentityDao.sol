@@ -35,8 +35,8 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     error Invalid_TCB_Cert_Signature();
     // 9ac04499
     error Enclave_Id_Expired();
-    // 0ed074b4
-    error Enclave_Id_Replaced();
+    // 7a204327
+    error Enclave_Id_Out_Of_Date();
 
     event UpsertedEnclaveIdentity(uint256 indexed id, uint256 indexed version);
 
@@ -146,11 +146,10 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         if (existingData.length > 0) {
             (IdentityObj memory existingIdentity, , ) =
                 abi.decode(existingData, (IdentityObj, string, bytes));
-            if (
-                existingIdentity.tcbEvaluationDataNumber > identity.tcbEvaluationDataNumber ||
-                existingIdentity.issueDateTimestamp > identity.issueDateTimestamp
-            ) {
-                revert Enclave_Id_Replaced();
+            bool outOfDate = existingIdentity.tcbEvaluationDataNumber > identity.tcbEvaluationDataNumber ||
+                existingIdentity.issueDateTimestamp > identity.issueDateTimestamp;
+            if (outOfDate) {
+                revert Enclave_Id_Out_Of_Date();
             }
         }
 

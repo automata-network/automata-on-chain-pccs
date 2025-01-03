@@ -41,8 +41,8 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     error Invalid_TCB_Cert_Signature();
     // bae57649
     error TCB_Expired();
-    // fd2153cd
-    error TCB_Replaced();
+    // 3d78f9f9
+    error TCB_Out_Of_Date();
 
     event UpsertedFmpscTcb(
         uint8 indexed tcbType,
@@ -182,11 +182,10 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         if (existingIssueDate > 0) {
             /// I don't think there can be a scenario where an existing tcbinfo with a higher evaluation data number
             /// to be issued BEFORE a new tcbinfo with a lower evaluation data number
-            if (
-                tcbInfo.evaluationDataNumber < existingEvaluationDataNumber ||
-                tcbInfo.issueDate < existingIssueDate
-            ) {
-                revert TCB_Replaced();
+            bool outOfDate = tcbInfo.evaluationDataNumber < existingEvaluationDataNumber ||
+                tcbInfo.issueDate < existingIssueDate;
+            if (outOfDate) {
+                revert TCB_Out_Of_Date();
             }
         }
 

@@ -62,8 +62,8 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
     error Missing_Issuer();
     // e7ef341f
     error Invalid_Signature();
-    // e071faac
-    error Certificate_Replaced();
+    // 9f4daa9e
+    error Certificate_Out_Of_Date();
 
     event UpsertedPCSCollateral(CA indexed ca, bool isCrl);
 
@@ -165,9 +165,9 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
         bytes memory existingData = _fetchDataFromResolver(key, false);
         if (existingData.length > 0) {
             (uint256 existingCertNotValidBefore, ) = x509Lib.getCertValidity(existingData);
-            bool replaced = existingCertNotValidBefore > currentCert.validityNotBefore;
-            if (replaced) {
-                revert Certificate_Replaced();
+            bool outOfDate = existingCertNotValidBefore > currentCert.validityNotBefore;
+            if (outOfDate) {
+                revert Certificate_Out_Of_Date();
             }
         }
 
@@ -243,9 +243,9 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
         bytes memory existingData = _fetchDataFromResolver(key, false);
         if (existingData.length > 0) {
             (uint256 existingCrlNotValidBefore, ) = crlLib.getCrlValidity(existingData);
-            bool replaced = existingCrlNotValidBefore > currentCrl.validityNotBefore;
-            if (replaced) {
-                revert Certificate_Replaced();
+            bool outOfDate = existingCrlNotValidBefore > currentCrl.validityNotBefore;
+            if (outOfDate) {
+                revert Certificate_Out_Of_Date();
             }
         }
 

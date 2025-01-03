@@ -30,7 +30,7 @@ contract RollbackTest is PCSSetupBase {
         _checkCrlHash(new_pck_crl);
 
         // rollback attempt
-        vm.expectRevert(PcsDao.Certificate_Replaced.selector);
+        vm.expectRevert(PcsDao.Certificate_Out_Of_Date.selector);
         pcs.upsertPckCrl(CA.PLATFORM, old_pck_crl);
         _checkCrlHash(new_pck_crl);
     }
@@ -71,7 +71,7 @@ contract RollbackTest is PCSSetupBase {
         _checkFmspcTcbMatch(newTcbInfoObj, tcbType, fmspcStr, version);
 
         // attempt to rollback with oldTcbInfoObj
-        vm.expectRevert(FmspcTcbDao.TCB_Replaced.selector);
+        vm.expectRevert(FmspcTcbDao.TCB_Out_Of_Date.selector);
         fmspcTcbDao.upsertFmspcTcb(oldTcbInfoObj);
         _checkFmspcTcbMatch(newTcbInfoObj, tcbType, fmspcStr, version);
     }
@@ -111,7 +111,7 @@ contract RollbackTest is PCSSetupBase {
         _checkQeIdHash(newQeIdObj, id, version);
 
         // rollback attempt
-        vm.expectRevert(EnclaveIdentityDao.Enclave_Id_Replaced.selector);
+        vm.expectRevert(EnclaveIdentityDao.Enclave_Id_Out_Of_Date.selector);
         enclaveIdDao.upsertEnclaveIdentity(id, version, oldQeIdObj);
         _checkQeIdHash(newQeIdObj, id, version);
     }
