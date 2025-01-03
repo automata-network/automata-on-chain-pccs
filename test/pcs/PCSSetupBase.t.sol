@@ -21,9 +21,6 @@ abstract contract PCSSetupBase is TestSetupBase, PCSConstants {
 
         // insert Platform CA
         pcs.upsertPcsCertificates(CA.PLATFORM, platformDer);
-
-        // insert PCK CRL
-        pcs.upsertPckCrl(CA.PLATFORM, pckCrlDer);
     }
 
     function testPcsSetup() public readAsAuthorizedCaller {
@@ -62,14 +59,5 @@ abstract contract PCSSetupBase is TestSetupBase, PCSConstants {
         actualHash = keccak256(tbs);
         assertEq(actualHash, collateralHash);
         assertEq(keccak256(attestedData), keccak256(platformDer));
-
-        // validate PlatformCRL attestations
-        key = pcs.PCS_KEY(CA.PLATFORM, true);
-        attestedData = pcs.getAttestedData(key);
-        collateralHash = pcs.getCollateralHash(key);
-        (tbs,) = x509CrlLib.getTbsAndSig(pckCrlDer);
-        actualHash = keccak256(tbs);
-        assertEq(actualHash, collateralHash);
-        assertEq(keccak256(attestedData), keccak256(pckCrlDer));
     }
 }

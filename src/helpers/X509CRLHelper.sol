@@ -64,15 +64,14 @@ contract X509CRLHelper {
         issuerCommonName = _getCommonName(der, der.firstChildOf(tbsPtr));
     }
 
-    function crlIsNotExpired(bytes calldata der) external view returns (bool isValid) {
+    function getCrlValidity(bytes calldata der) external pure returns (uint256 validityNotBefore, uint256 validityNotAfter) {
         uint256 root = der.root();
         uint256 tbsParentPtr = der.firstChildOf(root);
         uint256 tbsPtr = der.firstChildOf(tbsParentPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
-        (uint256 validityNotBefore, uint256 validityNotAfter) = _getValidity(der, tbsPtr);
-        isValid = block.timestamp > validityNotBefore && block.timestamp < validityNotAfter;
+        (validityNotBefore, validityNotAfter) = _getValidity(der, tbsPtr);
     }
 
     function serialNumberIsRevoked(uint256 serialNumber, bytes calldata der) external pure returns (bool revoked) {
@@ -111,6 +110,7 @@ contract X509CRLHelper {
         uint256 root = der.root();
 
         uint256 tbsParentPtr = der.firstChildOf(root);
+        crl.tbs = der.allBytesAt(tbsParentPtr);
 
         uint256 tbsPtr = der.firstChildOf(tbsParentPtr);
 

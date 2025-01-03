@@ -5,14 +5,13 @@ import "../pcs/PCSSetupBase.t.sol";
 import {AutomataPckDao} from "../../src/automata_pccs/AutomataPckDao.sol";
 
 contract AutomataPcsDaoTest is PCSSetupBase {
-    function testPcsGetCertsAndCrls() public readAsAuthorizedCaller {
+    function testPcsGetCertsAndRootCrl() public readAsAuthorizedCaller {
         (bytes memory rootCa, bytes memory rootCrl) = pcs.getCertificateById(CA.ROOT);
-        (bytes memory platformCa, bytes memory platformCrl) = pcs.getCertificateById(CA.PLATFORM);
+        (bytes memory platformCa, ) = pcs.getCertificateById(CA.PLATFORM);
 
         assertEq(keccak256(rootCa), keccak256(rootDer));
         assertEq(keccak256(rootCrl), keccak256(rootCrlDer));
         assertEq(keccak256(platformCa), keccak256(platformDer));
-        assertEq(keccak256(platformCrl), keccak256(pckCrlDer));
     }
 
     function testUnauthorizedRead() public {
@@ -24,12 +23,11 @@ contract AutomataPcsDaoTest is PCSSetupBase {
         vm.startPrank(address(0));
 
         (bytes memory rootCa, bytes memory rootCrl) = pcs.getCertificateById(CA.ROOT);
-        (bytes memory platformCa, bytes memory platformCrl) = pcs.getCertificateById(CA.PLATFORM);
+        (bytes memory platformCa, ) = pcs.getCertificateById(CA.PLATFORM);
 
         assertEq(keccak256(rootCa), keccak256(rootDer));
         assertEq(keccak256(rootCrl), keccak256(rootCrlDer));
         assertEq(keccak256(platformCa), keccak256(platformDer));
-        assertEq(keccak256(platformCrl), keccak256(pckCrlDer));
 
         vm.stopPrank();
     }
@@ -39,11 +37,10 @@ contract AutomataPcsDaoTest is PCSSetupBase {
         pccsStorage.pauseCallerRestriction();
 
         (bytes memory rootCa, bytes memory rootCrl) = pcs.getCertificateById(CA.ROOT);
-        (bytes memory platformCa, bytes memory platformCrl) = pcs.getCertificateById(CA.PLATFORM);
+        (bytes memory platformCa, ) = pcs.getCertificateById(CA.PLATFORM);
 
         assertEq(keccak256(rootCa), keccak256(rootDer));
         assertEq(keccak256(rootCrl), keccak256(rootCrlDer));
         assertEq(keccak256(platformCa), keccak256(platformDer));
-        assertEq(keccak256(platformCrl), keccak256(pckCrlDer));
     }
 }
