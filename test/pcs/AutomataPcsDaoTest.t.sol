@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "../pcs/PCSSetupBase.t.sol";
-import {AutomataPckDao} from "../../src/automata_pccs/AutomataPckDao.sol";
+import {AutomataDaoBase} from "../../src/automata_pccs/shared/AutomataDaoBase.sol";
 
 contract AutomataPcsDaoTest is PCSSetupBase {
     function testPcsGetCertsAndRootCrl() public readAsAuthorizedCaller {
@@ -15,7 +15,9 @@ contract AutomataPcsDaoTest is PCSSetupBase {
     }
 
     function testUnauthorizedRead() public {
-        vm.expectRevert(abi.encodeWithSelector(PcsDao.Missing_Certificate.selector, CA.ROOT));
+        (, address caller, ) = vm.readCallers();
+        vm.prank(caller);
+        vm.expectRevert(abi.encodeWithSelector(AutomataDaoBase.Unauthorized_Caller.selector, caller));
         pcs.getCertificateById(CA.ROOT);
     }
 
