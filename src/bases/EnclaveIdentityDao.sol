@@ -142,7 +142,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
 
         // make sure new collateral is "newer"
         key = ENCLAVE_ID_KEY(id, version);
-        bytes memory existingData = _onFetchDataFromResolver(key, false);
+        bytes memory existingData = _fetchDataFromResolver(key, false);
         if (existingData.length > 0) {
             (IdentityObj memory existingIdentity, , ) =
                 abi.decode(existingData, (IdentityObj, string, bytes));
