@@ -294,7 +294,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         bytes memory existingData = _fetchDataFromResolver(key, false);
         if (existingData.length > 0) {
             (uint256 existingCertNotValidBefore, ) = pckLib.getCertValidity(existingData);
-            bool outOfDate = existingCertNotValidBefore > pck.validityNotBefore;
+            bool outOfDate = existingCertNotValidBefore >= pck.validityNotBefore;
             if (outOfDate) {
                 revert Pck_Out_Of_Date();
             }

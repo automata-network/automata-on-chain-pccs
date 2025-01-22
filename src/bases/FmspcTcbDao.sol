@@ -185,7 +185,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
             /// I don't think there can be a scenario where an existing tcbinfo with a higher evaluation data number
             /// to be issued BEFORE a new tcbinfo with a lower evaluation data number
             bool outOfDate = tcbInfo.evaluationDataNumber < existingEvaluationDataNumber ||
-                tcbInfo.issueDate < existingIssueDate;
+                tcbInfo.issueDate <= existingIssueDate;
             if (outOfDate) {
                 revert TCB_Out_Of_Date();
             }
