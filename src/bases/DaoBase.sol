@@ -12,6 +12,9 @@ import "../interfaces/IDaoAttestationResolver.sol";
 abstract contract DaoBase {
     IDaoAttestationResolver public immutable resolver;
 
+    // 72bd8361
+    error Duplicate_Collateral();
+
     constructor(address _resolver) {
         resolver = IDaoAttestationResolver(_resolver);
     }
@@ -56,6 +59,22 @@ abstract contract DaoBase {
      */
     function _onFetchDataFromResolver(bytes32 key, bool hash) internal view virtual returns (bytes memory) {
         return _fetchDataFromResolver(key, hash);
+    }
+
+    /**
+     * @notice check whether the hash for the provided collateral already exists in the PCCS
+     * @param key - the key to locate the collateral attestation
+     * @param hash - the hash of the collateral
+     */
+    function _checkCollateralDuplicate(bytes32 key, bytes32 hash) internal view {
+        // if a matching hash is found, that means the caller is attempting to re-upsert duplicate collateral
+        bytes memory existingHashData = _fetchDataFromResolver(key, true);
+        if (existingHashData.length > 0) {
+            bytes32 existingHash = abi.decode(existingHashData, (bytes32));
+            if (existingHash == hash) {
+                revert Duplicate_Collateral();
+            }
+        }
     }
 
     /// @dev https://github.com/Vectorized/solady/blob/4964e3e2da1bc86b0394f63a90821f51d60a260b/src/utils/JSONParserLib.sol#L339-L364
