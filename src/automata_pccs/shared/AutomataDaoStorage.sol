@@ -45,11 +45,8 @@ contract AutomataDaoStorage is AutomataTCBManager, IDaoAttestationResolver, Paus
         _unpause();
     }
 
-    function updateDao(address _pcsDao, address _pckDao, address _fmspcTcbDao, address _enclaveIdDao)
-        external
-        onlyOwner
-    {
-        _updateDao(_pcsDao, _pckDao, _fmspcTcbDao, _enclaveIdDao);
+    function grantDao(address granted) external onlyOwner {
+        _authorized_writers[granted] = true;
     }
 
     function revokeDao(address revoked) external onlyOwner {
@@ -91,13 +88,6 @@ contract AutomataDaoStorage is AutomataTCBManager, IDaoAttestationResolver, Paus
             hashAttestationid = _computeAttestationId(key, true);
             _db[hashAttestationid] = abi.encodePacked(attDataHash);
         }
-    }
-
-    function _updateDao(address _pcsDao, address _pckDao, address _fmspcTcbDao, address _enclaveIdDao) private {
-        _authorized_writers[_pcsDao] = true;
-        _authorized_writers[_pckDao] = true;
-        _authorized_writers[_fmspcTcbDao] = true;
-        _authorized_writers[_enclaveIdDao] = true;
     }
 
     /// Attestation ID Computation
