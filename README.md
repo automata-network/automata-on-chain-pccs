@@ -165,7 +165,7 @@ Our DAO implementation can be found in the [`automata_pccs`](./src/automata_pccs
 
 ---
 
-### #BUIDL 🛠️
+### #BUILD 🛠️
 
 - Install [Foundry](https://book.getfoundry.sh/getting-started/installation)
 
