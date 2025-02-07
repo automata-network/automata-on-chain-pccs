@@ -114,14 +114,10 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
             bytes32 key, 
             uint8 tcbId, 
             bytes6 fmspc, 
-            uint32 version, 
-            uint64 issueDateTimestamp,
-            uint64 nextUpdateTimestamp,
-            uint32 evaluationDataNumber
+            uint32 version
         ) = _buildTcbAttestationRequest(tcbInfoObj);
         bytes32 hash = sha256(bytes(tcbInfoObj.tcbInfoStr));
         attestationId = _attestTcb(req, hash, key);
-        _storeTcbInfoIssueEvaluation(key, issueDateTimestamp, nextUpdateTimestamp, evaluationDataNumber);
         emit UpsertedFmpscTcb(tcbId, fmspc, version);
     }
 
@@ -152,17 +148,13 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
      */
     function _buildTcbAttestationRequest(TcbInfoJsonObj calldata tcbInfoObj)
         private
-        view
         returns 
         (
             bytes memory reqData, 
             bytes32 key, 
             uint8 id,
             bytes6 fmspc, 
-            uint32 version,
-            uint64 issueDateTimestamp,
-            uint64 nextUpdateTimestamp,
-            uint32 evaluationDataNumber
+            uint32 version
         )
     {
         TcbInfoBasic memory tcbInfo;
@@ -198,9 +190,6 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
             }
         }
 
-        issueDateTimestamp = tcbInfo.issueDate;
-        nextUpdateTimestamp = tcbInfo.nextUpdate;
-        evaluationDataNumber = tcbInfo.evaluationDataNumber;
         TCBLevelsObj[] memory tcbLevels = FmspcTcbLib.parseTcbLevels(tcbInfo.version, tcbLevelsString);
         bytes memory encodedTcbLevels = _encodeTcbLevels(tcbLevels);
         if (tcbInfo.version < 3) {
@@ -215,6 +204,13 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
             }
             reqData = abi.encode(tcbInfo, module, encodedModuleIdentities, encodedTcbLevels, tcbInfoObj.tcbInfoStr, tcbInfoObj.signature);
         }
+
+        _storeTcbInfoIssueEvaluation(
+            key, 
+            tcbInfo.issueDate, 
+            tcbInfo.nextUpdate, 
+            tcbInfo.evaluationDataNumber
+        );
     }
 
     function _validateTcbInfo(TcbInfoJsonObj calldata tcbInfoObj) private view {
