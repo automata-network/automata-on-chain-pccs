@@ -58,6 +58,13 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         FmspcTcbLib = FmspcTcbHelper(_fmspcHelper);
     }
 
+    function getCollateralValidity(bytes32 key) external view override returns (
+        uint64 issueDateTimestamp,
+        uint64 nextUpdateTimestamp
+    ) {
+        (issueDateTimestamp, nextUpdateTimestamp, ) = _loadTcbInfoIssueEvaluation(key);
+    }
+
     /**
      * @notice computes the key that is mapped to the collateral attestation ID
      * @return key = keccak256(type ++ FMSPC ++ version)
