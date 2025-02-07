@@ -109,11 +109,12 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
             bytes6 fmspc, 
             uint32 version, 
             uint64 issueDateTimestamp,
+            uint64 nextUpdateTimestamp,
             uint32 evaluationDataNumber
         ) = _buildTcbAttestationRequest(tcbInfoObj);
         bytes32 hash = sha256(bytes(tcbInfoObj.tcbInfoStr));
         attestationId = _attestTcb(req, hash, key);
-        _storeTcbInfoIssueEvaluation(key, issueDateTimestamp, evaluationDataNumber);
+        _storeTcbInfoIssueEvaluation(key, issueDateTimestamp, nextUpdateTimestamp, evaluationDataNumber);
         emit UpsertedFmpscTcb(tcbId, fmspc, version);
     }
 
@@ -153,6 +154,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
             bytes6 fmspc, 
             uint32 version,
             uint64 issueDateTimestamp,
+            uint64 nextUpdateTimestamp,
             uint32 evaluationDataNumber
         )
     {
@@ -178,7 +180,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         fmspc = tcbInfo.fmspc;
         version = tcbInfo.version;
         key = FMSPC_TCB_KEY(id, fmspc, version);
-        (uint64 existingIssueDate, uint32 existingEvaluationDataNumber) = _loadTcbInfoIssueEvaluation(key);
+        (uint64 existingIssueDate, , uint32 existingEvaluationDataNumber) = _loadTcbInfoIssueEvaluation(key);
         if (existingIssueDate > 0) {
             /// I don't think there can be a scenario where an existing tcbinfo with a higher evaluation data number
             /// to be issued BEFORE a new tcbinfo with a lower evaluation data number
@@ -190,6 +192,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         }
 
         issueDateTimestamp = tcbInfo.issueDate;
+        nextUpdateTimestamp = tcbInfo.nextUpdate;
         evaluationDataNumber = tcbInfo.evaluationDataNumber;
         TCBLevelsObj[] memory tcbLevels = FmspcTcbLib.parseTcbLevels(tcbInfo.version, tcbLevelsString);
         bytes memory encodedTcbLevels = _encodeTcbLevels(tcbLevels);
@@ -251,10 +254,11 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
 
     /// @dev for the time being, we will require a method to "cache" the tcbinfo issued timestamp
     /// @dev and the evaluation data number
-    /// @dev this reduces the amount of data to read, when performing the rollback check
+    /// @dev this reduces the amount of data to read, when performing rollback check
+    /// @dev which also allows any caller to check expiration of TCBInfo before loading the entire data
     /// @dev the functions defined below can be overriden by the inheriting contract
 
-    function _storeTcbInfoIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint32 evaluationDataNumber) internal virtual;
+    function _storeTcbInfoIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber) internal virtual;
 
-    function _loadTcbInfoIssueEvaluation(bytes32 tcbKey) internal view virtual returns (uint64 issueDateTimestamp, uint32 evaluationDataNumber);
+    function _loadTcbInfoIssueEvaluation(bytes32 tcbKey) internal view virtual returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber);
 }
