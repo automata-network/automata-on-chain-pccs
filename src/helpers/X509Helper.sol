@@ -23,6 +23,11 @@ struct X509CertObj {
     bytes tbs;
 }
 
+// 2.5.29.35
+bytes constant AUTHORITY_KEY_IDENTIFIER_OID = hex"551D23";
+// 2.5.29.14
+bytes constant SUBJECT_KEY_IDENTIFIER_OID = hex"551D0E";
+
 /**
  * @title X509 Certificates Helper Contract
  * @notice This is a standalone contract that can be used by off-chain applications and smart contracts
@@ -100,6 +105,65 @@ contract X509Helper {
         tbsPtr = der.nextSiblingOf(tbsPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
         pubKey = _getSubjectPublicKey(der, der.firstChildOf(tbsPtr));
+    }
+
+    function getExtensionPtr(bytes calldata der) external pure returns (uint256 extensionPtr) {
+        extensionPtr = _getExtensionPtr(der);
+    }
+
+    /// @dev according to RFC 5280, the Authority Key Identifier is mandatory for CA certificates
+    /// @dev if not present, this method returns 0x00
+    function getAuthorityKeyIdentifier(bytes calldata der) external pure returns (bytes20 akid) {
+        uint256 extnValuePtr = _findExtensionValuePtr(der, AUTHORITY_KEY_IDENTIFIER_OID);
+        if (extnValuePtr != 0) {
+            bytes memory extValue = der.bytesAt(extnValuePtr);
+
+            // The AUTHORITY_KEY_IDENTIFIER consists of a SEQUENCE with the following elements
+            // [0] - keyIdentifier (ESSENTIAL, but OPTIONAL as per RFC 5280)
+            // [1] - authorityCertIssuer (OPTIONAL as per RFC 5280)
+            // [2] - authorityCertSerialNumber (OPTIONAL as per RFC 5280)
+            // since we are interested in only the key identifier
+            // we iterate through the sequence until we find a tag matches with [0]
+
+            uint256 parentPtr = extValue.root();
+            uint256 ptr = extValue.firstChildOf(parentPtr);
+            bytes1 contextTag = 0x80;
+            while (true) {
+                bytes1 tag = bytes1(extValue[ptr.ixs()]);
+                if (tag == contextTag) {
+                    akid = bytes20(extValue.bytesAt(ptr));
+                    break;
+                }
+
+                if (ptr.ixl() < parentPtr.ixl()) {
+                    ptr = extValue.nextSiblingOf(ptr);
+                } else {
+                    break;
+                }
+            }
+        }
+    }
+
+    /// @dev according to RFC 5280, the Subject Key Identifier is RECOMMENDED for CA certificates
+    /// @dev Intel DCAP attestation certificates contain this extension
+    /// @dev this value can be useful for checking CRLs without performing signature verification, which can be costly in terms of gas
+    /// @dev we can simply use this value to check against the CRL's authority key identifier
+    /// @dev if not present, this method returns 0x00
+    function getSubjectKeyIdentifier(bytes calldata der) external pure returns (bytes20 skid) {
+        uint256 extValuePtr = _findExtensionValuePtr(der, SUBJECT_KEY_IDENTIFIER_OID);
+
+        if (extValuePtr != 0) {
+            // The SUBJECT_KEY_IDENTIFIER simply consists of the KeyIdentifier of Octet String type (0x04)
+            // so we can return the value as it is
+            
+            // check octet string tag
+            require(der[extValuePtr.ixf()] == 0x04, "keyIdentifier must be of OctetString type");
+            // check keyIdentifier length
+            uint8 length = uint8(bytes1(der[extValuePtr.ixf() + 1]));
+            require(length == 20, "Invalid keyIdentifier length");
+
+            skid = bytes20(der[extValuePtr.ixf() + 2 : extValuePtr.ixf() + 2 + 20]);
+        }
     }
 
     /// x509 Certificates generally contain a sequence of elements in the following order:
@@ -229,5 +293,47 @@ contract X509Helper {
             uint256 lengthDiff = n - expectedLength;
             output = input.substring(lengthDiff, expectedLength);
         }
+    }
+
+    function _getExtensionPtr(bytes calldata der) private pure returns (uint256 extensionPtr) {
+        uint256 root = der.root();
+        uint256 tbsParentPtr = der.firstChildOf(root);
+        extensionPtr = der.firstChildOf(tbsParentPtr);
+        // iterate through the sequence until we find the extension tag (0xA3)
+        while (extensionPtr.ixl() <= tbsParentPtr.ixl()) {
+            bytes1 tag = bytes1(der[extensionPtr.ixs()]);
+            if (tag == 0xA3) {
+                return extensionPtr;
+            } else {
+                if (extensionPtr.ixl() == tbsParentPtr.ixl()) {
+                    revert("Extension is missing");
+                } else {
+                    extensionPtr = der.nextSiblingOf(extensionPtr);
+                }
+            }
+        }
+    }
+
+    function _findExtensionValuePtr(bytes calldata der, bytes memory oid) private pure returns (uint256) {
+        uint256 extensionPtr = _getExtensionPtr(der);
+        uint256 parentPtr = der.firstChildOf(extensionPtr);
+        uint256 ptr = der.firstChildOf(parentPtr);
+
+        while (ptr != 0) {
+            uint256 oidPtr = der.firstChildOf(ptr);
+            if (der[oidPtr.ixs()] != 0x06) {
+                revert("Missing OID");
+            }
+            if (BytesUtils.compareBytes(der.bytesAt(oidPtr), oid)) {
+                return der.nextSiblingOf(oidPtr);
+            }
+            ptr = der.nextSiblingOf(ptr);
+
+            if (ptr.ixl() < parentPtr.ixl()) {
+                ptr = der.nextSiblingOf(ptr);
+            }
+        }
+
+        return 0; // not found
     }
 }
