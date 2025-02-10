@@ -25,19 +25,24 @@ contract X509HelperTest is Test {
     /// @notice the Root's Authority and Subject Key Identifiers must equal
     function testRootCaSkidEqualsAkid() public {
         bytes20 akid = X509.getAuthorityKeyIdentifier(sampleRootCaDer);
-
         bytes20 skid = X509.getSubjectKeyIdentifier(sampleRootCaDer);
-        
         assertEq(akid, skid);
+
+        // parsed
+        X509CertObj memory parsedRootCa = X509.parseX509DER(sampleRootCaDer);
+        assertEq(parsedRootCa.authorityKeyIdentifier, akid);
+        assertEq(parsedRootCa.subjectKeyIdentifier, skid);
     }
 
     /// @notice the Root CRL Authority KI must equal the Root CA Subject KI
     function testRootCrlAuthorityKeyIdentifier() public {
         bytes20 crl_akid = X509_CRL.getAuthorityKeyIdentifier(sampleRootCrlDer);
-        
         bytes20 ca_skid = X509.getSubjectKeyIdentifier(sampleRootCaDer);
-        
         assertEq(crl_akid, ca_skid);
+
+        // parsed
+        X509CRLObj memory parsedRootCrl = X509_CRL.parseCRLDER(sampleRootCrlDer);
+        assertEq(crl_akid, parsedRootCrl.authorityKeyIdentifier);
     }
 
     /// @notice the PCK Cert Authority KI must equal the Platform CA Subject KI
@@ -57,10 +62,12 @@ contract X509HelperTest is Test {
     /// @notice the Platform CRL Authority KI must equal the Platform CA Subject KI
     function testPlatformCrlAuthorityKeyIdentifier() public {
         bytes20 crl_akid = X509_CRL.getAuthorityKeyIdentifier(samplePlatformCrlDer);
-        
         bytes20 ca_skid = X509.getSubjectKeyIdentifier(samplePlatformCaDer);
-        
         assertEq(crl_akid, ca_skid);
+
+        // parsed
+        X509CRLObj memory parsedPlatformCrl = X509_CRL.parseCRLDER(samplePlatformCrlDer);
+        assertEq(crl_akid, parsedPlatformCrl.authorityKeyIdentifier);
     }
 
     function testCrlAndCaMismatch() public {

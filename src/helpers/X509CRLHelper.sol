@@ -15,6 +15,7 @@ struct X509CRLObj {
     uint256 validityNotBefore;
     uint256 validityNotAfter;
     uint256[] serialNumbersRevoked;
+    bytes20 authorityKeyIdentifier;
     // for signature verification in the cert chain
     bytes signature;
     bytes tbs;
@@ -85,40 +86,24 @@ contract X509CRLHelper {
         tbsPtr = der.nextSiblingOf(tbsPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
-        uint256[] memory ret = _getRevokedSerialNumbers(der, tbsPtr, true, serialNumber);
-        revoked = ret[0] == serialNumber;
+        if (bytes1(der[tbsPtr.ixs()]) == 0x30) {
+            uint256[] memory ret = _getRevokedSerialNumbers(
+                der, 
+                tbsPtr, 
+                true, 
+                serialNumber
+            );
+            revoked = ret[0] == serialNumber;
+        }
     }
 
     /// @dev according to RFC 5280, the Authority Key Identifier is mandatory for CA certificates
     /// @dev if not present, this method returns 0x00
     function getAuthorityKeyIdentifier(bytes calldata der) external pure returns (bytes20 akid) {
-        uint256 extnValuePtr = _findExtensionValuePtr(der, AUTHORITY_KEY_IDENTIFIER_OID);
+        uint256 extensionPtr = _getExtensionPtr(der);
+        uint256 extnValuePtr = _findExtensionValuePtr(der, extensionPtr, AUTHORITY_KEY_IDENTIFIER_OID);
         if (extnValuePtr != 0) {
-            bytes memory extValue = der.bytesAt(extnValuePtr);
-
-            // The AUTHORITY_KEY_IDENTIFIER consists of a SEQUENCE with the following elements
-            // [0] - keyIdentifier (ESSENTIAL, but OPTIONAL as per RFC 5280)
-            // [1] - authorityCertIssuer (OPTIONAL as per RFC 5280)
-            // [2] - authorityCertSerialNumber (OPTIONAL as per RFC 5280)
-            // since we are interested in only the key identifier
-            // we iterate through the sequence until we find a tag matches with [0]
-
-            uint256 parentPtr = extValue.root();
-            uint256 ptr = extValue.firstChildOf(parentPtr);
-            bytes1 contextTag = 0x80;
-            while (true) {
-                bytes1 tag = bytes1(extValue[ptr.ixs()]);
-                if (tag == contextTag) {
-                    akid = bytes20(extValue.bytesAt(ptr));
-                    break;
-                }
-
-                if (ptr.ixl() < parentPtr.ixl()) {
-                    ptr = extValue.nextSiblingOf(ptr);
-                } else {
-                    break;
-                }
-            }
+            akid = _getAuthorityKeyIdentifier(der, extnValuePtr);
         }
     }
 
@@ -162,7 +147,25 @@ contract X509CRLHelper {
         tbsPtr = der.nextSiblingOf(tbsPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
 
-        crl.serialNumbersRevoked = _getRevokedSerialNumbers(der, tbsPtr, false, 0);
+        if (bytes1(der[tbsPtr.ixs()]) == 0x30) {
+            // the revoked certificates field is present
+            crl.serialNumbersRevoked = _getRevokedSerialNumbers(
+                der, 
+                tbsPtr,
+                false, 
+                0
+            );
+            tbsPtr = der.nextSiblingOf(tbsPtr);
+        }
+
+        if (bytes1(der[tbsPtr.ixs()]) == 0xA0) {
+            uint256 authorityKeyIdentifierPtr = _findExtensionValuePtr(der, tbsPtr, AUTHORITY_KEY_IDENTIFIER_OID);
+            if (authorityKeyIdentifierPtr != 0) {
+                crl.authorityKeyIdentifier = _getAuthorityKeyIdentifier(der, authorityKeyIdentifierPtr);
+            }
+        } else {
+            revert("Extension is missing");
+        }
 
         // tbs iteration completed
         // now we just need to look for the signature
@@ -194,33 +197,35 @@ contract X509CRLHelper {
         notAfter = DateTimeUtils.fromDERToTimestamp(der.bytesAt(notAfterPtr));
     }
 
-    function _getRevokedSerialNumbers(bytes calldata der, uint256 revokedParentPtr, bool breakIfFound, uint256 filter)
+    function _getRevokedSerialNumbers(
+        bytes calldata der, 
+        uint256 revokedParentPtr, 
+        bool breakIfFound, 
+        uint256 filter
+    )
         private
         pure
         returns (uint256[] memory serialNumbers)
     {
         uint256 revokedPtr = der.firstChildOf(revokedParentPtr);
-
-        if (der[revokedPtr.ixs()] == 0x30) {
-            bytes memory serials;
-            while (revokedPtr.ixl() <= revokedParentPtr.ixl()) {
-                uint256 serialPtr = der.firstChildOf(revokedPtr);
-                bytes memory serialBytes = der.bytesAt(serialPtr);
-                uint256 serialNumber = _parseSerialNumber(serialBytes);
-                serials = abi.encodePacked(serials, serialNumber);
-                if (breakIfFound && filter == serialNumber) {
-                    serialNumbers = new uint256[](1);
-                    serialNumbers[0] = filter;
-                    return serialNumbers;
-                }
-                revokedPtr = der.nextSiblingOf(revokedPtr);
+        bytes memory serials;
+        while (revokedPtr.ixl() <= revokedParentPtr.ixl()) {
+            uint256 serialPtr = der.firstChildOf(revokedPtr);
+            bytes memory serialBytes = der.bytesAt(serialPtr);
+            uint256 serialNumber = _parseSerialNumber(serialBytes);
+            serials = abi.encodePacked(serials, serialNumber);
+            if (breakIfFound && filter == serialNumber) {
+                serialNumbers = new uint256[](1);
+                serialNumbers[0] = filter;
+                return serialNumbers;
             }
-            uint256 count = serials.length / 32;
-            // ABI encoding format for a dynamic uint256[] value
-            serials = abi.encodePacked(abi.encode(0x20), abi.encode(count), serials);
-            serialNumbers = new uint256[](count);
-            serialNumbers = abi.decode(serials, (uint256[]));
+            revokedPtr = der.nextSiblingOf(revokedPtr);
         }
+        uint256 count = serials.length / 32;
+        // ABI encoding format for a dynamic uint256[] value
+        serials = abi.encodePacked(abi.encode(0x20), abi.encode(count), serials);
+        serialNumbers = new uint256[](count);
+        serialNumbers = abi.decode(serials, (uint256[]));
     }
 
     function _parseSerialNumber(bytes memory serialBytes) private pure returns (uint256 serial) {
@@ -238,6 +243,34 @@ contract X509CRLHelper {
         bytes memory s = _trimBytes(der.bytesAt(sigPtr), 32);
 
         sig = abi.encodePacked(r, s);
+    }
+
+    function _getAuthorityKeyIdentifier(bytes calldata der, uint256 extnValuePtr) private pure returns (bytes20 akid) {
+        bytes memory extValue = der.bytesAt(extnValuePtr);
+
+        // The AUTHORITY_KEY_IDENTIFIER consists of a SEQUENCE with the following elements
+        // [0] - keyIdentifier (ESSENTIAL, but OPTIONAL as per RFC 5280)
+        // [1] - authorityCertIssuer (OPTIONAL as per RFC 5280)
+        // [2] - authorityCertSerialNumber (OPTIONAL as per RFC 5280)
+        // since we are interested in only the key identifier
+        // we iterate through the sequence until we find a tag matches with [0]
+
+        uint256 parentPtr = extValue.root();
+        uint256 ptr = extValue.firstChildOf(parentPtr);
+        bytes1 contextTag = 0x80;
+        while (true) {
+            bytes1 tag = bytes1(extValue[ptr.ixs()]);
+            if (tag == contextTag) {
+                akid = bytes20(extValue.bytesAt(ptr));
+                break;
+            }
+
+            if (ptr.ixl() < parentPtr.ixl()) {
+                ptr = extValue.nextSiblingOf(ptr);
+            } else {
+                break;
+            }
+        }
     }
 
     /// @dev remove unnecessary prefix from the input
@@ -276,8 +309,7 @@ contract X509CRLHelper {
         }
     }
 
-    function _findExtensionValuePtr(bytes calldata der, bytes memory oid) private pure returns (uint256) {
-        uint256 extensionPtr = _getExtensionPtr(der);
+    function _findExtensionValuePtr(bytes calldata der, uint256 extensionPtr, bytes memory oid) private pure returns (uint256) {
         uint256 parentPtr = der.firstChildOf(extensionPtr);
         uint256 ptr = der.firstChildOf(parentPtr);
 
