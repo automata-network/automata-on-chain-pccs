@@ -62,4 +62,15 @@ contract X509HelperTest is Test {
         
         assertEq(crl_akid, ca_skid);
     }
+
+    function testCrlAndCaMismatch() public {
+        bytes20 platform_crl_akid = X509_CRL.getAuthorityKeyIdentifier(samplePlatformCrlDer);
+        bytes20 platform_ca_skid = X509.getSubjectKeyIdentifier(samplePlatformCaDer);
+
+        bytes20 root_crl_akid = X509_CRL.getAuthorityKeyIdentifier(sampleRootCrlDer);
+        bytes20 root_ca_skid = X509.getSubjectKeyIdentifier(sampleRootCaDer);
+
+        assertFalse(root_crl_akid == platform_ca_skid);
+        assertFalse(platform_crl_akid == root_ca_skid);
+    }
 }
