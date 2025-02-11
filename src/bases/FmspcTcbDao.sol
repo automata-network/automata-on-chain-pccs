@@ -252,7 +252,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     /// @dev for the time being, we will require a method to "cache" the tcbinfo issued timestamp
     /// @dev and the evaluation data number
     /// @dev this reduces the amount of data to read, when performing the rollback check
-    /// @dev the functions defined below can be overriden by the inheriting contract
+    /// @dev the functions defined below can be overridden by the inheriting contract
 
     function _storeTcbInfoIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint32 evaluationDataNumber) internal virtual;
 
