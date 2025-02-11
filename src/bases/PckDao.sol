@@ -63,6 +63,14 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         bytes18 tcbm
     );
 
+    event UpsertPlatformTcb(
+        bytes16 indexed qeid,
+        bytes2 indexed pceid,
+        bytes16 platformCpuSvn,
+        bytes2 platformPceSvn,
+        bytes18 tcbm
+    );
+
     string constant PCK_PLATFORM_CA_COMMON_NAME = "Intel SGX PCK Platform CA";
     string constant PCK_PROCESSOR_CA_COMMON_NAME = "Intel SGX PCK Processor CA";
     string constant PCK_COMMON_NAME = "Intel SGX PCK Certificate";
@@ -219,6 +227,14 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
 
         bytes32 tcbmMappingKey = TCB_MAPPING_KEY(qeidBytes, pceidBytes, platformCpuSvnBytes, platformPceSvnBytes);
         _setTcbrToTcbmMapping(tcbmMappingKey, tcbmBytes);
+
+        emit UpsertPlatformTcb(
+            qeidBytes,
+            pceidBytes,
+            platformCpuSvnBytes,
+            platformPceSvnBytes,
+            tcbmBytes
+        );
 
         return bytes32(0);
     }
