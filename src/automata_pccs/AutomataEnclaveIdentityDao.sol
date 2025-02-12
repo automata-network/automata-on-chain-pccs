@@ -29,7 +29,7 @@ contract AutomataEnclaveIdentityDao is AutomataDaoBase, EnclaveIdentityDao {
 
     function _loadIdentityContentHash(bytes32 identityKey) internal view override returns (bytes32 contentHash) {
         bytes32 contentHashKey = _computeContentHashKey(identityKey);
-        return bytes32(resolver.readAttestation(resolver.collateralPointer(contentHashKey)));
+        return bytes32(_fetchDataFromResolver(contentHashKey, false));
     }
 
     function _computeContentHashKey(bytes32 key) internal pure returns (bytes32 ret) {

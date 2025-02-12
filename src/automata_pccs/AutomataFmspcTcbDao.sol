@@ -33,7 +33,7 @@ contract AutomataFmspcTcbDao is AutomataDaoBase, FmspcTcbDao {
     /// @dev we will have to come up with hacky low-level storage reads
     function _loadTcbInfoIssueEvaluation(bytes32 tcbKey) internal view override returns (uint64 issueDateTimestamp, uint32 evaluationDataNumber) {
         bytes32 tcbIssueEvaluationKey = _computeTcbIssueEvaluationKey(tcbKey);
-        bytes memory data = resolver.readAttestation(resolver.collateralPointer(tcbIssueEvaluationKey));
+        bytes memory data = _fetchDataFromResolver(tcbIssueEvaluationKey, false);
         if (data.length > 0) {
             (uint256 slot) = abi.decode(data, (uint256));
             issueDateTimestamp = uint64(slot >> 128);
@@ -56,7 +56,7 @@ contract AutomataFmspcTcbDao is AutomataDaoBase, FmspcTcbDao {
 
     function _loadFmspcTcbContentHash(bytes32 tcbKey) internal view override returns (bytes32 contentHash) {
         bytes32 contentHashKey = _computeContentHashKey(tcbKey);
-        return bytes32(resolver.readAttestation(resolver.collateralPointer(contentHashKey)));
+        return bytes32(_fetchDataFromResolver(contentHashKey, false));
     }
 
     function _computeContentHashKey(bytes32 key) private pure returns (bytes32 ret) {
