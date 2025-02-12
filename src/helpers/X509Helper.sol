@@ -279,7 +279,8 @@ contract X509Helper {
         
         // check octet string tag
         require(der[extValuePtr.ixf()] == 0x04, "keyIdentifier must be of OctetString type");
-        skid = der[extValuePtr.ixf() + 2 : extValuePtr.ixf() + 2 + 20];
+        uint8 length = uint8(bytes1(der[extValuePtr.ixf() + 1]));
+        skid = der[extValuePtr.ixf() + 2 : extValuePtr.ixf() + 2 + length];
     }
 
     function _parseSerialNumber(bytes memory serialBytes) private pure returns (uint256 serial) {
