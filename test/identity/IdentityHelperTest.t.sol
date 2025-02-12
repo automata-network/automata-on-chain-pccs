@@ -14,7 +14,7 @@ contract IdentityHelperTest is IdentityConstants, Test {
     }
 
     function testIdentityParser() public {
-        IdentityObj memory identity = enclaveIdentityLib.parseIdentityString(string(identityStr));
+        (IdentityObj memory identity, ) = enclaveIdentityLib.parseIdentityString(string(identityStr));
         assertEq(identity.version, 2);
         assertEq(identity.tcbEvaluationDataNumber, 16);
         assertEq(identity.miscselect, bytes4(0));

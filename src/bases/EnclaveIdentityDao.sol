@@ -127,7 +127,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         uint256 version,
         EnclaveIdentityJsonObj calldata enclaveIdentityObj
     ) private view returns (bytes32 key, bytes memory reqData) {
-        IdentityObj memory identity = EnclaveIdentityLib.parseIdentityString(enclaveIdentityObj.identityStr);
+        (IdentityObj memory identity, ) = EnclaveIdentityLib.parseIdentityString(enclaveIdentityObj.identityStr);
         if (id != uint256(identity.id)) {
             revert Enclave_Id_Mismatch();
         }
