@@ -15,7 +15,7 @@ struct X509CRLObj {
     uint256 validityNotBefore;
     uint256 validityNotAfter;
     uint256[] serialNumbersRevoked;
-    bytes20 authorityKeyIdentifier;
+    bytes authorityKeyIdentifier;
     // for signature verification in the cert chain
     bytes signature;
     bytes tbs;
@@ -99,7 +99,7 @@ contract X509CRLHelper {
 
     /// @dev according to RFC 5280, the Authority Key Identifier is mandatory for CA certificates
     /// @dev if not present, this method returns 0x00
-    function getAuthorityKeyIdentifier(bytes calldata der) external pure returns (bytes20 akid) {
+    function getAuthorityKeyIdentifier(bytes calldata der) external pure returns (bytes memory akid) {
         uint256 extensionPtr = _getExtensionPtr(der);
         uint256 extnValuePtr = _findExtensionValuePtr(der, extensionPtr, AUTHORITY_KEY_IDENTIFIER_OID);
         if (extnValuePtr != 0) {
@@ -245,7 +245,7 @@ contract X509CRLHelper {
         sig = abi.encodePacked(r, s);
     }
 
-    function _getAuthorityKeyIdentifier(bytes calldata der, uint256 extnValuePtr) private pure returns (bytes20 akid) {
+    function _getAuthorityKeyIdentifier(bytes calldata der, uint256 extnValuePtr) private pure returns (bytes memory akid) {
         bytes memory extValue = der.bytesAt(extnValuePtr);
 
         // The AUTHORITY_KEY_IDENTIFIER consists of a SEQUENCE with the following elements
@@ -261,7 +261,7 @@ contract X509CRLHelper {
         while (true) {
             bytes1 tag = bytes1(extValue[ptr.ixs()]);
             if (tag == contextTag) {
-                akid = bytes20(extValue.bytesAt(ptr));
+                akid = extValue.bytesAt(ptr);
                 break;
             }
 

@@ -18,8 +18,8 @@ struct X509CertObj {
     bytes subjectPublicKey;
     // the extension needs to be parsed further for PCK Certificates
     uint256 extensionPtr;
-    bytes20 authorityKeyIdentifier;
-    bytes20 subjectKeyIdentifier;
+    bytes authorityKeyIdentifier;
+    bytes subjectKeyIdentifier;
     // for signature verification in the cert chain
     bytes signature;
     bytes tbs;
@@ -115,7 +115,7 @@ contract X509Helper {
 
     /// @dev according to RFC 5280, the Authority Key Identifier is mandatory for CA certificates
     /// @dev if not present, this method returns 0x00
-    function getAuthorityKeyIdentifier(bytes calldata der) external pure returns (bytes20 akid) {
+    function getAuthorityKeyIdentifier(bytes calldata der) external pure returns (bytes memory akid) {
         uint256 extensionPtr = _getExtensionPtr(der);
         uint256 extnValuePtr = _findExtensionValuePtr(der, extensionPtr, AUTHORITY_KEY_IDENTIFIER_OID);
         if (extnValuePtr != 0) {
@@ -128,7 +128,7 @@ contract X509Helper {
     /// @dev this value can be useful for checking CRLs without performing signature verification, which can be costly in terms of gas
     /// @dev we can simply use this value to check against the CRL's authority key identifier
     /// @dev if not present, this method returns 0x00
-    function getSubjectKeyIdentifier(bytes calldata der) external pure returns (bytes20 skid) {
+    function getSubjectKeyIdentifier(bytes calldata der) external pure returns (bytes memory skid) {
         uint256 extensionPtr = _getExtensionPtr(der);
         uint256 extValuePtr = _findExtensionValuePtr(der, extensionPtr, SUBJECT_KEY_IDENTIFIER_OID);
 
@@ -245,7 +245,7 @@ contract X509Helper {
         pubKey = _trimBytes(pubKey, 64);
     }
 
-    function _getAuthorityKeyIdentifier(bytes calldata der, uint256 extnValuePtr) private pure returns (bytes20 akid) {
+    function _getAuthorityKeyIdentifier(bytes calldata der, uint256 extnValuePtr) private pure returns (bytes memory akid) {
         bytes memory extValue = der.bytesAt(extnValuePtr);
 
         // The AUTHORITY_KEY_IDENTIFIER consists of a SEQUENCE with the following elements
@@ -261,7 +261,7 @@ contract X509Helper {
         while (true) {
             bytes1 tag = bytes1(extValue[ptr.ixs()]);
             if (tag == contextTag) {
-                akid = bytes20(extValue.bytesAt(ptr));
+                akid = extValue.bytesAt(ptr);
                 break;
             }
 
@@ -273,7 +273,7 @@ contract X509Helper {
         }
     }
 
-    function _getSubjectKeyIdentifier(bytes calldata der, uint256 extValuePtr) private pure returns (bytes20 skid) {
+    function _getSubjectKeyIdentifier(bytes calldata der, uint256 extValuePtr) private pure returns (bytes memory skid) {
         // The SUBJECT_KEY_IDENTIFIER simply consists of the KeyIdentifier of Octet String type (0x04)
         // so we can return the value as it is
         
@@ -283,7 +283,7 @@ contract X509Helper {
         uint8 length = uint8(bytes1(der[extValuePtr.ixf() + 1]));
         require(length == 20, "Invalid keyIdentifier length");
 
-        skid = bytes20(der[extValuePtr.ixf() + 2 : extValuePtr.ixf() + 2 + 20]);
+        skid = der[extValuePtr.ixf() + 2 : extValuePtr.ixf() + 2 + 20];
     }
 
     function _parseSerialNumber(bytes memory serialBytes) private pure returns (uint256 serial) {
