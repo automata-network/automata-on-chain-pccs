@@ -25,6 +25,8 @@ struct X509CertObj {
     bytes tbs;
 }
 
+// 2.5.4.3 
+bytes constant COMMON_NAME_OID = hex"550403";
 // 2.5.29.35
 bytes constant AUTHORITY_KEY_IDENTIFIER_OID = hex"551D23";
 // 2.5.29.14
@@ -70,7 +72,7 @@ contract X509Helper {
         tbsPtr = der.nextSiblingOf(tbsPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
-        issuerCommonName = _getCommonName(der, der.firstChildOf(tbsPtr));
+        issuerCommonName = _getCommonName(der, tbsPtr);
     }
 
     function getCertValidity(bytes calldata der) external pure returns (uint256 validityNotBefore, uint256 validityNotAfter) {
@@ -93,7 +95,7 @@ contract X509Helper {
         tbsPtr = der.nextSiblingOf(tbsPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
-        subjectCommonName = _getCommonName(der, der.firstChildOf(tbsPtr));
+        subjectCommonName = _getCommonName(der, tbsPtr);
     }
 
     function getSubjectPublicKey(bytes calldata der) external pure returns (bytes memory pubKey) {
@@ -174,14 +176,14 @@ contract X509Helper {
         tbsPtr = der.nextSiblingOf(tbsPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
 
-        cert.issuerCommonName = _getCommonName(der, der.firstChildOf(tbsPtr));
+        cert.issuerCommonName = _getCommonName(der, tbsPtr);
 
         tbsPtr = der.nextSiblingOf(tbsPtr);
         (cert.validityNotBefore, cert.validityNotAfter) = _getValidity(der, tbsPtr);
 
         tbsPtr = der.nextSiblingOf(tbsPtr);
 
-        cert.subjectCommonName = _getCommonName(der, der.firstChildOf(tbsPtr));
+        cert.subjectCommonName = _getCommonName(der, tbsPtr);
 
         tbsPtr = der.nextSiblingOf(tbsPtr);
         cert.subjectPublicKey = _getSubjectPublicKey(der, der.firstChildOf(tbsPtr));
@@ -209,15 +211,41 @@ contract X509Helper {
         cert.signature = _getSignature(der, sigPtr);
     }
 
-    function _getCommonName(bytes calldata der, uint256 commonNameParentPtr)
+    function _getCommonName(bytes calldata der, uint256 rdnParentPtr)
         private
         pure
-        returns (string memory commonName)
+        returns (string memory)
     {
-        commonNameParentPtr = der.firstChildOf(commonNameParentPtr);
-        commonNameParentPtr = der.firstChildOf(commonNameParentPtr);
-        commonNameParentPtr = der.nextSiblingOf(commonNameParentPtr);
-        commonName = string(der.bytesAt(commonNameParentPtr));
+        // All we are doing here is iterating through a sequence of
+        // one or many RelativeDistinguishedName (RDN) sets
+        // which consists of one or many AttributeTypeAndValue sequences
+        // we are only interested in the sequence with the CommonName type
+
+        uint256 rdnPtr = der.firstChildOf(rdnParentPtr);
+        bool commonNameFound = false;
+        while (rdnPtr != 0) {
+            uint256 sequencePtr = der.firstChildOf(rdnPtr);
+            while (sequencePtr.ixl() <= rdnPtr.ixl()) {
+                uint256 oidPtr = der.firstChildOf(sequencePtr);
+                if (BytesUtils.compareBytes(der.bytesAt(oidPtr), COMMON_NAME_OID)) {
+                    commonNameFound = true;
+                    return string(der.bytesAt(der.nextSiblingOf(oidPtr)));
+                } else if (sequencePtr.ixl() == rdnPtr.ixl()) {
+                    break;
+                } else {
+                    sequencePtr = der.nextSiblingOf(sequencePtr);
+                }
+            }
+            if (rdnPtr.ixl() < rdnParentPtr.ixl()) {
+                rdnPtr = der.nextSiblingOf(rdnPtr);
+            } else {
+                rdnPtr = 0;
+            }
+        }
+
+        if (!commonNameFound) {
+            revert("Missing common name");
+        }
     }
 
     function _getValidity(bytes calldata der, uint256 validityPtr)
