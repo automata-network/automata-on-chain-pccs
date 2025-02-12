@@ -58,6 +58,10 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         FmspcTcbLib = FmspcTcbHelper(_fmspcHelper);
     }
 
+    function getTcbInfoContentHash(bytes32 key) public view returns (bytes32) {
+        return _loadFmspcTcbContentHash(key);
+    }
+
     /**
      * @notice computes the key that is mapped to the collateral attestation ID
      * @return key = keccak256(type ++ FMSPC ++ version)
@@ -109,11 +113,13 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
             bytes6 fmspc, 
             uint32 version, 
             uint64 issueDateTimestamp,
-            uint32 evaluationDataNumber
+            uint32 evaluationDataNumber,
+            bytes32 contentHash
         ) = _buildTcbAttestationRequest(tcbInfoObj);
         bytes32 hash = sha256(bytes(tcbInfoObj.tcbInfoStr));
         attestationId = _attestTcb(req, hash, key);
         _storeTcbInfoIssueEvaluation(key, issueDateTimestamp, evaluationDataNumber);
+        _storeFmspcTcbContentHash(key, contentHash);
         emit UpsertedFmpscTcb(tcbId, fmspc, version);
     }
 
@@ -153,7 +159,8 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
             bytes6 fmspc, 
             uint32 version,
             uint64 issueDateTimestamp,
-            uint32 evaluationDataNumber
+            uint32 evaluationDataNumber,
+            bytes32 contentHash
         )
     {
         TcbInfoBasic memory tcbInfo;
@@ -205,6 +212,13 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
             }
             reqData = abi.encode(tcbInfo, module, encodedModuleIdentities, encodedTcbLevels, tcbInfoObj.tcbInfoStr, tcbInfoObj.signature);
         }
+
+        contentHash = FmspcTcbLib.generateFmspcTcbContentHash(
+            tcbInfo,
+            tcbLevelsString,
+            tdxModuleString,
+            tdxModuleIdentitiesString
+        );
     }
 
     function _validateTcbInfo(TcbInfoJsonObj calldata tcbInfoObj) private view {
@@ -257,4 +271,10 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     function _storeTcbInfoIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint32 evaluationDataNumber) internal virtual;
 
     function _loadTcbInfoIssueEvaluation(bytes32 tcbKey) internal view virtual returns (uint64 issueDateTimestamp, uint32 evaluationDataNumber);
+
+    /// @dev store time-insensitive content hash
+
+    function _storeFmspcTcbContentHash(bytes32 tcbKey, bytes32 contentHash) internal virtual;
+
+    function _loadFmspcTcbContentHash(bytes32 tcbKey) internal view virtual returns (bytes32 contentHash);
 }

@@ -100,6 +100,40 @@ contract FmspcTcbHelper {
     error TCB_TDX_Version_Invalid();
     error TCB_TDX_ID_Invalid();
 
+    /**
+     * @notice this method generates content-specific hash
+     * @notice in other words, we omit the "issueDate" and "nextUpdate" fields from the preimage
+     * @notice of the hash.
+     * @notice hence, this allows us to keep track of the changes made ONLY to the TCBInfo content
+     * @notice regardless of when the collateral is being issued and expires
+     */
+    function generateFmspcTcbContentHash(
+        TcbInfoBasic memory tcbInfoContent,
+        string memory tcbLevelsString,
+        string memory tdxModuleString,
+        string memory tdxModuleIdentitiesString
+    ) external pure returns (bytes32 contentHash) {
+        bytes memory content = abi.encodePacked(
+            tcbInfoContent.tcbType,
+            tcbInfoContent.id,
+            tcbInfoContent.version,
+            tcbInfoContent.evaluationDataNumber,
+            tcbInfoContent.fmspc,
+            tcbInfoContent.pceid,
+            bytes(tcbLevelsString)
+        );
+        
+        if (bytes(tdxModuleString).length > 0) {
+            content = abi.encodePacked(content, bytes(tdxModuleString));
+        }
+
+        if (bytes(tdxModuleIdentitiesString).length > 0) {
+            content = abi.encodePacked(content, bytes(tdxModuleIdentitiesString));
+        }
+
+        contentHash = keccak256(content);
+    }
+
     function tcbLevelsObjToBytes(TCBLevelsObj calldata obj) external pure returns (bytes memory serialized) {
         // first slot = (uint64, uint64, uint64)
         uint256 firstSlot = 

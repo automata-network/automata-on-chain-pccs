@@ -101,4 +101,18 @@ contract MockTcbDao is FmspcTcbDao {
     function _computeTcbIssueEvaluationKey(bytes32 key) private pure returns (bytes32 ret) {
         ret = keccak256(abi.encodePacked(key, "tcbIssueEvaluation"));
     }
+
+    function _storeFmspcTcbContentHash(bytes32 tcbKey, bytes32 contentHash) internal override {
+        bytes32 contentHashKey = _computeContentHashKey(tcbKey);
+        resolver.attest(contentHashKey, abi.encodePacked(contentHash), bytes32(0));
+    }
+
+    function _loadFmspcTcbContentHash(bytes32 tcbKey) internal view override returns (bytes32 contentHash) {
+        bytes32 contentHashKey = _computeContentHashKey(tcbKey);
+        return bytes32(resolver.readAttestation(resolver.collateralPointer(contentHashKey)));
+    }
+
+    function _computeContentHashKey(bytes32 key) private pure returns (bytes32 ret) {
+        ret = keccak256(abi.encodePacked(key, "fmspcTcbContentHash"));
+    }
 }
