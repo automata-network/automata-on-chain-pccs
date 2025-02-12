@@ -351,6 +351,8 @@ contract X509Helper {
 
             if (ptr.ixl() < parentPtr.ixl()) {
                 ptr = der.nextSiblingOf(ptr);
+            } else {
+                ptr = 0;
             }
         }
 
