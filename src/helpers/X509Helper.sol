@@ -279,10 +279,6 @@ contract X509Helper {
         
         // check octet string tag
         require(der[extValuePtr.ixf()] == 0x04, "keyIdentifier must be of OctetString type");
-        // check keyIdentifier length
-        uint8 length = uint8(bytes1(der[extValuePtr.ixf() + 1]));
-        require(length == 20, "Invalid keyIdentifier length");
-
         skid = der[extValuePtr.ixf() + 2 : extValuePtr.ixf() + 2 + 20];
     }
 
