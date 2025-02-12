@@ -321,7 +321,6 @@ contract X509CRLHelper {
             if (BytesUtils.compareBytes(der.bytesAt(oidPtr), oid)) {
                 return der.nextSiblingOf(oidPtr);
             }
-            ptr = der.nextSiblingOf(ptr);
 
             if (ptr.ixl() < parentPtr.ixl()) {
                 ptr = der.nextSiblingOf(ptr);
