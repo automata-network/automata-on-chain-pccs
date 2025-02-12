@@ -62,6 +62,25 @@ contract EnclaveIdentityHelper {
 
     error Invalid_ID();
 
+    function getIdentityContentHash(IdentityObj memory identity, string memory identityTcbString)
+        external
+        pure
+        returns (bytes32 contentHash)
+    {
+        contentHash = keccak256(abi.encodePacked(
+            identity.id,
+            identity.version,
+            identity.tcbEvaluationDataNumber,
+            identity.miscselect,
+            identity.miscselectMask,
+            identity.attributes,
+            identity.attributesMask,
+            identity.mrsigner,
+            identity.isvprodid,
+            bytes(identityTcbString)
+        ));
+    }
+
     function parseIdentityString(string calldata identityStr) external pure returns (
         IdentityObj memory identity,
         string memory identityTcbString

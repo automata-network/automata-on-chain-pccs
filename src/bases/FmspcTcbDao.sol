@@ -58,7 +58,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         FmspcTcbLib = FmspcTcbHelper(_fmspcHelper);
     }
 
-    function getTcbInfoContentHash(bytes32 key) public view returns (bytes32) {
+    function getTcbInfoContentHash(bytes32 key) external view returns (bytes32) {
         return _loadFmspcTcbContentHash(key);
     }
 

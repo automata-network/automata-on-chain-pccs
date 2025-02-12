@@ -48,6 +48,10 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         EnclaveIdentityLib = EnclaveIdentityHelper(_enclaveIdentityHelper);
     }
 
+    function getIdentityContentHash(bytes32 key) external view returns (bytes32) {
+        return _loadIdentityContentHash(key);
+    }
+
     /**
      * @notice computes the key that is mapped to the collateral attestation ID
      * NOTE: the "version" indicated here is taken from the input parameter (e.g. v3 vs v4);
@@ -90,9 +94,11 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         returns (bytes32 attestationId)
     {
         _validateQeIdentity(enclaveIdentityObj);
-        (bytes32 key, bytes memory req) = _buildEnclaveIdentityAttestationRequest(id, version, enclaveIdentityObj);
+        (bytes32 key, bytes memory req, bytes32 identityContentHash) = _buildEnclaveIdentityAttestationRequest(id, version, enclaveIdentityObj);
         bytes32 hash = sha256(bytes(enclaveIdentityObj.identityStr));
         attestationId = _attestEnclaveIdentity(req, hash, key);
+
+        _storeIdentityContentHash(key, identityContentHash);
 
         emit UpsertedEnclaveIdentity(id, version);
     }
@@ -126,8 +132,9 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         uint256 id,
         uint256 version,
         EnclaveIdentityJsonObj calldata enclaveIdentityObj
-    ) private view returns (bytes32 key, bytes memory reqData) {
-        (IdentityObj memory identity, ) = EnclaveIdentityLib.parseIdentityString(enclaveIdentityObj.identityStr);
+    ) private view returns (bytes32 key, bytes memory reqData, bytes32 identityContentHash) {
+        (IdentityObj memory identity, string memory identityTcbString) = 
+            EnclaveIdentityLib.parseIdentityString(enclaveIdentityObj.identityStr);
         if (id != uint256(identity.id)) {
             revert Enclave_Id_Mismatch();
         }
@@ -154,6 +161,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         }
 
         reqData = abi.encode(identity, enclaveIdentityObj.identityStr, enclaveIdentityObj.signature);
+        identityContentHash = EnclaveIdentityLib.getIdentityContentHash(identity, identityTcbString);
     }
 
     /**
@@ -170,4 +178,10 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
             revert Invalid_TCB_Cert_Signature();
         }
     }
+
+    /// @dev store time-insensitive content hash
+
+    function _storeIdentityContentHash(bytes32 identityKey, bytes32 contentHash) internal virtual;
+
+    function _loadIdentityContentHash(bytes32 identityKey) internal view virtual returns (bytes32 contentHash);
 }
