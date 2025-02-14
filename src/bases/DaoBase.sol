@@ -20,6 +20,14 @@ abstract contract DaoBase {
     }
 
     /**
+     * @dev must override this method to fetch the validity timestamp range for the specified collateral
+     * @param key - mapped to a collateral as defined by individual data access objects (DAOs)
+     * @return the timestamp that the collateral is being issued
+     * @return the timestamp that the collateral expires and must be re-issued
+     */
+    function getCollateralValidity(bytes32 key) external view virtual returns (uint64, uint64);
+
+    /**
      * @notice getter logic to retrieve attested data from the Resolver
      * @param key - mapped to a collateral as defined by individual data access objects (DAOs)
      */

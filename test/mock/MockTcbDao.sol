@@ -82,18 +82,19 @@ contract MockTcbDao is FmspcTcbDao {
         }
     }
 
-    function _storeTcbInfoIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint32 evaluationDataNumber) internal override {
+    function _storeTcbInfoIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber) internal override {
         bytes32 tcbIssueEvaluationKey = _computeTcbIssueEvaluationKey(tcbKey);
-        uint256 slot = (uint256(issueDateTimestamp) << 2 ** 128) | evaluationDataNumber;
+        uint256 slot = (uint256(issueDateTimestamp) << 192) | (uint256(nextUpdateTimestamp) << 128) | evaluationDataNumber;
         resolver.attest(tcbIssueEvaluationKey, abi.encode(slot), bytes32(0));
     }
-    
-    function _loadTcbInfoIssueEvaluation(bytes32 tcbKey) internal view override returns (uint64 issueDateTimestamp, uint32 evaluationDataNumber) {
+
+    function _loadTcbInfoIssueEvaluation(bytes32 tcbKey) internal view override returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber) {
         bytes32 tcbIssueEvaluationKey = _computeTcbIssueEvaluationKey(tcbKey);
         bytes memory data = resolver.readAttestation(resolver.collateralPointer(tcbIssueEvaluationKey));
         if (data.length > 0) {
             (uint256 slot) = abi.decode(data, (uint256));
-            issueDateTimestamp = uint64(slot >> 128);
+            issueDateTimestamp = uint64(slot >> 192);
+            nextUpdateTimestamp = uint64(slot >> 128);
             evaluationDataNumber = uint32(slot);
         }
     }

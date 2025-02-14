@@ -58,6 +58,13 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         FmspcTcbLib = FmspcTcbHelper(_fmspcHelper);
     }
 
+    function getCollateralValidity(bytes32 key) external view override returns (
+        uint64 issueDateTimestamp,
+        uint64 nextUpdateTimestamp
+    ) {
+        (issueDateTimestamp, nextUpdateTimestamp, ) = _loadTcbInfoIssueEvaluation(key);
+    }
+
     /**
      * @notice computes the key that is mapped to the collateral attestation ID
      * @return key = keccak256(type ++ FMSPC ++ version)
@@ -125,11 +132,6 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         );
 
         attestationId = _attestTcb(req, hash, key);
-        _storeTcbInfoIssueEvaluation(
-            key, 
-            tcbInfo.issueDate, 
-            tcbInfo.evaluationDataNumber
-        );
         emit UpsertedFmpscTcb(
             uint8(tcbInfo.id),
             tcbInfo.fmspc,
@@ -171,7 +173,6 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         string memory tdxModuleIdentitiesString
     )
         private
-        view
         returns (bytes memory reqData)
     {
         // check expiration before continuing...
@@ -180,7 +181,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         }
 
         // Make sure new collateral is "newer"
-        (uint64 existingIssueDate, uint32 existingEvaluationDataNumber) = _loadTcbInfoIssueEvaluation(key);
+        (uint64 existingIssueDate, , uint32 existingEvaluationDataNumber) = _loadTcbInfoIssueEvaluation(key);
         if (existingIssueDate > 0) {
             /// I don't think there can be a scenario where an existing tcbinfo with a higher evaluation data number
             /// to be issued BEFORE a new tcbinfo with a lower evaluation data number
@@ -205,6 +206,13 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
             }
             reqData = abi.encode(tcbInfo, module, encodedModuleIdentities, encodedTcbLevels, tcbInfoObj.tcbInfoStr, tcbInfoObj.signature);
         }
+
+        _storeTcbInfoIssueEvaluation(
+            key, 
+            tcbInfo.issueDate, 
+            tcbInfo.nextUpdate, 
+            tcbInfo.evaluationDataNumber
+        );
     }
 
     function _validateTcbInfo(TcbInfoJsonObj calldata tcbInfoObj) private view {
@@ -251,10 +259,11 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
 
     /// @dev for the time being, we will require a method to "cache" the tcbinfo issued timestamp
     /// @dev and the evaluation data number
-    /// @dev this reduces the amount of data to read, when performing the rollback check
+    /// @dev this reduces the amount of data to read, when performing rollback check
+    /// @dev which also allows any caller to check expiration of TCBInfo before loading the entire data
     /// @dev the functions defined below can be overriden by the inheriting contract
 
-    function _storeTcbInfoIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint32 evaluationDataNumber) internal virtual;
+    function _storeTcbInfoIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber) internal virtual;
 
-    function _loadTcbInfoIssueEvaluation(bytes32 tcbKey) internal view virtual returns (uint64 issueDateTimestamp, uint32 evaluationDataNumber);
+    function _loadTcbInfoIssueEvaluation(bytes32 tcbKey) internal view virtual returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber);
 }
