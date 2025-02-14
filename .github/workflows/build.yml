@@ -3,7 +3,7 @@ name: Foundry Build CI/CD
 # Controls when the workflow will run
 on: 
   push:
-    branches: [main]
+    branches: [main, development]
   pull_request:
     branches: [main]
 
