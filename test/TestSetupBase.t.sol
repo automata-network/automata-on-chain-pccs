@@ -66,7 +66,11 @@ abstract contract TestSetupBase is Test {
         pck =
             new AutomataPckDao(address(pccsStorage), P256_VERIFIER, address(pcs), address(x509Lib), address(x509CrlLib));
 
-        pccsStorage.updateDao(address(pcs), address(pck), address(fmspcTcbDao), address(enclaveIdDao));
+        // grants dao permissions to write to the storage
+        pccsStorage.grantDao(address(pcs));
+        pccsStorage.grantDao(address(pck));
+        pccsStorage.grantDao(address(fmspcTcbDao));
+        pccsStorage.grantDao(address(enclaveIdDao));
 
         // grants admin address permission to read collaterals
         pccsStorage.setCallerAuthorization(admin, true);

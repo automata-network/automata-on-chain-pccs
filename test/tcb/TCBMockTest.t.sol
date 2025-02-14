@@ -20,7 +20,7 @@ contract TcbMockTest is PCSSetupBase, TCBConstants {
         );
 
         vm.prank(admin);
-        pccsStorage.updateDao(address(pcs), address(pck), address(tcb), address(enclaveIdDao));
+        pccsStorage.grantDao(address(tcb));
     }
 
     function testMockFmspcTcbTdxV3() public {

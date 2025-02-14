@@ -53,7 +53,11 @@ contract DeployAutomataDao is P256Configuration {
             new AutomataFmspcTcbDao(address(pccsStorage), simulateVerify(), address(pcsDao), fmspcTcbHelper, x509);
         console.log("AutomataFmspcTcbDao deployed at: ", address(fmspcTcbDao));
 
-        pccsStorage.updateDao(address(pcsDao), address(pckDao), address(fmspcTcbDao), address(enclaveIdDao));
+        // grants the DAOs permission to write to storage
+        pccsStorage.grantDao(address(pcsDao));
+        pccsStorage.grantDao(address(pckDao));
+        pccsStorage.grantDao(address(enclaveIdDao));
+        pccsStorage.grantDao(address(fmspcTcbDao));
     }
 
     function deployStorage() public broadcastKey(privateKey) {
