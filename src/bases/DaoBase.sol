@@ -24,7 +24,8 @@ abstract contract DaoBase {
      * @param key - mapped to a collateral as defined by individual data access objects (DAOs)
      */
     function getAttestedData(bytes32 key) external view returns (bytes memory attestationData) {
-        attestationData = _fetchDataFromResolver(key, false);
+        // invoke _onFetchDataFromResolver() here to invoke additional logic 
+        attestationData = _onFetchDataFromResolver(key, false);
     }
 
     /**
