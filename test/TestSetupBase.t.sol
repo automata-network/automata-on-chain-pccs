@@ -51,7 +51,7 @@ abstract contract TestSetupBase is Test {
         x509Lib = new PCKHelper();
 
         // deploy Automata PCCS
-        pccsStorage = new AutomataDaoStorage();
+        pccsStorage = new AutomataDaoStorage(admin);
 
         pcs = new AutomataPcsDao(address(pccsStorage), P256_VERIFIER, address(x509Lib), address(x509CrlLib));
 

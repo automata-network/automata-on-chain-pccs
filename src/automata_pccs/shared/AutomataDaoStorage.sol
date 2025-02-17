@@ -22,8 +22,8 @@ contract AutomataDaoStorage is AutomataTCBManager, IDaoAttestationResolver, Paus
         _;
     }
 
-    constructor() {
-        _initializeOwner(msg.sender);
+    constructor(address owner) {
+        _initializeOwner(owner);
 
         // adding address(0) as an authorized_reader to allow eth_call
         _authorized_readers[address(0)] = true;
