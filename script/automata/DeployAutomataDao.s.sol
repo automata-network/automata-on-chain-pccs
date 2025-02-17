@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "../utils/P256Configuration.sol";
+import "../utils/Salt.sol";
 
 import {AutomataDaoStorage} from "../../src/automata_pccs/shared/AutomataDaoStorage.sol";
 import {AutomataFmspcTcbDao} from "../../src/automata_pccs/AutomataFmspcTcbDao.sol";
@@ -17,6 +18,8 @@ contract DeployAutomataDao is P256Configuration {
     address enclaveIdentityHelper = vm.envAddress("ENCLAVE_IDENTITY_HELPER");
     address fmspcTcbHelper = vm.envAddress("FMSPC_TCB_HELPER");
 
+    address owner = vm.addr(privateKey);
+
     modifier broadcastKey(uint256 key) {
         vm.startBroadcast(key);
         _;
@@ -26,7 +29,7 @@ contract DeployAutomataDao is P256Configuration {
     function deployAll(bool shouldDeployStorage) public broadcastKey(privateKey) {
         AutomataDaoStorage pccsStorage;
         if (shouldDeployStorage) {
-            pccsStorage = new AutomataDaoStorage();
+            pccsStorage = new AutomataDaoStorage{salt: PCCS_STORAGE_SALT}(owner);
             console.log("AutomataDaoStorage deployed at ", address(pccsStorage));
         } else {
             address pccsStorageAddr = vm.envAddress("PCCS_STORAGE");
@@ -34,23 +37,23 @@ contract DeployAutomataDao is P256Configuration {
         }
 
         // Deploy PcsDao
-        AutomataPcsDao pcsDao = new AutomataPcsDao(address(pccsStorage), simulateVerify(), x509, x509Crl);
+        AutomataPcsDao pcsDao = new AutomataPcsDao{salt: PCS_DAO_SALT}(address(pccsStorage), simulateVerify(), x509, x509Crl);
         console.log("AutomataPcsDao deployed at: ", address(pcsDao));
 
         // Deploy PckDao
         AutomataPckDao pckDao =
-            new AutomataPckDao(address(pccsStorage), simulateVerify(), address(pcsDao), x509, x509Crl);
+            new AutomataPckDao{salt: PCK_DAO_SALT}(address(pccsStorage), simulateVerify(), address(pcsDao), x509, x509Crl);
         console.log("AutomataPckDao deployed at: ", address(pckDao));
 
         // Deploy EnclaveIdDao
-        AutomataEnclaveIdentityDao enclaveIdDao = new AutomataEnclaveIdentityDao(
+        AutomataEnclaveIdentityDao enclaveIdDao = new AutomataEnclaveIdentityDao{salt: ENCLAVE_ID_DAO_SALT}(
             address(pccsStorage), simulateVerify(), address(pcsDao), enclaveIdentityHelper, x509
         );
         console.log("AutomataEnclaveIdDao deployed at: ", address(enclaveIdDao));
 
         // Deploy FmspcDao
         AutomataFmspcTcbDao fmspcTcbDao =
-            new AutomataFmspcTcbDao(address(pccsStorage), simulateVerify(), address(pcsDao), fmspcTcbHelper, x509);
+            new AutomataFmspcTcbDao{salt: FMSPC_TCB_DAO_SALT}(address(pccsStorage), simulateVerify(), address(pcsDao), fmspcTcbHelper, x509);
         console.log("AutomataFmspcTcbDao deployed at: ", address(fmspcTcbDao));
 
         // grants the DAOs permission to write to storage
@@ -61,7 +64,7 @@ contract DeployAutomataDao is P256Configuration {
     }
 
     function deployStorage() public broadcastKey(privateKey) {
-        AutomataDaoStorage pccsStorage = new AutomataDaoStorage();
+        AutomataDaoStorage pccsStorage = new AutomataDaoStorage{salt: PCCS_STORAGE_SALT}(owner);
 
         console.log("AutomataDaoStorage deployed at ", address(pccsStorage));
     }
@@ -69,7 +72,7 @@ contract DeployAutomataDao is P256Configuration {
     function deployPcs() public broadcastKey(privateKey) {
         address pccsStorageAddr = vm.envAddress("PCCS_STORAGE");
 
-        AutomataPcsDao pcsDao = new AutomataPcsDao(pccsStorageAddr, simulateVerify(), x509, x509Crl);
+        AutomataPcsDao pcsDao = new AutomataPcsDao{salt: PCS_DAO_SALT}(pccsStorageAddr, simulateVerify(), x509, x509Crl);
 
         console.log("AutomataPcsDao deployed at: ", address(pcsDao));
     }
@@ -78,7 +81,7 @@ contract DeployAutomataDao is P256Configuration {
         address pccsStorageAddr = vm.envAddress("PCCS_STORAGE");
         address pcsDaoAddr = vm.envAddress("PCS_DAO");
 
-        AutomataPckDao pckDao = new AutomataPckDao(pccsStorageAddr, simulateVerify(), pcsDaoAddr, x509, x509Crl);
+        AutomataPckDao pckDao = new AutomataPckDao{salt: PCK_DAO_SALT}(pccsStorageAddr, simulateVerify(), pcsDaoAddr, x509, x509Crl);
 
 
         console.log("AutomataPckDao deployed at: ", address(pckDao));
@@ -89,7 +92,7 @@ contract DeployAutomataDao is P256Configuration {
         address pcsDaoAddr = vm.envAddress("PCS_DAO");
 
         AutomataEnclaveIdentityDao enclaveIdDao =
-            new AutomataEnclaveIdentityDao(pccsStorageAddr, simulateVerify(), pcsDaoAddr, enclaveIdentityHelper, x509);
+            new AutomataEnclaveIdentityDao{salt: ENCLAVE_ID_DAO_SALT}(pccsStorageAddr, simulateVerify(), pcsDaoAddr, enclaveIdentityHelper, x509);
 
         console.log("AutomataEnclaveIdDao deployed at: ", address(enclaveIdDao));
     }
@@ -99,7 +102,7 @@ contract DeployAutomataDao is P256Configuration {
         address pcsDaoAddr = vm.envAddress("PCS_DAO");
 
         AutomataFmspcTcbDao fmspcTcbDao =
-            new AutomataFmspcTcbDao(pccsStorageAddr, simulateVerify(), pcsDaoAddr, fmspcTcbHelper, x509);
+            new AutomataFmspcTcbDao{salt: FMSPC_TCB_DAO_SALT}(pccsStorageAddr, simulateVerify(), pcsDaoAddr, fmspcTcbHelper, x509);
 
         console.log("AutomataFmspcTcbDao deployed at: ", address(fmspcTcbDao));
     }
