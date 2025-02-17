@@ -10,7 +10,8 @@ import {DaoBase} from "./DaoBase.sol";
 import {SigVerifyBase} from "./SigVerifyBase.sol";
 import {PcsDao} from "./PcsDao.sol";
 
-/// @notice The on-chain schema for Identity.json is to store as ABI-encoded tuple of (EnclaveIdentityHelper.IdentityObj, string, bytes)
+/// @notice The on-chain schema for Identity.json is to store as ABI-encoded tuple of (EnclaveIdentityHelper.IdentityObj, EnclaveIdentityHelper.EnclaveIdentityJsonObj)
+/// @notice In other words, the tuple simply consists of the collateral in both parsed and string forms.
 /// @notice see {{ EnclaveIdentityHelper.IdentityObj }} for struct definition
 
 /**
@@ -74,8 +75,8 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     {
         bytes memory attestedIdentityData = _onFetchDataFromResolver(ENCLAVE_ID_KEY(id, version), false);
         if (attestedIdentityData.length > 0) {
-            (, enclaveIdObj.identityStr, enclaveIdObj.signature) =
-                abi.decode(attestedIdentityData, (IdentityObj, string, bytes));
+            (, enclaveIdObj) =
+                abi.decode(attestedIdentityData, (IdentityObj, EnclaveIdentityJsonObj));
         }
     }
 
@@ -159,7 +160,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
             }
         }
 
-        reqData = abi.encode(identity, enclaveIdentityObj.identityStr, enclaveIdentityObj.signature);
+        reqData = abi.encode(identity, enclaveIdentityObj);
     }
 
     /**

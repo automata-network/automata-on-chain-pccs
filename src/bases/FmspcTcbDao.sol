@@ -19,20 +19,18 @@ import {
 /// @notice the on-chain schema of the attested data is dependent on the version of TCBInfo:
 /// @notice For TCBInfoV2, it consists of the ABI-encoded tuple of the following values:
 ///
-/// @notice (TcbInfoBasic, TCBLevelsObj[], string tcbInfo, bytes signature)
+/// @notice (TcbInfoBasic, TCBLevelsObj[], TcbInfoJsonObj
 /// - ABI-encoded TcbHelper.TcbInfoBasic
 /// - serialized TCBLevelsObj bytes as implemented in TcbHelper.tcbLevelsObjToBytes()
-/// - ABI-encoded TcbHelper.TcbInfoJsonObj.tcbInfo JSON string
-/// - ABI-encoded TcbHelper.TcbInfoJsonObj.signature bytes
+/// - ABI-encoded of TcbInfoJsonObj - the JSON string representation of TCBInfo collateral
 ///
 /// @notice For TCBInfoV3, it consists of the abi-encoded tuple of:
-/// @notice (TcbInfoBasic, TDXModule, TDXModuleIdentity[], TCBLevelsObj, string tcbInfo, bytes signature)
+/// @notice (TcbInfoBasic, TDXModule, TDXModuleIdentity[], TCBLevelsObj, TcbInfoJsonObj)
 /// - ABI-encoded TcbHelper.TcbInfoBasic
 /// - ABI-encoded TcbHelper.TDXModule
 /// - serialized TDXModuleIdentity bytes as implemented in TcbHelper.tdxModuleIdentityToBytes()
 /// - serialized TCBLevelsObj bytes as implemented in TcbHelper.tcbLevelsObjToBytes()
-/// - ABI-encoded TcbHelper.TcbInfoJsonObj.tcbInfo JSON string
-/// - ABI-encoded TcbHelper.TcbInfoJsonObj.signature bytes
+/// - ABI-encoded of TcbInfoJsonObj - the JSON string representation of TCBInfo collateral
 ///
 /// @notice the serializers for TCBLevelsObj and TDXModuleIdentity[] are opted over ABI-encoding to significantly
 /// reduce gas costs.
@@ -102,11 +100,11 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
             _onFetchDataFromResolver(FMSPC_TCB_KEY(uint8(tcbType), fmspcBytes, uint32(version)), false);
         if (attestedTcbData.length > 0) {
             if (version < 3) {
-                (,, tcbObj.tcbInfoStr, tcbObj.signature) =
-                    abi.decode(attestedTcbData, (TcbInfoBasic, bytes, string, bytes));
+                (,, tcbObj) =
+                    abi.decode(attestedTcbData, (TcbInfoBasic, bytes, TcbInfoJsonObj));
             } else {
-                (,,,, tcbObj.tcbInfoStr, tcbObj.signature) = abi.decode(
-                    attestedTcbData, (TcbInfoBasic, TDXModule, bytes, bytes, string, bytes)
+                (,,,, tcbObj) = abi.decode(
+                    attestedTcbData, (TcbInfoBasic, TDXModule, bytes, bytes, TcbInfoJsonObj)
                 );
             }
         }
@@ -210,7 +208,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         TCBLevelsObj[] memory tcbLevels = FmspcTcbLib.parseTcbLevels(tcbInfo.version, tcbLevelsString);
         bytes memory encodedTcbLevels = _encodeTcbLevels(tcbLevels);
         if (tcbInfo.version < 3) {
-            reqData = abi.encode(tcbInfo, encodedTcbLevels, tcbInfoObj.tcbInfoStr, tcbInfoObj.signature);
+            reqData = abi.encode(tcbInfo, encodedTcbLevels, tcbInfoObj);
         } else {
             TDXModule memory module;
             TDXModuleIdentity[] memory moduleIdentities;
@@ -219,7 +217,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
                 (module, moduleIdentities) = FmspcTcbLib.parseTcbTdxModules(tdxModuleString, tdxModuleIdentitiesString);
                 encodedModuleIdentities = _encodeTdxModuleIdentities(moduleIdentities);
             }
-            reqData = abi.encode(tcbInfo, module, encodedModuleIdentities, encodedTcbLevels, tcbInfoObj.tcbInfoStr, tcbInfoObj.signature);
+            reqData = abi.encode(tcbInfo, module, encodedModuleIdentities, encodedTcbLevels, tcbInfoObj);
         }
     }
 
