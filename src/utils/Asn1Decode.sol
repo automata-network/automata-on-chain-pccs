@@ -189,9 +189,9 @@ library Asn1Decode {
             ixLastContentByte = uint80(ixFirstContentByte + length - 1);
         } else {
             uint8 lengthbytesLength = uint8(der[ix + 1] & 0x7F);
-            bool lengthOutOfBound = ix + 2 + lengthbytesLength >= n;
-            if (lengthOutOfBound) {
-                revert("Asn1Decode: out of bound: invalid length bytes");
+            bool invalidLengthBytes = lengthbytesLength == 0 || ix + 2 + lengthbytesLength >= n;
+            if (invalidLengthBytes) {
+                revert("Asn1Decode: invalid length bytes");
             }
             if (lengthbytesLength == 1) {
                 length = der.readUint8(ix + 2);
