@@ -178,25 +178,39 @@ library Asn1Decode {
     }
 
     function readNodeLength(bytes memory der, uint256 ix) private pure returns (uint256) {
+        uint256 n = der.length; 
         uint256 length;
         uint80 ixFirstContentByte;
         uint80 ixLastContentByte;
         if ((der[ix + 1] & 0x80) == 0) {
             length = uint8(der[ix + 1]);
+            require(length > 0, "Asn1Decode: length cannot be zero");
             ixFirstContentByte = uint80(ix + 2);
             ixLastContentByte = uint80(ixFirstContentByte + length - 1);
         } else {
             uint8 lengthbytesLength = uint8(der[ix + 1] & 0x7F);
+            bool lengthOutOfBound = ix + 2 + lengthbytesLength >= n;
+            if (lengthOutOfBound) {
+                revert("Asn1Decode: out of bound: invalid length bytes");
+            }
             if (lengthbytesLength == 1) {
                 length = der.readUint8(ix + 2);
+                require(length > 0, "Asn1Decode: length cannot be zero");
             } else if (lengthbytesLength == 2) {
                 length = der.readUint16(ix + 2);
+                require(length > 0, "Asn1Decode: length cannot be zero");
             } else {
                 length = uint256(der.readBytesN(ix + 2, lengthbytesLength) >> (32 - lengthbytesLength) * 8);
+                require(length > 0, "Asn1Decode: length cannot be zero");
             }
             ixFirstContentByte = uint80(ix + 2 + lengthbytesLength);
             ixLastContentByte = uint80(ixFirstContentByte + length - 1);
         }
+
+        if (ixLastContentByte + 1 > n) {
+            revert("Asn1Decode: out of bound: incorrect content length");
+        }
+
         return NodePtr.getPtr(ix, ixFirstContentByte, ixLastContentByte);
     }
 }
