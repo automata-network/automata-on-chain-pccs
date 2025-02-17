@@ -17,10 +17,26 @@ import {
 } from "../helpers/FmspcTcbHelper.sol";
 
 /// @notice the on-chain schema of the attested data is dependent on the version of TCBInfo:
-/// @notice For TCBInfoV2, it consists of the ABI-encoded tuple of:
+/// @notice For TCBInfoV2, it consists of the ABI-encoded tuple of the following values:
+///
 /// @notice (TcbInfoBasic, TCBLevelsObj[], string tcbInfo, bytes signature)
+/// - ABI-encoded TcbHelper.TcbInfoBasic
+/// - serialized TCBLevelsObj bytes as implemented in TcbHelper.tcbLevelsObjToBytes()
+/// - ABI-encoded TcbHelper.TcbInfoJsonObj.tcbInfo JSON string
+/// - ABI-encoded TcbHelper.TcbInfoJsonObj.signature bytes
+///
 /// @notice For TCBInfoV3, it consists of the abi-encoded tuple of:
 /// @notice (TcbInfoBasic, TDXModule, TDXModuleIdentity[], TCBLevelsObj, string tcbInfo, bytes signature)
+/// - ABI-encoded TcbHelper.TcbInfoBasic
+/// - ABI-encoded TcbHelper.TDXModule
+/// - serialized TDXModuleIdentity bytes as implemented in TcbHelper.tdxModuleIdentityToBytes()
+/// - serialized TCBLevelsObj bytes as implemented in TcbHelper.tcbLevelsObjToBytes()
+/// - ABI-encoded TcbHelper.TcbInfoJsonObj.tcbInfo JSON string
+/// - ABI-encoded TcbHelper.TcbInfoJsonObj.signature bytes
+///
+/// @notice the serializers for TCBLevelsObj and TDXModuleIdentity[] are opted over ABI-encoding to significantly
+/// reduce gas costs.
+///
 /// @notice See {{ FmspcTcbHelper.sol }} to learn more about FMSPC TCB related struct definitions.
 
 /**

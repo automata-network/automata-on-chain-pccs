@@ -28,8 +28,7 @@ abstract contract DaoBase {
     }
 
     /**
-     * @dev SHOULD store the hash of a collateral (e.g. X509 Cert, TCBInfo JSON etc) in the attestation registry
-     * as a separate attestation from the collateral data itself
+     * @notice fetches the hash of a collateral (e.g. X509 Cert, TCBInfo JSON etc) from the attestation registry
      */
     function getCollateralHash(bytes32 key) external view returns (bytes32 collateralHash) {
         bytes memory attestationData = _fetchDataFromResolver(key, true);
