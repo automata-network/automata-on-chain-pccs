@@ -10,7 +10,8 @@ import {DaoBase} from "./DaoBase.sol";
 import {SigVerifyBase} from "./SigVerifyBase.sol";
 import {PcsDao} from "./PcsDao.sol";
 
-/// @notice The on-chain schema for Identity.json is stored as ABI-encoded tuple of (EnclaveIdentityHelper.IdentityObj, string, bytes)
+/// @notice The on-chain schema for Identity.json is to store as ABI-encoded tuple of (EnclaveIdentityHelper.IdentityObj, EnclaveIdentityHelper.EnclaveIdentityJsonObj)
+/// @notice In other words, the tuple simply consists of the collateral in both parsed and string forms.
 /// @notice see {{ EnclaveIdentityHelper.IdentityObj }} for struct definition
 
 /**
@@ -72,7 +73,8 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
      * @param id 0: QE; 1: QVE; 2: TD_QE
      * https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/39989a42bbbb0c968153a47254b6de79a27eb603/QuoteVerification/QVL/Src/AttestationLibrary/src/Verifiers/EnclaveIdentityV2.h#L49-L52
      * @param version the input version parameter (v3 or v4)
-     * @return enclaveIdObj See {EnclaveIdentityHelper.sol} to learn more about the structure definition
+     * @return enclaveIdObj - consisting of the Identity JSON string and the signature.
+     *  See {EnclaveIdentityHelper.sol} to learn more about the structure definition
      */
     function getEnclaveIdentity(uint256 id, uint256 version)
         external
@@ -81,8 +83,8 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     {
         bytes memory attestedIdentityData = _onFetchDataFromResolver(ENCLAVE_ID_KEY(id, version), false);
         if (attestedIdentityData.length > 0) {
-            (, enclaveIdObj.identityStr, enclaveIdObj.signature) =
-                abi.decode(attestedIdentityData, (IdentityObj, string, bytes));
+            (, enclaveIdObj) =
+                abi.decode(attestedIdentityData, (IdentityObj, EnclaveIdentityJsonObj));
         }
     }
 
@@ -91,7 +93,8 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
      * @param id 0: QE; 1: QVE; 2: TD_QE
      * https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/39989a42bbbb0c968153a47254b6de79a27eb603/QuoteVerification/QVL/Src/AttestationLibrary/src/Verifiers/EnclaveIdentityV2.h#L49-L52
      * @param version the input version parameter (v3 or v4)
-     * @param enclaveIdentityObj See {EnclaveIdentityHelper.sol} to learn more about the structure definition
+     * @param enclaveIdentityObj enclaveIdObj - consisting of the Identity JSON string and the signature.
+     * See {EnclaveIdentityHelper.sol} to learn more about the structure definition
      */
     function upsertEnclaveIdentity(uint256 id, uint256 version, EnclaveIdentityJsonObj calldata enclaveIdentityObj)
         external
@@ -134,7 +137,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     }
 
     /**
-     * @notice constructs the Identity.json attestation data
+     * @notice constructs the EnclaveIdentityHelper.IdentityObj attestation data
      */
     function _buildEnclaveIdentityAttestationRequest(
         uint256 id,
@@ -167,7 +170,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         // attest timestamp
         _storeEnclaveIdentityIssueEvaluation(key, identity.issueDateTimestamp, identity.nextUpdateTimestamp, identity.tcbEvaluationDataNumber);
 
-        reqData = abi.encode(identity, enclaveIdentityObj.identityStr, enclaveIdentityObj.signature);
+        reqData = abi.encode(identity, enclaveIdentityObj);
         identityContentHash = EnclaveIdentityLib.getIdentityContentHash(identity, identityTcbString);
     }
 
