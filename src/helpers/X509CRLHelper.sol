@@ -10,7 +10,6 @@ import {DateTimeUtils} from "../utils/DateTimeUtils.sol";
  * @notice This is a simplified structure of a DER-decoded X509 CRL
  */
 struct X509CRLObj {
-    uint256 serialNumber;
     string issuerCommonName;
     uint256 validityNotBefore;
     uint256 validityNotAfter;
@@ -51,13 +50,6 @@ contract X509CRLHelper {
 
         tbs = der.allBytesAt(tbsParentPtr);
         sig = _getSignature(der, sigPtr);
-    }
-
-    function getSerialNumber(bytes calldata der) external pure returns (uint256 serialNum) {
-        uint256 root = der.root();
-        uint256 tbsParentPtr = der.firstChildOf(root);
-        uint256 tbsPtr = der.firstChildOf(tbsParentPtr);
-        serialNum = _parseSerialNumber(der.bytesAt(tbsPtr));
     }
 
     function getIssuerCommonName(bytes calldata der) external pure returns (string memory issuerCommonName) {
@@ -135,8 +127,6 @@ contract X509CRLHelper {
         crl.tbs = der.allBytesAt(tbsParentPtr);
 
         uint256 tbsPtr = der.firstChildOf(tbsParentPtr);
-
-        crl.serialNumber = uint256(bytes32(der.bytesAt(tbsPtr)));
 
         tbsPtr = der.nextSiblingOf(tbsPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
@@ -300,7 +290,7 @@ contract X509CRLHelper {
             }
         }
     }
-
+    
     /// @dev remove unnecessary prefix from the input
     function _trimBytes(bytes memory input, uint256 expectedLength) private pure returns (bytes memory output) {
         uint256 n = input.length;
@@ -352,6 +342,8 @@ contract X509CRLHelper {
 
             if (ptr.ixl() < parentPtr.ixl()) {
                 ptr = der.nextSiblingOf(ptr);
+            } else {
+                ptr = 0;
             }
         }
 

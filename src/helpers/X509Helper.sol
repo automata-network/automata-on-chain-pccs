@@ -62,7 +62,7 @@ contract X509Helper {
         uint256 tbsParentPtr = der.firstChildOf(root);
         uint256 tbsPtr = der.firstChildOf(tbsParentPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
-        serialNum = _parseSerialNumber(der.bytesAt(tbsPtr));
+        serialNum = _parseSerialNumber(der, tbsPtr);
     }
 
     function getIssuerCommonName(bytes calldata der) external pure returns (string memory issuerCommonName) {
@@ -171,7 +171,7 @@ contract X509Helper {
 
         tbsPtr = der.nextSiblingOf(tbsPtr);
 
-        cert.serialNumber = _parseSerialNumber(der.bytesAt(tbsPtr));
+        cert.serialNumber = _parseSerialNumber(der, tbsPtr);
 
         tbsPtr = der.nextSiblingOf(tbsPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
@@ -209,6 +209,13 @@ contract X509Helper {
         uint256 sigPtr = der.nextSiblingOf(tbsParentPtr);
         sigPtr = der.nextSiblingOf(sigPtr);
         cert.signature = _getSignature(der, sigPtr);
+    }
+
+    function _parseSerialNumber(bytes calldata der, uint256 serialNumberPtr) private pure returns (uint256 serial) {
+        require(bytes1(der[serialNumberPtr.ixs()]) == 0x02, "not an integer");
+        bytes memory serialBytes = der.bytesAt(serialNumberPtr);
+        uint256 shift = 8 * (32 - serialBytes.length);
+        serial = uint256(bytes32(serialBytes) >> shift);
     }
 
     function _getCommonName(bytes calldata der, uint256 rdnParentPtr)
@@ -309,11 +316,6 @@ contract X509Helper {
         require(der[extValuePtr.ixf()] == 0x04, "keyIdentifier must be of OctetString type");
         uint8 length = uint8(bytes1(der[extValuePtr.ixf() + 1]));
         skid = der[extValuePtr.ixf() + 2 : extValuePtr.ixf() + 2 + length];
-    }
-
-    function _parseSerialNumber(bytes memory serialBytes) private pure returns (uint256 serial) {
-        uint256 shift = 8 * (32 - serialBytes.length);
-        serial = uint256(bytes32(serialBytes) >> shift);
     }
 
     function _getSignature(bytes calldata der, uint256 sigPtr) private pure returns (bytes memory sig) {
