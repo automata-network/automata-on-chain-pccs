@@ -34,7 +34,7 @@ contract AutomataFmspcTcbDao is AutomataDaoBase, FmspcTcbDao {
     /// @dev we will have to come up with hacky low-level storage reads
     function _loadTcbInfoIssueEvaluation(bytes32 tcbKey) internal view override returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber) {
         bytes32 tcbIssueEvaluationKey = _computeTcbIssueEvaluationKey(tcbKey);
-        bytes memory data = resolver.readAttestation(resolver.collateralPointer(tcbIssueEvaluationKey));
+        bytes memory data = _fetchDataFromResolver(tcbIssueEvaluationKey, false);
         if (data.length > 0) {
             (uint256 slot) = abi.decode(data, (uint256));
             issueDateTimestamp = uint64(slot >> 192);
