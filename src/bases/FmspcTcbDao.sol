@@ -47,10 +47,17 @@ import {
 abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     PcsDao public Pcs;
     FmspcTcbHelper public FmspcTcbLib;
+    address public crlLibAddr;
 
     // first 4 bytes of FMSPC_TCB_MAGIC
     bytes4 constant FMSPC_TCB_MAGIC = 0xbb69b29c;
 
+    // 841a0280
+    error Missing_TCB_Cert();
+    // ea8cd522
+    error TCB_Cert_Expired();
+    // 7fb57a7a
+    error TCB_Cert_Revoked(uint256 serialNum);
     // 8de7233f
     error Invalid_TCB_Cert_Signature();
     // bae57649
@@ -64,12 +71,13 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         uint32 indexed version
     );
 
-    constructor(address _resolver, address _p256, address _pcs, address _fmspcHelper, address _x509Helper)
+    constructor(address _resolver, address _p256, address _pcs, address _fmspcHelper, address _x509Helper, address _crlLib)
         SigVerifyBase(_p256, _x509Helper)
         DaoBase(_resolver)
     {
         Pcs = PcsDao(_pcs);
         FmspcTcbLib = FmspcTcbHelper(_fmspcHelper);
+        crlLibAddr = _crlLib;
     }
 
     function getCollateralValidity(bytes32 key) external view override returns (
@@ -242,14 +250,46 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     }
 
     function _validateTcbInfo(TcbInfoJsonObj calldata tcbInfoObj) private view {
-        // Get TCB Signing Cert
-        bytes memory signingDer = _fetchDataFromResolver(Pcs.PCS_KEY(CA.SIGNING, false), false);
-       
-        // Validate signature
-        bool sigVerified = verifySignature(sha256(bytes(tcbInfoObj.tcbInfoStr)), tcbInfoObj.signature, signingDer);
+        // check issuer expiration
+        bytes32 issuerKey = Pcs.PCS_KEY(CA.SIGNING, false);
+        (uint256 issuerNotValidBefore, uint256 issuerNotValidAfter) = Pcs.getCollateralValidity(issuerKey);
+        if (block.timestamp < issuerNotValidBefore || block.timestamp > issuerNotValidAfter) {
+            revert TCB_Cert_Expired();
+        }
 
-        if (!sigVerified) {
-            revert Invalid_TCB_Cert_Signature();
+        bytes memory signingDer = _fetchDataFromResolver(issuerKey, false);
+        if (signingDer.length > 0) {
+            bytes memory rootCrl = _fetchDataFromResolver(Pcs.PCS_KEY(CA.ROOT, true), false);
+            if (rootCrl.length > 0) {
+                // check revocation
+                (, bytes memory serialNumberData) = x509.staticcall(
+                    abi.encodeWithSelector(
+                        0xb29b51cb, // X509Helper.getSerialNumber(bytes)
+                        signingDer
+                    )
+                );
+                uint256 serialNumber = abi.decode(serialNumberData, (uint256));
+                (, bytes memory serialNumberRevokedData) = crlLibAddr.staticcall(
+                    abi.encodeWithSelector(
+                        0xcedb9781, // X508CRLHelper.serialNumberIsRevoked(uint256,bytes)
+                        serialNumber,
+                        rootCrl
+                    )
+                );
+                bool revoked = abi.decode(serialNumberRevokedData, (bool));
+                if (revoked) {
+                    revert TCB_Cert_Revoked(serialNumber);
+                }
+            }
+
+            // Validate signature
+            bool sigVerified =
+                verifySignature(sha256(bytes(tcbInfoObj.tcbInfoStr)), tcbInfoObj.signature, signingDer);
+            if (!sigVerified) {
+                revert Invalid_TCB_Cert_Signature();
+            }
+        } else {
+            revert Missing_TCB_Cert();
         }
     }
 

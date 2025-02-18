@@ -5,8 +5,8 @@ import {FmspcTcbDao, PcsDao, DaoBase} from "../bases/FmspcTcbDao.sol";
 import {AutomataDaoBase} from "./shared/AutomataDaoBase.sol";
 
 contract AutomataFmspcTcbDao is AutomataDaoBase, FmspcTcbDao {
-    constructor(address _storage, address _p256, address _pcs, address _fmspcHelper, address _x509Helper)
-        FmspcTcbDao(_storage, _p256, _pcs, _fmspcHelper, _x509Helper)
+    constructor(address _storage, address _p256, address _pcs, address _fmspcHelper, address _x509Helper, address _crl)
+        FmspcTcbDao(_storage, _p256, _pcs, _fmspcHelper, _x509Helper, _crl)
     {}
 
     function _onFetchDataFromResolver(bytes32 key, bool hash)
