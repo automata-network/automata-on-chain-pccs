@@ -179,6 +179,7 @@ library Asn1Decode {
 
     function readNodeLength(bytes memory der, uint256 ix) private pure returns (uint256) {
         uint256 n = der.length; 
+        require(ix + 1 < n, "Asn1Decode: index out-of-bound");
         uint256 length;
         uint80 ixFirstContentByte;
         uint80 ixLastContentByte;
