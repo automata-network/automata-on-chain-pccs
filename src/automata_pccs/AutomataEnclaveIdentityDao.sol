@@ -26,7 +26,7 @@ contract AutomataEnclaveIdentityDao is AutomataDaoBase, EnclaveIdentityDao {
 
     function _loadEnclaveIdentityIssueEvaluation(bytes32 key) internal view override returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber) {
         bytes32 tcbIssueEvaluationKey = _computeIssueEvaluationKey(key);
-        bytes memory data = resolver.readAttestation(resolver.collateralPointer(tcbIssueEvaluationKey));
+        bytes memory data = _fetchDataFromResolver(tcbIssueEvaluationKey, false);
         if (data.length > 0) {
             (uint256 slot) = abi.decode(data, (uint256));
             issueDateTimestamp = uint64(slot >> 192);
