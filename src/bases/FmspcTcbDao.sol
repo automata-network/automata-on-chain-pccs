@@ -200,6 +200,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         string memory tdxModuleIdentitiesString
     )
         private
+        view
         returns (bytes memory reqData, bytes32 contentHash)
     {
         // check expiration before continuing...
@@ -233,13 +234,6 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
             }
             reqData = abi.encode(tcbInfo, module, encodedModuleIdentities, encodedTcbLevels, tcbInfoObj);
         }
-
-        _storeTcbInfoIssueEvaluation(
-            key, 
-            tcbInfo.issueDate, 
-            tcbInfo.nextUpdate, 
-            tcbInfo.evaluationDataNumber
-        );
         
         contentHash = FmspcTcbLib.generateFmspcTcbContentHash(
             tcbInfo,
