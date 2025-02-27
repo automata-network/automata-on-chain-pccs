@@ -277,27 +277,30 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
     function _validatePck(CA ca, bytes memory der, bytes16 qeid, bytes2 pceid, bytes18 tcbm) internal view returns (bytes32 hash, bytes32 key) {
         X509CertObj memory pck = pckLib.parseX509DER(der);
         
-        // Step 0: Check whether the pck has expired
+        hash = keccak256(pck.tbs);
+        key = PCK_KEY(qeid, pceid, tcbm);
+
+        // Step 0: Check whether the certificate has been previously attested
+        _checkCollateralDuplicate(key, hash);
+
+        // Step 1: Check whether the pck has expired
         bool notExpired = block.timestamp > pck.validityNotBefore && block.timestamp < pck.validityNotAfter;
         if (!notExpired) {
             revert Certificate_Expired();
         }
 
-        hash = keccak256(pck.tbs);
-        key = PCK_KEY(qeid, pceid, tcbm);
-
-        // Step 1: Rollback prevention: new certificate should not have an issued date
+        // Step 2: Rollback prevention: new certificate should not have an issued date
         // that is older than the existing certificate
         bytes memory existingData = _fetchDataFromResolver(key, false);
         if (existingData.length > 0) {
             (uint256 existingCertNotValidBefore, ) = pckLib.getCertValidity(existingData);
-            bool outOfDate = existingCertNotValidBefore > pck.validityNotBefore;
+            bool outOfDate = existingCertNotValidBefore >= pck.validityNotBefore;
             if (outOfDate) {
                 revert Pck_Out_Of_Date();
             }
         }
 
-        // Step 2: Check Issuer and Subject names
+        // Step 3: Check Issuer and Subject names
         string memory expectedIssuer;
         if (ca == CA.PLATFORM) {
             expectedIssuer = PCK_PLATFORM_CA_COMMON_NAME;
@@ -311,10 +314,10 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
             revert Invalid_Subject_Name();
         }
 
-        // Step 3: validate PCEID and TCBm
+        // Step 4: validate PCEID and TCBm
         _validatePckTcb(pceid, tcbm, der, pck.extensionPtr);
 
-        // Step 4: Check whether the pck has been revoked
+        // Step 5: Check whether the pck has been revoked
         bytes memory crlData = _fetchDataFromResolver(Pcs.PCS_KEY(ca, true), false);
         if (crlData.length > 0) {
             bool revocable = crlLib.serialNumberIsRevoked(pck.serialNumber, crlData);
@@ -323,7 +326,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
             }
         }
 
-        // Step 5: Check signature
+        // Step 6: Check signature
         bytes memory issuerCert = _fetchDataFromResolver(Pcs.PCS_KEY(ca, false), false);
         if (issuerCert.length > 0) {
             bytes32 digest = sha256(pck.tbs);

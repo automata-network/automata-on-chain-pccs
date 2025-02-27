@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "../pcs/PCSSetupBase.t.sol";
 import "./IdentityConstants.t.sol";
 import {AutomataEnclaveIdentityDao} from "../../src/automata_pccs/AutomataEnclaveIdentityDao.sol";
+import {DaoBase} from "../../src/bases/DaoBase.sol";
 
 contract AutomataEnclaveIdentityDaoTest is PCSSetupBase, IdentityConstants {
     function setUp() public override {
@@ -24,6 +25,12 @@ contract AutomataEnclaveIdentityDaoTest is PCSSetupBase, IdentityConstants {
         EnclaveIdentityJsonObj memory fetched = enclaveIdDao.getEnclaveIdentity(id, version);
         assertEq(fetched.signature, enclaveIdentityObj.signature);
         assertEq(keccak256(bytes(fetched.identityStr)), keccak256(bytes(enclaveIdentityObj.identityStr)));
+    
+        // duplicate check
+        vm.expectRevert(abi.encodeWithSelector(
+            DaoBase.Duplicate_Collateral.selector
+        ));
+        enclaveIdDao.upsertEnclaveIdentity(id, version, enclaveIdentityObj);
     }
 
     function testTcbIssuerChain() public readAsAuthorizedCaller {
