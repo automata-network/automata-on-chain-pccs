@@ -2,8 +2,8 @@
 pragma solidity ^0.8.0;
 
 import "../pcs/PCSSetupBase.t.sol";
-
 import {TCBConstants} from "./TCBConstants.t.sol";
+import {DaoBase} from "../../src/bases/DaoBase.sol";
 
 contract AutomataFmspcTcbDaoTest is PCSSetupBase, TCBConstants {
     function setUp() public override {
@@ -30,6 +30,8 @@ contract AutomataFmspcTcbDaoTest is PCSSetupBase, TCBConstants {
             sha256(bytes(tcbInfoObj.tcbInfoStr))
         );
         vm.stopPrank();
+
+        _checkDuplicate(tcbInfoObj);
     }
 
     function testAttestFmspcTcbSgxV3() public {
@@ -55,6 +57,8 @@ contract AutomataFmspcTcbDaoTest is PCSSetupBase, TCBConstants {
             sha256(bytes(tcbInfoObj.tcbInfoStr))
         );
         vm.stopPrank();
+
+        _checkDuplicate(tcbInfoObj);
     }
 
     function testAttestFmspcTcbTdxV3() public {
@@ -78,11 +82,20 @@ contract AutomataFmspcTcbDaoTest is PCSSetupBase, TCBConstants {
             sha256(bytes(tcbInfoObj.tcbInfoStr))
         );
         vm.stopPrank();
+
+        _checkDuplicate(tcbInfoObj);
     }
 
     function testTcbIssuerChain() public readAsAuthorizedCaller {
         (bytes memory fetchedSigning, bytes memory fetchedRoot) = fmspcTcbDao.getTcbIssuerChain();
         assertEq(keccak256(signingDer), keccak256(fetchedSigning));
         assertEq(keccak256(rootDer), keccak256(fetchedRoot));
+    }
+
+    function _checkDuplicate(TcbInfoJsonObj memory tcbInfoObj) private {
+        vm.expectRevert(abi.encodeWithSelector(
+            DaoBase.Duplicate_Collateral.selector
+        ));
+        fmspcTcbDao.upsertFmspcTcb(tcbInfoObj);
     }
 }

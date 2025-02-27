@@ -93,9 +93,13 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         external
         returns (bytes32 attestationId)
     {
-        _validateQeIdentity(enclaveIdentityObj);
-        (bytes32 key, bytes memory req) = _buildEnclaveIdentityAttestationRequest(id, version, enclaveIdentityObj);
+        bytes32 key = ENCLAVE_ID_KEY(id, version);
         bytes32 hash = sha256(bytes(enclaveIdentityObj.identityStr));
+
+        _checkCollateralDuplicate(key, hash);
+
+        _validateQeIdentity(enclaveIdentityObj, hash);
+        bytes memory req = _buildEnclaveIdentityAttestationRequest(id, version, key, enclaveIdentityObj);
         attestationId = _attestEnclaveIdentity(req, hash, key);
 
         emit UpsertedEnclaveIdentity(id, version);
@@ -129,8 +133,9 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     function _buildEnclaveIdentityAttestationRequest(
         uint256 id,
         uint256 version,
+        bytes32 key,
         EnclaveIdentityJsonObj calldata enclaveIdentityObj
-    ) private returns (bytes32 key, bytes memory reqData) {
+    ) private view returns (bytes memory reqData) {
         IdentityObj memory identity = EnclaveIdentityLib.parseIdentityString(enclaveIdentityObj.identityStr);
         if (id != uint256(identity.id)) {
             revert Enclave_Id_Mismatch();
@@ -145,7 +150,6 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         }
 
         // make sure new collateral is "newer"
-        key = ENCLAVE_ID_KEY(id, version);
         (uint64 existingIssueDateTimestamp, , uint64 existingEvaluationDataNumber) = _loadEnclaveIdentityIssueEvaluation(key);
         bool outOfDate = existingEvaluationDataNumber > identity.tcbEvaluationDataNumber ||
             existingIssueDateTimestamp > identity.issueDateTimestamp;
@@ -162,12 +166,12 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     /**
      * @notice validates IdentityString is signed by Intel TCB Signing Cert
      */
-    function _validateQeIdentity(EnclaveIdentityJsonObj calldata enclaveIdentityObj) private view {
+    function _validateQeIdentity(EnclaveIdentityJsonObj calldata enclaveIdentityObj, bytes32 hash) private view {
         bytes memory signingDer = _fetchDataFromResolver(Pcs.PCS_KEY(CA.SIGNING, false), false);
 
         // Validate signature
         bool sigVerified =
-            verifySignature(sha256(bytes(enclaveIdentityObj.identityStr)), enclaveIdentityObj.signature, signingDer);
+            verifySignature(hash, enclaveIdentityObj.signature, signingDer);
 
         if (!sigVerified) {
             revert Invalid_TCB_Cert_Signature();

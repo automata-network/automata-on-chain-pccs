@@ -108,17 +108,40 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
      * @param tcbInfoObj See {FmspcTcbHelper.sol} to learn more about the structure definition
      */
     function upsertFmspcTcb(TcbInfoJsonObj calldata tcbInfoObj) external returns (bytes32 attestationId) {
-        _validateTcbInfo(tcbInfoObj);
-        (
-            bytes memory req, 
-            bytes32 key, 
-            uint8 tcbId, 
-            bytes6 fmspc, 
-            uint32 version
-        ) = _buildTcbAttestationRequest(tcbInfoObj);
         bytes32 hash = sha256(bytes(tcbInfoObj.tcbInfoStr));
+
+        // parse tcb info basic here so we can compute the key
+        (
+            TcbInfoBasic memory tcbInfo,
+            string memory tcbLevelsString,
+            string memory tdxModuleString,
+            string memory tdxModuleIdentitiesString
+        ) = FmspcTcbLib.parseTcbString(tcbInfoObj.tcbInfoStr);
+        bytes32 key = FMSPC_TCB_KEY(uint8(tcbInfo.id), tcbInfo.fmspc, tcbInfo.version);
+        
+        _checkCollateralDuplicate(key, hash);
+        _validateTcbInfo(tcbInfoObj);
+
+        bytes memory req = _buildTcbAttestationRequest(
+            key,
+            tcbInfoObj,
+            tcbInfo,
+            tcbLevelsString,
+            tdxModuleString,
+            tdxModuleIdentitiesString
+        );
+
         attestationId = _attestTcb(req, hash, key);
-        emit UpsertedFmpscTcb(tcbId, fmspc, version);
+        _storeTcbInfoIssueEvaluation(
+            key, 
+            tcbInfo.issueDate, 
+            tcbInfo.evaluationDataNumber
+        );
+        emit UpsertedFmpscTcb(
+            uint8(tcbInfo.id),
+            tcbInfo.fmspc,
+            tcbInfo.version
+        );
     }
 
     /**
@@ -146,45 +169,30 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     /**
      * @notice constructs the TcbInfo.json attestation data
      */
-    function _buildTcbAttestationRequest(TcbInfoJsonObj calldata tcbInfoObj)
+    function _buildTcbAttestationRequest(
+        bytes32 key,
+        TcbInfoJsonObj calldata tcbInfoObj,
+        TcbInfoBasic memory tcbInfo,
+        string memory tcbLevelsString,
+        string memory tdxModuleString,
+        string memory tdxModuleIdentitiesString
+    )
         private
-        returns 
-        (
-            bytes memory reqData, 
-            bytes32 key, 
-            uint8 id,
-            bytes6 fmspc, 
-            uint32 version
-        )
+        view
+        returns (bytes memory reqData)
     {
-        TcbInfoBasic memory tcbInfo;
-
-        string memory tcbLevelsString;
-        string memory tdxModuleString;
-        string memory tdxModuleIdentitiesString;
-        (
-            tcbInfo, 
-            tcbLevelsString, 
-            tdxModuleString, 
-            tdxModuleIdentitiesString
-        ) = FmspcTcbLib.parseTcbString(tcbInfoObj.tcbInfoStr);
-
         // check expiration before continuing...
         if (block.timestamp < tcbInfo.issueDate || block.timestamp > tcbInfo.nextUpdate) {
             revert TCB_Expired();
         }
 
         // Make sure new collateral is "newer"
-        id = uint8(tcbInfo.id);
-        fmspc = tcbInfo.fmspc;
-        version = tcbInfo.version;
-        key = FMSPC_TCB_KEY(id, fmspc, version);
         (uint64 existingIssueDate, , uint32 existingEvaluationDataNumber) = _loadTcbInfoIssueEvaluation(key);
         if (existingIssueDate > 0) {
             /// I don't think there can be a scenario where an existing tcbinfo with a higher evaluation data number
             /// to be issued BEFORE a new tcbinfo with a lower evaluation data number
             bool outOfDate = tcbInfo.evaluationDataNumber < existingEvaluationDataNumber ||
-                tcbInfo.issueDate < existingIssueDate;
+                tcbInfo.issueDate <= existingIssueDate;
             if (outOfDate) {
                 revert TCB_Out_Of_Date();
             }
