@@ -5,6 +5,9 @@ import {AutomataDaoStorage} from "./AutomataDaoStorage.sol";
 import {DaoBase} from "../../bases/DaoBase.sol";
 
 abstract contract AutomataDaoBase is DaoBase {
+
+    // 953769d0
+    error Unauthorized_Caller(address caller);
     
     /**
      * @notice overridden the default method to check caller authorization
@@ -23,6 +26,8 @@ abstract contract AutomataDaoBase is DaoBase {
     {
         if (_callerIsAuthorized()) {
             data = super._onFetchDataFromResolver(key, hash);
+        } else {
+            revert Unauthorized_Caller(msg.sender);
         }
     }
 
