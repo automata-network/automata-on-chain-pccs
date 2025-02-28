@@ -132,11 +132,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         );
 
         attestationId = _attestTcb(req, hash, key);
-        _storeTcbInfoIssueEvaluation(
-            key, 
-            tcbInfo.issueDate, 
-            tcbInfo.evaluationDataNumber
-        );
+        _storeTcbInfoIssueEvaluation(key, tcbInfo.issueDate, tcbInfo.nextUpdate, tcbInfo.evaluationDataNumber);
         emit UpsertedFmpscTcb(
             uint8(tcbInfo.id),
             tcbInfo.fmspc,
@@ -212,13 +208,6 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
             }
             reqData = abi.encode(tcbInfo, module, encodedModuleIdentities, encodedTcbLevels, tcbInfoObj.tcbInfoStr, tcbInfoObj.signature);
         }
-
-        _storeTcbInfoIssueEvaluation(
-            key, 
-            tcbInfo.issueDate, 
-            tcbInfo.nextUpdate, 
-            tcbInfo.evaluationDataNumber
-        );
     }
 
     function _validateTcbInfo(TcbInfoJsonObj calldata tcbInfoObj) private view {
