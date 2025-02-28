@@ -18,25 +18,27 @@ contract AutomataFmspcTcbDao is AutomataDaoBase, FmspcTcbDao {
         data = super._onFetchDataFromResolver(key, hash);
     }
 
-    /// @dev submit tcb issue date timestamp and evaluation data number as a separate attestation
+    /// @dev submit tcb timestamps and evaluation data number as a separate attestation
+    /// @dev issueDateTimestamp (64 bytes) | nextUpdateTimestamp (64 bytes) | evaluationDataNumber (128 bytes)
     /// TEMP: it is not the most efficient approach, since it's storing duplicate data
     /// @dev if i could extract the required info directly from the attestation,
     /// this method will no longer be needed
     /// @dev this is a good TODO for future optimization
-    function _storeTcbInfoIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint32 evaluationDataNumber) internal override {
+    function _storeTcbInfoIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber) internal override {
         bytes32 tcbIssueEvaluationKey = _computeTcbIssueEvaluationKey(tcbKey);
-        uint256 slot = (uint256(issueDateTimestamp) << 128) | evaluationDataNumber;
+        uint256 slot = (uint256(issueDateTimestamp) << 192) | (uint256(nextUpdateTimestamp) << 128) | evaluationDataNumber;
         resolver.attest(tcbIssueEvaluationKey, abi.encode(slot), bytes32(0));
     }
 
     /// TEMP it just reads from the separate attestation for now
     /// @dev we will have to come up with hacky low-level storage reads
-    function _loadTcbInfoIssueEvaluation(bytes32 tcbKey) internal view override returns (uint64 issueDateTimestamp, uint32 evaluationDataNumber) {
+    function _loadTcbInfoIssueEvaluation(bytes32 tcbKey) internal view override returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber) {
         bytes32 tcbIssueEvaluationKey = _computeTcbIssueEvaluationKey(tcbKey);
-        bytes memory data = resolver.readAttestation(resolver.collateralPointer(tcbIssueEvaluationKey));
+        bytes memory data = _fetchDataFromResolver(tcbIssueEvaluationKey, false);
         if (data.length > 0) {
             (uint256 slot) = abi.decode(data, (uint256));
-            issueDateTimestamp = uint64(slot >> 128);
+            issueDateTimestamp = uint64(slot >> 192);
+            nextUpdateTimestamp = uint64(slot >> 128);
             evaluationDataNumber = uint32(slot);
         }
     }

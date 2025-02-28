@@ -99,6 +99,13 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         key = keccak256(abi.encodePacked(TCB_MAPPING_MAGIC, qeid, pceid, platformCpuSvn, platformPceSvn));
     }
 
+    function getCollateralValidity(bytes32 key) external view override returns (
+        uint64 notValidBefore, 
+        uint64 notValidAfter
+    ) {
+        (notValidBefore, notValidAfter) = _loadPckValidity(key);
+    }
+
     /**
      * @notice Section 4.2.2 (getCert(qe_id, cpu_svn, pce_svn, pce_id))
      */
@@ -175,7 +182,11 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         bytes calldata cert
     ) external pckCACheck(ca) returns (bytes32 attestationId) {
         (bytes16 qeidBytes, bytes2 pceidBytes,,, bytes18 tcbmBytes) = _parseStringInputs(qeid, pceid, "", "", tcbm);
-        (bytes32 hash, bytes32 key) = _validatePck(ca, cert, qeidBytes, pceidBytes, tcbmBytes);
+        (bytes32 hash, bytes32 key, X509CertObj memory pck) = _validatePck(ca, cert, qeidBytes, pceidBytes, tcbmBytes);
+        
+        // attest timestamp
+        _storePckValidity(key, uint64(pck.validityNotBefore), uint64(pck.validityNotAfter));
+        
         attestationId = _attestPck(cert, hash, key);
         _upsertTcbm(qeidBytes, pceidBytes, tcbmBytes);
 
@@ -274,8 +285,8 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
      */
     function _getAllTcbs(bytes16 qeidBytes, bytes2 pceidBytes) internal view virtual returns (bytes18[] memory tcbms);
 
-    function _validatePck(CA ca, bytes memory der, bytes16 qeid, bytes2 pceid, bytes18 tcbm) internal view returns (bytes32 hash, bytes32 key) {
-        X509CertObj memory pck = pckLib.parseX509DER(der);
+    function _validatePck(CA ca, bytes memory der, bytes16 qeid, bytes2 pceid, bytes18 tcbm) internal view returns (bytes32 hash, bytes32 key, X509CertObj memory pck) {
+        pck = pckLib.parseX509DER(der);
         
         hash = keccak256(pck.tbs);
         key = PCK_KEY(qeid, pceid, tcbm);
@@ -291,13 +302,10 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
 
         // Step 2: Rollback prevention: new certificate should not have an issued date
         // that is older than the existing certificate
-        bytes memory existingData = _fetchDataFromResolver(key, false);
-        if (existingData.length > 0) {
-            (uint256 existingCertNotValidBefore, ) = pckLib.getCertValidity(existingData);
-            bool outOfDate = existingCertNotValidBefore >= pck.validityNotBefore;
-            if (outOfDate) {
-                revert Pck_Out_Of_Date();
-            }
+        (uint64 existingCertNotValidBefore, ) = _loadPckValidity(key);
+        bool outOfDate = existingCertNotValidBefore > pck.validityNotBefore;
+        if (outOfDate) {
+            revert Pck_Out_Of_Date();
         }
 
         // Step 3: Check Issuer and Subject names
@@ -401,4 +409,11 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
             tcbmBytes = bytes18(uint144(_parseUintFromHex(tcbm)));
         }
     }
+
+    function _storePckValidity(bytes32 key, uint64 notValidBefore, uint64 notValidAfter) internal virtual;
+
+    function _loadPckValidity(bytes32 key) internal view virtual returns (
+        uint64 notValidBefore,
+        uint64 notValidAfter
+    );
 }

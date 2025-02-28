@@ -48,6 +48,10 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         EnclaveIdentityLib = EnclaveIdentityHelper(_enclaveIdentityHelper);
     }
 
+    function getCollateralValidity(bytes32 key) external view override returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp) {
+        (issueDateTimestamp, nextUpdateTimestamp, ) = _loadEnclaveIdentityIssueEvaluation(key);
+    }
+
     /**
      * @notice computes the key that is mapped to the collateral attestation ID
      * NOTE: the "version" indicated here is taken from the input parameter (e.g. v3 vs v4);
@@ -146,16 +150,15 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         }
 
         // make sure new collateral is "newer"
-        bytes memory existingData = _fetchDataFromResolver(key, false);
-        if (existingData.length > 0) {
-            (IdentityObj memory existingIdentity, , ) =
-                abi.decode(existingData, (IdentityObj, string, bytes));
-            bool outOfDate = existingIdentity.tcbEvaluationDataNumber > identity.tcbEvaluationDataNumber ||
-                existingIdentity.issueDateTimestamp >= identity.issueDateTimestamp;
-            if (outOfDate) {
-                revert Enclave_Id_Out_Of_Date();
-            }
+        (uint64 existingIssueDateTimestamp, , uint64 existingEvaluationDataNumber) = _loadEnclaveIdentityIssueEvaluation(key);
+        bool outOfDate = existingEvaluationDataNumber > identity.tcbEvaluationDataNumber ||
+            existingIssueDateTimestamp > identity.issueDateTimestamp;
+        if (outOfDate) {
+            revert Enclave_Id_Out_Of_Date();
         }
+
+        // attest timestamp
+        _storeEnclaveIdentityIssueEvaluation(key, identity.issueDateTimestamp, identity.nextUpdateTimestamp, identity.tcbEvaluationDataNumber);
 
         reqData = abi.encode(identity, enclaveIdentityObj.identityStr, enclaveIdentityObj.signature);
     }
@@ -174,4 +177,14 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
             revert Invalid_TCB_Cert_Signature();
         }
     }
+
+    /// @dev for the time being, we will require a method to "cache" the issuance timestamp
+    /// @dev and the evaluation data number
+    /// @dev this reduces the amount of data to read, when performing rollback check
+    /// @dev which also allows any caller to check expiration of the Enclave Identity before loading the entire data
+    /// @dev the functions defined below can be overriden by the inheriting contract
+
+    function _storeEnclaveIdentityIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber) internal virtual;
+
+    function _loadEnclaveIdentityIssueEvaluation(bytes32 tcbKey) internal view virtual returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber);
 }

@@ -74,6 +74,13 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
         crlLib = X509CRLHelper(_crl);
     }
 
+    function getCollateralValidity(bytes32 key) external view override returns (
+        uint64 notValidBefore, 
+        uint64 notValidAfter
+    ) {
+        (notValidBefore, notValidAfter) = _loadPcsValidity(key);
+    }
+
     function PCS_KEY(CA ca, bool isCrl) public pure returns (bytes32 key) {
         key = keccak256(abi.encodePacked(PCS_MAGIC, uint8(ca), isCrl));
     }
@@ -106,7 +113,11 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
      * @param cert the DER-encoded certificate
      */
     function upsertPcsCertificates(CA ca, bytes calldata cert) external returns (bytes32 attestationId) {
-        (bytes32 hash, bytes32 key) = _validatePcsCert(ca, cert);
+        (bytes32 hash, bytes32 key, X509CertObj memory parsedX509Cert) = _validatePcsCert(ca, cert);
+        
+        // attest validity
+        _storePcsValidity(key, uint64(parsedX509Cert.validityNotBefore), uint64(parsedX509Cert.validityNotAfter));
+        
         attestationId = _attestPcs(cert, hash, key);
 
         emit UpsertedPCSCollateral(ca, false);
@@ -141,16 +152,19 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
     }
 
     function _upsertPcsCrl(CA ca, bytes calldata crl) private returns (bytes32 attestationId) {
-        (bytes32 hash, bytes32 key) = _validatePcsCrl(ca, crl);
-
+        (bytes32 hash, bytes32 key, X509CRLObj memory currentCrl) = _validatePcsCrl(ca, crl);
+        
+        // attest crl timestamp
+        _storePcsValidity(key, uint64(currentCrl.validityNotBefore), uint64(currentCrl.validityNotAfter));
+        
         attestationId = _attestPcs(crl, hash, key);
 
         emit UpsertedPCSCollateral(ca, true);
     }
 
-    function _validatePcsCert(CA ca, bytes calldata cert) private view returns (bytes32 hash, bytes32 key) {
+    function _validatePcsCert(CA ca, bytes calldata cert) private view returns (bytes32 hash, bytes32 key, X509CertObj memory currentCert) {
         X509Helper x509Lib = X509Helper(x509);
-        X509CertObj memory currentCert = x509Lib.parseX509DER(cert);
+        currentCert = x509Lib.parseX509DER(cert);
 
         key = PCS_KEY(ca, false);
         hash = keccak256(currentCert.tbs);
@@ -168,13 +182,11 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
 
         // Step 2: Rollback prevention: new certificate should not have an issued date
         // that is older than the existing certificate
-        bytes memory existingData = _fetchDataFromResolver(key, false);
-        if (existingData.length > 0) {
-            (uint256 existingCertNotValidBefore, ) = x509Lib.getCertValidity(existingData);
-            bool outOfDate = existingCertNotValidBefore >= currentCert.validityNotBefore;
-            if (outOfDate) {
-                revert Certificate_Out_Of_Date();
-            }
+        key = PCS_KEY(ca, false);
+        (uint64 existingCertNotValidBefore, ) = _loadPcsValidity(key);
+        bool outOfDate = existingCertNotValidBefore > currentCert.validityNotBefore;
+        if (outOfDate) {
+            revert Certificate_Out_Of_Date();
         }
 
         // Step 3: Check issuer and subject common names are valid
@@ -230,8 +242,8 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
         }
     }
 
-    function _validatePcsCrl(CA ca, bytes calldata crl) private view returns (bytes32 hash, bytes32 key) {
-        X509CRLObj memory currentCrl = crlLib.parseCRLDER(crl);
+    function _validatePcsCrl(CA ca, bytes calldata crl) private view returns (bytes32 hash, bytes32 key, X509CRLObj memory currentCrl) {
+        currentCrl = crlLib.parseCRLDER(crl);
 
         key = PCS_KEY(ca, true);
         hash = keccak256(currentCrl.tbs);
@@ -248,13 +260,10 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
 
         // Step 2: Rollback prevention: new CRL should not have an issued date
         // that is older than the existing CRL
-        bytes memory existingData = _fetchDataFromResolver(key, false);
-        if (existingData.length > 0) {
-            (uint256 existingCrlNotValidBefore, ) = crlLib.getCrlValidity(existingData);
-            bool outOfDate = existingCrlNotValidBefore >= currentCrl.validityNotBefore;
-            if (outOfDate) {
-                revert Certificate_Out_Of_Date();
-            }
+        (uint64 existingCrlNotValidBefore, ) = _loadPcsValidity(key);
+        bool outOfDate = existingCrlNotValidBefore > currentCrl.validityNotBefore;
+        if (outOfDate) {
+            revert Certificate_Out_Of_Date();
         }
 
         // Step 3: Check CRL issuer
@@ -285,4 +294,8 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
             issuerCert = _fetchDataFromResolver(PCS_KEY(CA.ROOT, false), false);
         }
     }
+
+    function _storePcsValidity(bytes32 key, uint64 notValidBefore, uint64 notValidAfter) internal virtual;
+
+    function _loadPcsValidity(bytes32 key) internal view virtual returns (uint64 notValidBefore, uint64 notValidAfter);
 }
