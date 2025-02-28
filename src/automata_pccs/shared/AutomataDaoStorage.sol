@@ -17,6 +17,9 @@ contract AutomataDaoStorage is AutomataTCBManager, IDaoAttestationResolver, Paus
     mapping(address => bool) _authorized_readers;
     mapping(bytes32 attId => bytes collateral) _db;
 
+    event SetAuthorizedWriter(address caller, bool authorized);
+    event SetAuthorizedReader(address caller, bool authorized);
+
     modifier onlyDao(address dao) {
         require(_authorized_writers[dao], "FORBIDDEN");
         _;
@@ -26,7 +29,7 @@ contract AutomataDaoStorage is AutomataTCBManager, IDaoAttestationResolver, Paus
         _initializeOwner(msg.sender);
 
         // adding address(0) as an authorized_reader to allow eth_call
-        _authorized_readers[address(0)] = true;
+        _setAuthorizedReader(address(0), true);
     }
 
     function isAuthorizedCaller(address caller) external view returns (bool) {
@@ -34,7 +37,7 @@ contract AutomataDaoStorage is AutomataTCBManager, IDaoAttestationResolver, Paus
     }
 
     function setCallerAuthorization(address caller, bool authorized) external onlyOwner {
-        _authorized_readers[caller] = authorized;
+        _setAuthorizedReader(caller, authorized);
     }
 
     function pauseCallerRestriction() external onlyOwner whenNotPaused {
@@ -45,15 +48,12 @@ contract AutomataDaoStorage is AutomataTCBManager, IDaoAttestationResolver, Paus
         _unpause();
     }
 
-    function updateDao(address _pcsDao, address _pckDao, address _fmspcTcbDao, address _enclaveIdDao)
-        external
-        onlyOwner
-    {
-        _updateDao(_pcsDao, _pckDao, _fmspcTcbDao, _enclaveIdDao);
+    function grantDao(address granted) external onlyOwner {
+        _setAuthorizedWriter(granted, true);
     }
 
     function revokeDao(address revoked) external onlyOwner {
-        _authorized_writers[revoked] = false;
+        _setAuthorizedWriter(revoked, false);
     }
 
     function collateralPointer(bytes32 key) external pure override returns (bytes32 collateralAttId) {
@@ -93,13 +93,6 @@ contract AutomataDaoStorage is AutomataTCBManager, IDaoAttestationResolver, Paus
         }
     }
 
-    function _updateDao(address _pcsDao, address _pckDao, address _fmspcTcbDao, address _enclaveIdDao) private {
-        _authorized_writers[_pcsDao] = true;
-        _authorized_writers[_pckDao] = true;
-        _authorized_writers[_fmspcTcbDao] = true;
-        _authorized_writers[_enclaveIdDao] = true;
-    }
-
     /// Attestation ID Computation
     bytes4 constant DATA_ATTESTATION_MAGIC = 0x54a09e9a;
     bytes4 constant HASH_ATTESTATION_MAGIC = 0x628ab4d2;
@@ -107,6 +100,16 @@ contract AutomataDaoStorage is AutomataTCBManager, IDaoAttestationResolver, Paus
     function _computeAttestationId(bytes32 key, bool hash) private pure returns (bytes32 attestationId) {
         bytes32 magic = hash ? HASH_ATTESTATION_MAGIC : DATA_ATTESTATION_MAGIC;
         attestationId = keccak256(abi.encodePacked(magic, key));
+    }
+
+    function _setAuthorizedWriter(address caller, bool authorized) private {
+        _authorized_writers[caller] = authorized;
+        emit SetAuthorizedWriter(caller, authorized);
+    }
+
+    function _setAuthorizedReader(address caller, bool authorized) private {
+        _authorized_readers[caller] = authorized;
+        emit SetAuthorizedReader(caller, authorized);
     }
 
     /// TCB Management

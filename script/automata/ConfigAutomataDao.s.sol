@@ -23,11 +23,11 @@ contract ConfigAutomataDao is Script {
     address enclaveIdentityHelper = vm.envAddress("ENCLAVE_IDENTITY_HELPER");
     address fmspcTcbHelper = vm.envAddress("FMSPC_TCB_HELPER");
 
-    function updateStorageDao() public {
+    function grantDao(address dao) public {
         vm.broadcast(privateKey);
 
         AutomataDaoStorage pccsStorage = AutomataDaoStorage(pccsStorageAddr);
-        pccsStorage.updateDao(pcsDaoAddr, pckDaoAddr, fmspcTcbDaoAddr, enclaveIdDaoAddr);
+        pccsStorage.grantDao(dao);
     }
 
     function revokeDao(address dao) public {
