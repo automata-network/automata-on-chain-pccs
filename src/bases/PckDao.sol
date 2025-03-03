@@ -212,7 +212,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
      * @dev should override the _setTcbrToTcbmMapping() method
      * to implement their own tcbm selection implementation
      * @dev this function does not require for explicit attestations, but implementers may implement one
-     * if neccessary.
+     * if necessary.
      */
     function upsertPlatformTcbs(
         string calldata qeid,
