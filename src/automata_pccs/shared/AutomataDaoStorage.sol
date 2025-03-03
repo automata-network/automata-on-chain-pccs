@@ -75,7 +75,7 @@ contract AutomataDaoStorage is AutomataTCBManager, IDaoAttestationResolver, Paus
     }
 
     /**
-     * @notice In AutomataDaoStorage, we will simply assign the key as the attestationid of the collateral
+     * @notice the attestationId for collaterals will be simply derived from the key
      */
     function attest(bytes32 key, bytes calldata attData, bytes32 attDataHash)
         external
@@ -117,7 +117,7 @@ contract AutomataDaoStorage is AutomataTCBManager, IDaoAttestationResolver, Paus
 
     /**
      * @notice forms a mapping between (qeid, pceid) to tcbm
-     * @dev called AFTER the qeid, pceid and tcbm are all validated by the same PCK Certificate
+     * @dev called AFTER the qeid, pceid and tcbm have been validated by a corresponding PCK Certificate
      */
     function setTcbm(bytes16 qeid, bytes2 pceid, bytes18 tcbm) external onlyDao(msg.sender) {
         bytes32 k = keccak256(abi.encodePacked(qeid, pceid));

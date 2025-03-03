@@ -32,12 +32,12 @@ abstract contract DaoBase {
      * @param key - mapped to a collateral as defined by individual data access objects (DAOs)
      */
     function getAttestedData(bytes32 key) external view returns (bytes memory attestationData) {
-        attestationData = _fetchDataFromResolver(key, false);
+        // invoke _onFetchDataFromResolver() here to invoke additional logic 
+        attestationData = _onFetchDataFromResolver(key, false);
     }
 
     /**
-     * @dev SHOULD store the hash of a collateral (e.g. X509 Cert, TCBInfo JSON etc) in the attestation registry
-     * as a separate attestation from the collateral data itself
+     * @notice fetches the hash of a collateral (e.g. X509 Cert, TCBInfo JSON etc) from the attestation registry
      */
     function getCollateralHash(bytes32 key) external view returns (bytes32 collateralHash) {
         bytes memory attestationData = _fetchDataFromResolver(key, true);

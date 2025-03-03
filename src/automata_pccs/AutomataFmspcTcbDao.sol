@@ -30,7 +30,7 @@ contract AutomataFmspcTcbDao is AutomataDaoBase, FmspcTcbDao {
         resolver.attest(tcbIssueEvaluationKey, abi.encode(slot), bytes32(0));
     }
 
-    /// TEMP it just reads from the separate attestation for now
+    /// TEMP it just reads from a separate attestation for now
     /// @dev we will have to come up with hacky low-level storage reads
     function _loadTcbInfoIssueEvaluation(bytes32 tcbKey) internal view override returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber) {
         bytes32 tcbIssueEvaluationKey = _computeTcbIssueEvaluationKey(tcbKey);

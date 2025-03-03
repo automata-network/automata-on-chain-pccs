@@ -23,7 +23,7 @@ contract MockTcbDao is FmspcTcbDao {
         valid = data.length > 0;
         if (valid) {
             bytes memory encodedLevels;
-            (tcbInfo, encodedLevels,,) = abi.decode(data, (TcbInfoBasic, bytes, string, bytes));
+            (tcbInfo, encodedLevels,) = abi.decode(data, (TcbInfoBasic, bytes, TcbInfoJsonObj));
             tcbLevelsV2 = _decodeTcbLevels(encodedLevels);
         }
     }
@@ -45,8 +45,8 @@ contract MockTcbDao is FmspcTcbDao {
         if (valid) {
             bytes memory encodedLevels;
             bytes memory encodedTdxModuleIdentities;
-            (tcbInfo, tdxModule, encodedTdxModuleIdentities, encodedLevels,,) =
-                abi.decode(data, (TcbInfoBasic, TDXModule, bytes, bytes, string, bytes));
+            (tcbInfo, tdxModule, encodedTdxModuleIdentities, encodedLevels,) =
+                abi.decode(data, (TcbInfoBasic, TDXModule, bytes, bytes, TcbInfoJsonObj));
             tcbLevelsV3 = _decodeTcbLevels(encodedLevels);
             if (encodedTdxModuleIdentities.length > 0) {
                 tdxModuleIdentities = _decodeTdxModuleIdentities(encodedTdxModuleIdentities);
