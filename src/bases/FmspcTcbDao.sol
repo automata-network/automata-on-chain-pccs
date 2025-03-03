@@ -64,6 +64,10 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     ) {
         (issueDateTimestamp, nextUpdateTimestamp, ) = _loadTcbInfoIssueEvaluation(key);
     }
+    
+    function getTcbInfoContentHash(bytes32 key) external view returns (bytes32) {
+        return _loadFmspcTcbContentHash(key);
+    }
 
     /**
      * @notice computes the key that is mapped to the collateral attestation ID
@@ -122,7 +126,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         _checkCollateralDuplicate(key, hash);
         _validateTcbInfo(tcbInfoObj);
 
-        bytes memory req = _buildTcbAttestationRequest(
+        (bytes memory req, bytes32 contentHash) = _buildTcbAttestationRequest(
             key,
             tcbInfoObj,
             tcbInfo,
@@ -132,7 +136,9 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         );
 
         attestationId = _attestTcb(req, hash, key);
-        _storeTcbInfoIssueEvaluation(key, tcbInfo.issueDate, tcbInfo.nextUpdate, tcbInfo.evaluationDataNumber);
+
+        _storeTcbInfoIssueEvaluation(key, issueDateTimestamp, evaluationDataNumber);
+        _storeFmspcTcbContentHash(key, contentHash);
         emit UpsertedFmpscTcb(
             uint8(tcbInfo.id),
             tcbInfo.fmspc,
@@ -175,7 +181,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     )
         private
         view
-        returns (bytes memory reqData)
+        returns (bytes memory reqData, bytes32 contentHash)
     {
         // check expiration before continuing...
         if (block.timestamp < tcbInfo.issueDate || block.timestamp > tcbInfo.nextUpdate) {
@@ -208,6 +214,13 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
             }
             reqData = abi.encode(tcbInfo, module, encodedModuleIdentities, encodedTcbLevels, tcbInfoObj.tcbInfoStr, tcbInfoObj.signature);
         }
+
+        contentHash = FmspcTcbLib.generateFmspcTcbContentHash(
+            tcbInfo,
+            tcbLevelsString,
+            tdxModuleString,
+            tdxModuleIdentitiesString
+        );
     }
 
     function _validateTcbInfo(TcbInfoJsonObj calldata tcbInfoObj) private view {
@@ -261,4 +274,10 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     function _storeTcbInfoIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber) internal virtual;
 
     function _loadTcbInfoIssueEvaluation(bytes32 tcbKey) internal view virtual returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber);
+
+    /// @dev store time-insensitive content hash
+
+    function _storeFmspcTcbContentHash(bytes32 tcbKey, bytes32 contentHash) internal virtual;
+
+    function _loadFmspcTcbContentHash(bytes32 tcbKey) internal view virtual returns (bytes32 contentHash);
 }
