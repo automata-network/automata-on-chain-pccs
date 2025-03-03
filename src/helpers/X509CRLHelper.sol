@@ -10,7 +10,6 @@ import {DateTimeUtils} from "../utils/DateTimeUtils.sol";
  * @notice This is a simplified structure of a DER-decoded X509 CRL
  */
 struct X509CRLObj {
-    uint256 serialNumber;
     string issuerCommonName;
     uint256 validityNotBefore;
     uint256 validityNotAfter;
@@ -32,6 +31,8 @@ contract X509CRLHelper {
     using NodePtr for uint256;
     using BytesUtils for bytes;
 
+    // 2.5.4.3 
+    bytes constant COMMON_NAME_OID = hex"550403";
     // 2.5.29.20
     bytes constant CRL_NUMBER_OID = hex"551d14";
     // 2.5.29.35
@@ -51,20 +52,13 @@ contract X509CRLHelper {
         sig = _getSignature(der, sigPtr);
     }
 
-    function getSerialNumber(bytes calldata der) external pure returns (uint256 serialNum) {
-        uint256 root = der.root();
-        uint256 tbsParentPtr = der.firstChildOf(root);
-        uint256 tbsPtr = der.firstChildOf(tbsParentPtr);
-        serialNum = _parseSerialNumber(der.bytesAt(tbsPtr));
-    }
-
     function getIssuerCommonName(bytes calldata der) external pure returns (string memory issuerCommonName) {
         uint256 root = der.root();
         uint256 tbsParentPtr = der.firstChildOf(root);
         uint256 tbsPtr = der.firstChildOf(tbsParentPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
-        issuerCommonName = _getCommonName(der, der.firstChildOf(tbsPtr));
+        issuerCommonName = _getCommonName(der, tbsPtr);
     }
 
     function getCrlValidity(bytes calldata der) external pure returns (uint256 validityNotBefore, uint256 validityNotAfter) {
@@ -134,12 +128,10 @@ contract X509CRLHelper {
 
         uint256 tbsPtr = der.firstChildOf(tbsParentPtr);
 
-        crl.serialNumber = uint256(bytes32(der.bytesAt(tbsPtr)));
-
         tbsPtr = der.nextSiblingOf(tbsPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
 
-        crl.issuerCommonName = _getCommonName(der, der.firstChildOf(tbsPtr));
+        crl.issuerCommonName = _getCommonName(der, tbsPtr);
 
         tbsPtr = der.nextSiblingOf(tbsPtr);
         (crl.validityNotBefore, crl.validityNotAfter) = _getValidity(der, tbsPtr);
@@ -175,15 +167,41 @@ contract X509CRLHelper {
         crl.signature = _getSignature(der, sigPtr);
     }
 
-    function _getCommonName(bytes calldata der, uint256 commonNameParentPtr)
+    function _getCommonName(bytes calldata der, uint256 rdnParentPtr)
         private
         pure
-        returns (string memory commonName)
+        returns (string memory)
     {
-        commonNameParentPtr = der.firstChildOf(commonNameParentPtr);
-        commonNameParentPtr = der.firstChildOf(commonNameParentPtr);
-        commonNameParentPtr = der.nextSiblingOf(commonNameParentPtr);
-        commonName = string(der.bytesAt(commonNameParentPtr));
+        // All we are doing here is iterating through a sequence of
+        // one or many RelativeDistinguishedName (RDN) sets
+        // which consists of one or many AttributeTypeAndValue sequences
+        // we are only interested in the sequence with the CommonName type
+
+        uint256 rdnPtr = der.firstChildOf(rdnParentPtr);
+        bool commonNameFound = false;
+        while (rdnPtr != 0) {
+            uint256 sequencePtr = der.firstChildOf(rdnPtr);
+            while (sequencePtr.ixl() <= rdnPtr.ixl()) {
+                uint256 oidPtr = der.firstChildOf(sequencePtr);
+                if (BytesUtils.compareBytes(der.bytesAt(oidPtr), COMMON_NAME_OID)) {
+                    commonNameFound = true;
+                    return string(der.bytesAt(der.nextSiblingOf(oidPtr)));
+                } else if (sequencePtr.ixl() == rdnPtr.ixl()) {
+                    break;
+                } else {
+                    sequencePtr = der.nextSiblingOf(sequencePtr);
+                }
+            }
+            if (rdnPtr.ixl() < rdnParentPtr.ixl()) {
+                rdnPtr = der.nextSiblingOf(rdnPtr);
+            } else {
+                rdnPtr = 0;
+            }
+        }
+
+        if (!commonNameFound) {
+            revert("Missing common name");
+        }
     }
 
     function _getValidity(bytes calldata der, uint256 validityPtr)
@@ -272,7 +290,7 @@ contract X509CRLHelper {
             }
         }
     }
-
+    
     /// @dev remove unnecessary prefix from the input
     function _trimBytes(bytes memory input, uint256 expectedLength) private pure returns (bytes memory output) {
         uint256 n = input.length;
@@ -324,6 +342,8 @@ contract X509CRLHelper {
 
             if (ptr.ixl() < parentPtr.ixl()) {
                 ptr = der.nextSiblingOf(ptr);
+            } else {
+                ptr = 0;
             }
         }
 
