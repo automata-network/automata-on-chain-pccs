@@ -48,8 +48,10 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
     error Root_Key_Mismatch();
     // 291990cd
     error Certificate_Revoked(CA ca, uint256 serialNum);
-    // dba942a2
-    error Certificate_Expired();
+    // 5f066611
+    error Certificate_Expired(CA ca);
+    // 6d8932ad
+    error Crl_Expired(CA ca);
     // 1e7ab599
     error Invalid_Issuer_Name();
     // 92ec707e
@@ -177,14 +179,13 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
             block.timestamp > currentCert.validityNotBefore && 
             block.timestamp < currentCert.validityNotAfter;
         if (!validTimestamp) {
-            revert Certificate_Expired();
+            revert Certificate_Expired(ca);
         }
 
         // Step 2: Rollback prevention: new certificate should not have an issued date
         // that is older than the existing certificate
-        key = PCS_KEY(ca, false);
         (uint64 existingCertNotValidBefore, ) = _loadPcsValidity(key);
-        bool outOfDate = existingCertNotValidBefore > currentCert.validityNotBefore;
+        bool outOfDate = existingCertNotValidBefore >= currentCert.validityNotBefore;
         if (outOfDate) {
             revert Certificate_Out_Of_Date();
         }
@@ -209,7 +210,9 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
         }
 
         // Step 4: Check Revocation Status
-        bytes memory rootCrlData = _fetchDataFromResolver(PCS_KEY(CA.ROOT, true), false);
+        bytes32 rootCrlKey = PCS_KEY(CA.ROOT, true);
+
+        bytes memory rootCrlData = _fetchDataFromResolver(rootCrlKey, false);
         if (ca == CA.ROOT) {
             bytes memory pubKey = currentCert.subjectPublicKey;
             if (keccak256(pubKey) != ROOT_CA_PUBKEY_HASH) {
@@ -224,17 +227,19 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
         }
 
         // Step 4: Check signature
-        bytes memory rootCert = _getIssuer(CA.ROOT);
         bytes32 digest = sha256(currentCert.tbs);
         bool sigVerified;
         if (ca == CA.ROOT) {
             // the root certificate is issued by its own key
             sigVerified = verifySignature(digest, currentCert.signature, cert);
-        } else if (rootCert.length > 0) {
-            sigVerified = verifySignature(digest, currentCert.signature, rootCert);
         } else {
-            // all other certificates should already have an iusuer configured
-            revert Missing_Issuer();
+            bytes memory rootCert = _getIssuer(CA.ROOT);
+            if (rootCert.length > 0) {
+                sigVerified = verifySignature(digest, currentCert.signature, rootCert);
+            } else {
+                // all other certificates should already have an iusuer configured
+                revert Missing_Issuer();
+            }
         }
 
         if (!sigVerified) {
@@ -247,7 +252,6 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
 
         key = PCS_KEY(ca, true);
         hash = keccak256(currentCrl.tbs);
-
         _checkCollateralDuplicate(key, hash);
         
         // Step 1: Check whether CRL has expired
@@ -255,13 +259,13 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
             block.timestamp > currentCrl.validityNotBefore && 
             block.timestamp < currentCrl.validityNotAfter;
         if (!validTimestamp) {
-            revert Certificate_Expired();
+            revert Crl_Expired(ca);
         }
 
         // Step 2: Rollback prevention: new CRL should not have an issued date
         // that is older than the existing CRL
         (uint64 existingCrlNotValidBefore, ) = _loadPcsValidity(key);
-        bool outOfDate = existingCrlNotValidBefore > currentCrl.validityNotBefore;
+        bool outOfDate = existingCrlNotValidBefore >= currentCrl.validityNotBefore;
         if (outOfDate) {
             revert Certificate_Out_Of_Date();
         }
@@ -285,13 +289,38 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
         }
     }
 
-    function _getIssuer(CA ca) private view returns (bytes memory issuerCert) {
-        if (ca == CA.PLATFORM || ca == CA.PROCESSOR) {
+    function _getIssuer(CA issuerCa) private view returns (bytes memory issuerCert) {
+        bytes32 key;
+
+        if (issuerCa == CA.PLATFORM || issuerCa == CA.PROCESSOR) {
             // this is applicable to crls only
             // since all certs in the pcsdao are issued by the root
-            issuerCert = _fetchDataFromResolver(PCS_KEY(ca, false), false);
+            key = PCS_KEY(issuerCa, false);
         } else {
-            issuerCert = _fetchDataFromResolver(PCS_KEY(CA.ROOT, false), false);
+            key = PCS_KEY(CA.ROOT, false);
+        }
+
+        // check CA issuer expiration
+        (uint64 issuerNotValidBefore, uint64 issuerNotValidAfter) = _loadPcsValidity(key);
+        if (block.timestamp < issuerNotValidBefore || block.timestamp > issuerNotValidAfter) {
+            // it is also possible that the issuer might be missing
+            // but it requires re-upserting the issuer anyway to fix the issue
+            // regardless of the error
+            revert Certificate_Expired(issuerCa);
+        }
+
+        issuerCert = _fetchDataFromResolver(key, false);
+
+        // check issuer revocation status if not root
+        if (issuerCa != CA.ROOT) {
+            bytes memory rootCrl = _fetchDataFromResolver(PCS_KEY(CA.ROOT, true), false);
+            if (rootCrl.length > 0) {
+                uint256 serialNum = X509Helper(x509).getSerialNumber(issuerCert);
+                bool revoked = crlLib.serialNumberIsRevoked(serialNum, rootCrl);
+                if (revoked) {
+                    revert Certificate_Revoked(issuerCa, serialNum);
+                }
+            }
         }
     }
 

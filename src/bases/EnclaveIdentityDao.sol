@@ -24,6 +24,7 @@ import {PcsDao} from "./PcsDao.sol";
 abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     PcsDao public Pcs;
     EnclaveIdentityHelper public EnclaveIdentityLib;
+    address public crlLibAddr;
 
     // first 4 bytes of keccak256("ENCLAVE_ID_MAGIC")
     bytes4 constant ENCLAVE_ID_MAGIC = 0xff818fce;
@@ -32,6 +33,12 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     error Enclave_Id_Mismatch();
     // 4e0f5696
     error Incorrect_Enclave_Id_Version();
+    // 841a0280
+    error Missing_TCB_Cert();
+    // ea8cd522
+    error TCB_Cert_Expired();
+    // 7fb57a7a
+    error TCB_Cert_Revoked(uint256 serialNum);
     // 8de7233f
     error Invalid_TCB_Cert_Signature();
     // 9ac04499
@@ -41,12 +48,13 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
 
     event UpsertedEnclaveIdentity(uint256 indexed id, uint256 indexed version);
 
-    constructor(address _resolver, address _p256, address _pcs, address _enclaveIdentityHelper, address _x509Helper)
+    constructor(address _resolver, address _p256, address _pcs, address _enclaveIdentityHelper, address _x509Helper, address _crlLib)
         DaoBase(_resolver)
         SigVerifyBase(_p256, _x509Helper)
     {
         Pcs = PcsDao(_pcs);
         EnclaveIdentityLib = EnclaveIdentityHelper(_enclaveIdentityHelper);
+        crlLibAddr = _crlLib;
     }
 
     function getCollateralValidity(bytes32 key) external view override returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp) {
@@ -162,7 +170,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         // make sure new collateral is "newer"
         (uint64 existingIssueDateTimestamp, , uint64 existingEvaluationDataNumber) = _loadEnclaveIdentityIssueEvaluation(key);
         bool outOfDate = existingEvaluationDataNumber > identity.tcbEvaluationDataNumber ||
-            existingIssueDateTimestamp > identity.issueDateTimestamp;
+            existingIssueDateTimestamp >= identity.issueDateTimestamp;
         if (outOfDate) {
             revert Enclave_Id_Out_Of_Date();
         }
@@ -178,14 +186,46 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
      * @notice validates IdentityString is signed by Intel TCB Signing Cert
      */
     function _validateQeIdentity(EnclaveIdentityJsonObj calldata enclaveIdentityObj, bytes32 hash) private view {
-        bytes memory signingDer = _fetchDataFromResolver(Pcs.PCS_KEY(CA.SIGNING, false), false);
+        // check issuer expiration
+        bytes32 issuerKey = Pcs.PCS_KEY(CA.SIGNING, false);
+        (uint256 issuerNotValidBefore, uint256 issuerNotValidAfter) = Pcs.getCollateralValidity(issuerKey);
+        if (block.timestamp < issuerNotValidBefore || block.timestamp > issuerNotValidAfter) {
+            revert TCB_Cert_Expired();
+        }
 
-        // Validate signature
-        bool sigVerified =
-            verifySignature(hash, enclaveIdentityObj.signature, signingDer);
+        bytes memory signingDer = _fetchDataFromResolver(issuerKey, false);
+        if (signingDer.length > 0) {
+            bytes memory rootCrl = _fetchDataFromResolver(Pcs.PCS_KEY(CA.ROOT, true), false);
+            if (rootCrl.length > 0) {
+                // check revocation
+                (, bytes memory serialNumberData) = x509.staticcall(
+                    abi.encodeWithSelector(
+                        0xb29b51cb, // X509Helper.getSerialNumber(bytes)
+                        signingDer
+                    )
+                );
+                uint256 serialNumber = abi.decode(serialNumberData, (uint256));
+                (, bytes memory serialNumberRevokedData) = crlLibAddr.staticcall(
+                    abi.encodeWithSelector(
+                        0xcedb9781, // X508CRLHelper.serialNumberIsRevoked(uint256,bytes)
+                        serialNumber,
+                        rootCrl
+                    )
+                );
+                bool revoked = abi.decode(serialNumberRevokedData, (bool));
+                if (revoked) {
+                    revert TCB_Cert_Revoked(serialNumber);
+                }
+            }
 
-        if (!sigVerified) {
-            revert Invalid_TCB_Cert_Signature();
+            // Validate signature
+            bool sigVerified =
+                verifySignature(hash, enclaveIdentityObj.signature, signingDer);
+            if (!sigVerified) {
+                revert Invalid_TCB_Cert_Signature();
+            }
+        } else {
+            revert Missing_TCB_Cert();
         }
     }
 

@@ -11,6 +11,13 @@ import "../utils/Salt.sol";
 contract DeployHelpers is Script {
     uint256 privateKey = vm.envUint("PRIVATE_KEY");
 
+    function run() public {
+        deployEnclaveIdentityHelper();
+        deployFmspcTcbHelper();
+        deployPckHelper();
+        deployX509CrlHelper();
+    }
+
     function deployEnclaveIdentityHelper() public {
         vm.startBroadcast(privateKey);
         EnclaveIdentityHelper enclaveIdentityHelper = new EnclaveIdentityHelper{salt: ENCLAVE_IDENTITY_HELPER_SALT}();

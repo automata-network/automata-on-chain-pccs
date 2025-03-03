@@ -47,13 +47,13 @@ contract DeployAutomataDao is P256Configuration {
 
         // Deploy EnclaveIdDao
         AutomataEnclaveIdentityDao enclaveIdDao = new AutomataEnclaveIdentityDao{salt: ENCLAVE_ID_DAO_SALT}(
-            address(pccsStorage), simulateVerify(), address(pcsDao), enclaveIdentityHelper, x509
+            address(pccsStorage), simulateVerify(), address(pcsDao), enclaveIdentityHelper, x509, x509Crl
         );
         console.log("AutomataEnclaveIdDao deployed at: ", address(enclaveIdDao));
 
         // Deploy FmspcDao
         AutomataFmspcTcbDao fmspcTcbDao =
-            new AutomataFmspcTcbDao{salt: FMSPC_TCB_DAO_SALT}(address(pccsStorage), simulateVerify(), address(pcsDao), fmspcTcbHelper, x509);
+            new AutomataFmspcTcbDao{salt: FMSPC_TCB_DAO_SALT}(address(pccsStorage), simulateVerify(), address(pcsDao), fmspcTcbHelper, x509, x509Crl);
         console.log("AutomataFmspcTcbDao deployed at: ", address(fmspcTcbDao));
 
         // grants the DAOs permission to write to storage
@@ -92,7 +92,7 @@ contract DeployAutomataDao is P256Configuration {
         address pcsDaoAddr = vm.envAddress("PCS_DAO");
 
         AutomataEnclaveIdentityDao enclaveIdDao =
-            new AutomataEnclaveIdentityDao{salt: ENCLAVE_ID_DAO_SALT}(pccsStorageAddr, simulateVerify(), pcsDaoAddr, enclaveIdentityHelper, x509);
+            new AutomataEnclaveIdentityDao{salt: ENCLAVE_ID_DAO_SALT}(pccsStorageAddr, simulateVerify(), pcsDaoAddr, enclaveIdentityHelper, x509, x509Crl);
 
         console.log("AutomataEnclaveIdDao deployed at: ", address(enclaveIdDao));
     }
@@ -102,7 +102,7 @@ contract DeployAutomataDao is P256Configuration {
         address pcsDaoAddr = vm.envAddress("PCS_DAO");
 
         AutomataFmspcTcbDao fmspcTcbDao =
-            new AutomataFmspcTcbDao{salt: FMSPC_TCB_DAO_SALT}(pccsStorageAddr, simulateVerify(), pcsDaoAddr, fmspcTcbHelper, x509);
+            new AutomataFmspcTcbDao{salt: FMSPC_TCB_DAO_SALT}(pccsStorageAddr, simulateVerify(), pcsDaoAddr, fmspcTcbHelper, x509, x509Crl);
 
         console.log("AutomataFmspcTcbDao deployed at: ", address(fmspcTcbDao));
     }

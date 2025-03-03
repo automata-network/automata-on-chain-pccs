@@ -8,8 +8,8 @@ import "forge-std/console.sol";
 
 contract MockTcbDao is FmspcTcbDao {
 
-    constructor(address _resolver, address _p256, address _pcs, address _fmspcHelper, address _x509Helper)
-        FmspcTcbDao(_resolver, _p256, _pcs, _fmspcHelper, _x509Helper)
+    constructor(address _resolver, address _p256, address _pcs, address _fmspcHelper, address _x509Helper, address _crl)
+        FmspcTcbDao(_resolver, _p256, _pcs, _fmspcHelper, _x509Helper, _crl)
     {}
 
     function getFmspcTcbV2(bytes6 fmspc)

@@ -56,11 +56,11 @@ abstract contract TestSetupBase is Test {
         pcs = new AutomataPcsDao(address(pccsStorage), P256_VERIFIER, address(x509Lib), address(x509CrlLib));
 
         enclaveIdDao = new AutomataEnclaveIdentityDao(
-            address(pccsStorage), P256_VERIFIER, address(pcs), address(enclaveIdentityLib), address(x509Lib)
+            address(pccsStorage), P256_VERIFIER, address(pcs), address(enclaveIdentityLib), address(x509Lib), address(x509CrlLib)
         );
 
         fmspcTcbDao = new AutomataFmspcTcbDao(
-            address(pccsStorage), P256_VERIFIER, address(pcs), address(fsmpcTcbLib), address(x509Lib)
+            address(pccsStorage), P256_VERIFIER, address(pcs), address(fsmpcTcbLib), address(x509Lib), address(x509CrlLib)
         );
 
         pck =

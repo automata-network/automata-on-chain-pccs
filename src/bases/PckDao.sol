@@ -43,6 +43,10 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
     error TCB_Mismatch();
     // cd69d374
     error Missing_Issuer();
+    // a7ee790d
+    error Issuer_Expired(CA ca);
+    // f465bfb2
+    error Issuer_Revoked(CA ca, uint256 serialNum);
     // e7ef341f
     error Invalid_Signature();
 
@@ -319,7 +323,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         // Step 2: Rollback prevention: new certificate should not have an issued date
         // that is older than the existing certificate
         (uint64 existingCertNotValidBefore, ) = _loadPckValidity(key);
-        bool outOfDate = existingCertNotValidBefore > pck.validityNotBefore;
+        bool outOfDate = existingCertNotValidBefore >= pck.validityNotBefore;
         if (outOfDate) {
             revert Pck_Out_Of_Date();
         }
@@ -350,9 +354,23 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
             }
         }
 
-        // Step 6: Check signature
-        bytes memory issuerCert = _fetchDataFromResolver(Pcs.PCS_KEY(ca, false), false);
+        // Step 5: Check signature against issuer certificate
+        bytes32 issuerKey = Pcs.PCS_KEY(ca, false);
+        (uint256 notBefore, uint256 notAfter) = Pcs.getCollateralValidity(issuerKey);
+        if (block.timestamp < notBefore || block.timestamp > notAfter) {
+            revert Issuer_Expired(ca);
+        }
+        bytes memory issuerCert = _fetchDataFromResolver(issuerKey, false);
         if (issuerCert.length > 0) {
+            // check issuer evocation status
+            bytes memory rootCrl = _fetchDataFromResolver(Pcs.PCS_KEY(CA.ROOT, true), false);
+            if (rootCrl.length > 0) {
+                bool issuerRevoked = crlLib.serialNumberIsRevoked(pck.serialNumber, rootCrl);
+                if (issuerRevoked) {
+                    revert Issuer_Revoked(ca, pck.serialNumber);
+                }
+            }
+
             bytes32 digest = sha256(pck.tbs);
             bool sigVerified = verifySignature(digest, pck.signature, issuerCert);
             if (!sigVerified) {

@@ -5,8 +5,8 @@ import {EnclaveIdentityDao, PcsDao, DaoBase} from "../bases/EnclaveIdentityDao.s
 import {AutomataDaoBase} from "./shared/AutomataDaoBase.sol";
 
 contract AutomataEnclaveIdentityDao is AutomataDaoBase, EnclaveIdentityDao {
-    constructor(address _storage, address _p256, address _pcs, address _enclaveIdentityHelper, address _x509Helper)
-        EnclaveIdentityDao(_storage, _p256, _pcs, _enclaveIdentityHelper, _x509Helper)
+    constructor(address _storage, address _p256, address _pcs, address _enclaveIdentityHelper, address _x509Helper, address _crl)
+        EnclaveIdentityDao(_storage, _p256, _pcs, _enclaveIdentityHelper, _x509Helper, _crl)
     {}
 
     function _onFetchDataFromResolver(bytes32 key, bool hash)
