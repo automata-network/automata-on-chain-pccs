@@ -137,7 +137,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
 
         attestationId = _attestTcb(req, hash, key);
 
-        _storeTcbInfoIssueEvaluation(key, issueDateTimestamp, evaluationDataNumber);
+        _storeTcbInfoIssueEvaluation(key, tcbInfo.issueDate, tcbInfo.nextUpdate, tcbInfo.evaluationDataNumber);
         _storeFmspcTcbContentHash(key, contentHash);
         emit UpsertedFmpscTcb(
             uint8(tcbInfo.id),
