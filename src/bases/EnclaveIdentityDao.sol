@@ -170,7 +170,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         // attest timestamp
         _storeEnclaveIdentityIssueEvaluation(key, identity.issueDateTimestamp, identity.nextUpdateTimestamp, identity.tcbEvaluationDataNumber);
 
-        reqData = abi.encode(identity, enclaveIdentityObj.identityStr, enclaveIdentityObj.signature);
+        reqData = abi.encode(identity, enclaveIdentityObj);
         identityContentHash = EnclaveIdentityLib.getIdentityContentHash(identity, identityTcbString);
     }
 
