@@ -8,8 +8,8 @@ import "forge-std/console.sol";
 
 contract MockTcbDao is FmspcTcbDao {
 
-    constructor(address _resolver, address _p256, address _pcs, address _fmspcHelper, address _x509Helper)
-        FmspcTcbDao(_resolver, _p256, _pcs, _fmspcHelper, _x509Helper)
+    constructor(address _resolver, address _p256, address _pcs, address _fmspcHelper, address _x509Helper, address _crl)
+        FmspcTcbDao(_resolver, _p256, _pcs, _fmspcHelper, _x509Helper, _crl)
     {}
 
     function getFmspcTcbV2(bytes6 fmspc)
@@ -23,7 +23,7 @@ contract MockTcbDao is FmspcTcbDao {
         valid = data.length > 0;
         if (valid) {
             bytes memory encodedLevels;
-            (tcbInfo, encodedLevels,,) = abi.decode(data, (TcbInfoBasic, bytes, string, bytes));
+            (tcbInfo, encodedLevels,) = abi.decode(data, (TcbInfoBasic, bytes, TcbInfoJsonObj));
             tcbLevelsV2 = _decodeTcbLevels(encodedLevels);
         }
     }
@@ -45,8 +45,8 @@ contract MockTcbDao is FmspcTcbDao {
         if (valid) {
             bytes memory encodedLevels;
             bytes memory encodedTdxModuleIdentities;
-            (tcbInfo, tdxModule, encodedTdxModuleIdentities, encodedLevels,,) =
-                abi.decode(data, (TcbInfoBasic, TDXModule, bytes, bytes, string, bytes));
+            (tcbInfo, tdxModule, encodedTdxModuleIdentities, encodedLevels,) =
+                abi.decode(data, (TcbInfoBasic, TDXModule, bytes, bytes, TcbInfoJsonObj));
             tcbLevelsV3 = _decodeTcbLevels(encodedLevels);
             if (encodedTdxModuleIdentities.length > 0) {
                 tdxModuleIdentities = _decodeTdxModuleIdentities(encodedTdxModuleIdentities);
@@ -82,23 +82,38 @@ contract MockTcbDao is FmspcTcbDao {
         }
     }
 
-    function _storeTcbInfoIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint32 evaluationDataNumber) internal override {
+    function _storeTcbInfoIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber) internal override {
         bytes32 tcbIssueEvaluationKey = _computeTcbIssueEvaluationKey(tcbKey);
-        uint256 slot = (uint256(issueDateTimestamp) << 2 ** 128) | evaluationDataNumber;
+        uint256 slot = (uint256(issueDateTimestamp) << 192) | (uint256(nextUpdateTimestamp) << 128) | evaluationDataNumber;
         resolver.attest(tcbIssueEvaluationKey, abi.encode(slot), bytes32(0));
     }
-    
-    function _loadTcbInfoIssueEvaluation(bytes32 tcbKey) internal view override returns (uint64 issueDateTimestamp, uint32 evaluationDataNumber) {
+
+    function _loadTcbInfoIssueEvaluation(bytes32 tcbKey) internal view override returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber) {
         bytes32 tcbIssueEvaluationKey = _computeTcbIssueEvaluationKey(tcbKey);
         bytes memory data = resolver.readAttestation(resolver.collateralPointer(tcbIssueEvaluationKey));
         if (data.length > 0) {
             (uint256 slot) = abi.decode(data, (uint256));
-            issueDateTimestamp = uint64(slot >> 128);
+            issueDateTimestamp = uint64(slot >> 192);
+            nextUpdateTimestamp = uint64(slot >> 128);
             evaluationDataNumber = uint32(slot);
         }
     }
 
     function _computeTcbIssueEvaluationKey(bytes32 key) private pure returns (bytes32 ret) {
         ret = keccak256(abi.encodePacked(key, "tcbIssueEvaluation"));
+    }
+
+    function _storeFmspcTcbContentHash(bytes32 tcbKey, bytes32 contentHash) internal override {
+        bytes32 contentHashKey = _computeContentHashKey(tcbKey);
+        resolver.attest(contentHashKey, abi.encodePacked(contentHash), bytes32(0));
+    }
+
+    function _loadFmspcTcbContentHash(bytes32 tcbKey) internal view override returns (bytes32 contentHash) {
+        bytes32 contentHashKey = _computeContentHashKey(tcbKey);
+        return bytes32(resolver.readAttestation(resolver.collateralPointer(contentHashKey)));
+    }
+
+    function _computeContentHashKey(bytes32 key) private pure returns (bytes32 ret) {
+        ret = keccak256(abi.encodePacked(key, "fmspcTcbContentHash"));
     }
 }

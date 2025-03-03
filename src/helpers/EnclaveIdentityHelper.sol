@@ -62,11 +62,29 @@ contract EnclaveIdentityHelper {
 
     error Invalid_ID();
 
-    function parseIdentityString(string calldata identityStr) external pure returns (IdentityObj memory identity) {
-        identity = _parseIdentity(identityStr);
+    function getIdentityContentHash(IdentityObj memory identity, string memory identityTcbString)
+        external
+        pure
+        returns (bytes32 contentHash)
+    {
+        contentHash = keccak256(abi.encodePacked(
+            identity.id,
+            identity.version,
+            identity.tcbEvaluationDataNumber,
+            identity.miscselect,
+            identity.miscselectMask,
+            identity.attributes,
+            identity.attributesMask,
+            identity.mrsigner,
+            identity.isvprodid,
+            bytes(identityTcbString)
+        ));
     }
 
-    function _parseIdentity(string calldata identityStr) private pure returns (IdentityObj memory identity) {
+    function parseIdentityString(string calldata identityStr) external pure returns (
+        IdentityObj memory identity,
+        string memory identityTcbString
+    ) {
         JSONParserLib.Item memory root = JSONParserLib.parse(identityStr);
         JSONParserLib.Item[] memory identityObj = root.children();
 
@@ -113,12 +131,13 @@ contract EnclaveIdentityHelper {
             } else if (decodedKey.eq("isvprodid")) {
                 identity.isvprodid = uint16(JSONParserLib.parseUint(current.value()));
             } else if (decodedKey.eq("tcbLevels")) {
-                identity.tcb = _parseTcb(current.value());
+                identityTcbString = current.value();
+                identity.tcb = parseIdentityTcb(identityTcbString);
             }
         }
     }
 
-    function _parseTcb(string memory tcbLevelsStr) internal pure returns (Tcb[] memory tcb) {
+    function parseIdentityTcb(string memory tcbLevelsStr) internal pure returns (Tcb[] memory tcb) {
         JSONParserLib.Item memory tcbLevelsParent = JSONParserLib.parse(tcbLevelsStr);
         JSONParserLib.Item[] memory tcbLevels = tcbLevelsParent.children();
         uint256 tcbLevelsSize = tcbLevelsParent.size();

@@ -8,9 +8,6 @@ broadcast/**/run-*.json
 broadcast/**/dry-run/
 !broadcast/**/*-latest.json
 
-# Docs
-docs/
-
 # Dotenv file
 .env
 

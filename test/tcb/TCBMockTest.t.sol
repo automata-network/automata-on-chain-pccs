@@ -16,11 +16,12 @@ contract TcbMockTest is PCSSetupBase, TCBConstants {
             P256_VERIFIER, 
             address(pcs), 
             address(fsmpcTcbLib), 
-            address(x509Lib)
+            address(x509Lib),
+            address(x509CrlLib)
         );
 
         vm.prank(admin);
-        pccsStorage.updateDao(address(pcs), address(pck), address(tcb), address(enclaveIdDao));
+        pccsStorage.grantDao(address(tcb));
     }
 
     function testMockFmspcTcbTdxV3() public {

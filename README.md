@@ -194,13 +194,7 @@ To view gas report, pass the `--gas-report` flag.
 - Deploy the Helper contracts
 
 ```bash
-./script/helper/deploy.sh
-```
-
-If you are having issues running the script, try changing the permission settings.
-
-```bash
-chmod +x ./script/helper/deploy.sh
+forge script DeployHelpers --rpc-url $RPC_URL -vvv --broadcast
 ```
 
 Make sure to update `.env` file with the appropriate addresses, then run `source .env`.
@@ -208,13 +202,5 @@ Make sure to update `.env` file with the appropriate addresses, then run `source
 - Deploy `automata-pccs`
 
 ```bash
-forge script DeployAutomataDao --rpc-url $RPC_URL -vvvv --broadcast --sig "deployAll(bool)" true
-```
-
-Make sure to update `.env` file with the appropriate addresses, then run `source .env`.
-
-Once you have deployed all Automata DAOs, you must grant them write access to [`AutomataDaoStorage`](./src/automata_pccs//shared/AutomataDaoStorage.sol) by running:
-
-```bash
-forge script ConfigureAutomataDao -rpc-url $RPC_URL -vvvv --broadcast --sig "updateStorageDao()"
+forge script DeployAutomataDao --rpc-url $RPC_URL -vvv --broadcast --sig "deployAll(bool)" true
 ```

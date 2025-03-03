@@ -12,21 +12,32 @@ import "../interfaces/IDaoAttestationResolver.sol";
 abstract contract DaoBase {
     IDaoAttestationResolver public immutable resolver;
 
+    // 72bd8361
+    error Duplicate_Collateral();
+
     constructor(address _resolver) {
         resolver = IDaoAttestationResolver(_resolver);
     }
+
+    /**
+     * @dev must override this method to fetch the validity timestamp range for the specified collateral
+     * @param key - mapped to a collateral as defined by individual data access objects (DAOs)
+     * @return the timestamp that the collateral is being issued
+     * @return the timestamp that the collateral expires and must be re-issued
+     */
+    function getCollateralValidity(bytes32 key) external view virtual returns (uint64, uint64);
 
     /**
      * @notice getter logic to retrieve attested data from the Resolver
      * @param key - mapped to a collateral as defined by individual data access objects (DAOs)
      */
     function getAttestedData(bytes32 key) external view returns (bytes memory attestationData) {
-        attestationData = _fetchDataFromResolver(key, false);
+        // invoke _onFetchDataFromResolver() here to invoke additional logic 
+        attestationData = _onFetchDataFromResolver(key, false);
     }
 
     /**
-     * @dev SHOULD store the hash of a collateral (e.g. X509 Cert, TCBInfo JSON etc) in the attestation registry
-     * as a separate attestation from the collateral data itself
+     * @notice fetches the hash of a collateral (e.g. X509 Cert, TCBInfo JSON etc) from the attestation registry
      */
     function getCollateralHash(bytes32 key) external view returns (bytes32 collateralHash) {
         bytes memory attestationData = _fetchDataFromResolver(key, true);
@@ -56,6 +67,22 @@ abstract contract DaoBase {
      */
     function _onFetchDataFromResolver(bytes32 key, bool hash) internal view virtual returns (bytes memory) {
         return _fetchDataFromResolver(key, hash);
+    }
+
+    /**
+     * @notice check whether the hash for the provided collateral already exists in the PCCS
+     * @param key - the key to locate the collateral attestation
+     * @param hash - the hash of the collateral
+     */
+    function _checkCollateralDuplicate(bytes32 key, bytes32 hash) internal view {
+        // if a matching hash is found, that means the caller is attempting to re-upsert duplicate collateral
+        bytes memory existingHashData = _fetchDataFromResolver(key, true);
+        if (existingHashData.length > 0) {
+            bytes32 existingHash = abi.decode(existingHashData, (bytes32));
+            if (existingHash == hash) {
+                revert Duplicate_Collateral();
+            }
+        }
     }
 
     /// @dev https://github.com/Vectorized/solady/blob/4964e3e2da1bc86b0394f63a90821f51d60a260b/src/utils/JSONParserLib.sol#L339-L364

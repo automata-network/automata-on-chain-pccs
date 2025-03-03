@@ -51,22 +51,26 @@ abstract contract TestSetupBase is Test {
         x509Lib = new PCKHelper();
 
         // deploy Automata PCCS
-        pccsStorage = new AutomataDaoStorage();
+        pccsStorage = new AutomataDaoStorage(admin);
 
         pcs = new AutomataPcsDao(address(pccsStorage), P256_VERIFIER, address(x509Lib), address(x509CrlLib));
 
         enclaveIdDao = new AutomataEnclaveIdentityDao(
-            address(pccsStorage), P256_VERIFIER, address(pcs), address(enclaveIdentityLib), address(x509Lib)
+            address(pccsStorage), P256_VERIFIER, address(pcs), address(enclaveIdentityLib), address(x509Lib), address(x509CrlLib)
         );
 
         fmspcTcbDao = new AutomataFmspcTcbDao(
-            address(pccsStorage), P256_VERIFIER, address(pcs), address(fsmpcTcbLib), address(x509Lib)
+            address(pccsStorage), P256_VERIFIER, address(pcs), address(fsmpcTcbLib), address(x509Lib), address(x509CrlLib)
         );
 
         pck =
             new AutomataPckDao(address(pccsStorage), P256_VERIFIER, address(pcs), address(x509Lib), address(x509CrlLib));
 
-        pccsStorage.updateDao(address(pcs), address(pck), address(fmspcTcbDao), address(enclaveIdDao));
+        // grants dao permissions to write to the storage
+        pccsStorage.grantDao(address(pcs));
+        pccsStorage.grantDao(address(pck));
+        pccsStorage.grantDao(address(fmspcTcbDao));
+        pccsStorage.grantDao(address(enclaveIdDao));
 
         // grants admin address permission to read collaterals
         pccsStorage.setCallerAuthorization(admin, true);
