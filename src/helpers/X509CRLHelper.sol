@@ -31,7 +31,7 @@ contract X509CRLHelper {
     using NodePtr for uint256;
     using BytesUtils for bytes;
 
-    // 2.5.4.3 
+    // 2.5.4.3
     bytes constant COMMON_NAME_OID = hex"550403";
     // 2.5.29.20
     bytes constant CRL_NUMBER_OID = hex"551d14";
@@ -61,7 +61,11 @@ contract X509CRLHelper {
         issuerCommonName = _getCommonName(der, tbsPtr);
     }
 
-    function getCrlValidity(bytes calldata der) external pure returns (uint256 validityNotBefore, uint256 validityNotAfter) {
+    function getCrlValidity(bytes calldata der)
+        external
+        pure
+        returns (uint256 validityNotBefore, uint256 validityNotAfter)
+    {
         uint256 root = der.root();
         uint256 tbsParentPtr = der.firstChildOf(root);
         uint256 tbsPtr = der.firstChildOf(tbsParentPtr);
@@ -81,12 +85,7 @@ contract X509CRLHelper {
         tbsPtr = der.nextSiblingOf(tbsPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
         if (bytes1(der[tbsPtr.ixs()]) == 0x30) {
-            uint256[] memory ret = _getRevokedSerialNumbers(
-                der, 
-                tbsPtr, 
-                true, 
-                serialNumber
-            );
+            uint256[] memory ret = _getRevokedSerialNumbers(der, tbsPtr, true, serialNumber);
             revoked = ret[0] == serialNumber;
         }
     }
@@ -141,12 +140,7 @@ contract X509CRLHelper {
 
         if (bytes1(der[tbsPtr.ixs()]) == 0x30) {
             // the revoked certificates field is present
-            crl.serialNumbersRevoked = _getRevokedSerialNumbers(
-                der, 
-                tbsPtr,
-                false, 
-                0
-            );
+            crl.serialNumbersRevoked = _getRevokedSerialNumbers(der, tbsPtr, false, 0);
             tbsPtr = der.nextSiblingOf(tbsPtr);
         }
 
@@ -167,11 +161,7 @@ contract X509CRLHelper {
         crl.signature = _getSignature(der, sigPtr);
     }
 
-    function _getCommonName(bytes calldata der, uint256 rdnParentPtr)
-        private
-        pure
-        returns (string memory)
-    {
+    function _getCommonName(bytes calldata der, uint256 rdnParentPtr) private pure returns (string memory) {
         // All we are doing here is iterating through a sequence of
         // one or many RelativeDistinguishedName (RDN) sets
         // which consists of one or many AttributeTypeAndValue sequences
@@ -215,12 +205,7 @@ contract X509CRLHelper {
         notAfter = DateTimeUtils.fromDERToTimestamp(der.bytesAt(notAfterPtr));
     }
 
-    function _getRevokedSerialNumbers(
-        bytes calldata der, 
-        uint256 revokedParentPtr, 
-        bool breakIfFound, 
-        uint256 filter
-    )
+    function _getRevokedSerialNumbers(bytes calldata der, uint256 revokedParentPtr, bool breakIfFound, uint256 filter)
         private
         pure
         returns (uint256[] memory serialNumbers)
@@ -263,7 +248,11 @@ contract X509CRLHelper {
         sig = abi.encodePacked(r, s);
     }
 
-    function _getAuthorityKeyIdentifier(bytes calldata der, uint256 extnValuePtr) private pure returns (bytes memory akid) {
+    function _getAuthorityKeyIdentifier(bytes calldata der, uint256 extnValuePtr)
+        private
+        pure
+        returns (bytes memory akid)
+    {
         bytes memory extValue = der.bytesAt(extnValuePtr);
 
         // The AUTHORITY_KEY_IDENTIFIER consists of a SEQUENCE with the following elements
@@ -290,7 +279,7 @@ contract X509CRLHelper {
             }
         }
     }
-    
+
     /// @dev remove unnecessary prefix from the input
     function _trimBytes(bytes memory input, uint256 expectedLength) private pure returns (bytes memory output) {
         uint256 n = input.length;
@@ -327,7 +316,11 @@ contract X509CRLHelper {
         }
     }
 
-    function _findExtensionValuePtr(bytes calldata der, uint256 extensionPtr, bytes memory oid) private pure returns (uint256) {
+    function _findExtensionValuePtr(bytes calldata der, uint256 extensionPtr, bytes memory oid)
+        private
+        pure
+        returns (uint256)
+    {
         uint256 parentPtr = der.firstChildOf(extensionPtr);
         uint256 ptr = der.firstChildOf(parentPtr);
 

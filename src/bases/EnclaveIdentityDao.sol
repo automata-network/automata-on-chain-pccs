@@ -48,19 +48,28 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
 
     event UpsertedEnclaveIdentity(uint256 indexed id, uint256 indexed version);
 
-    constructor(address _resolver, address _p256, address _pcs, address _enclaveIdentityHelper, address _x509Helper, address _crlLib)
-        DaoBase(_resolver)
-        SigVerifyBase(_p256, _x509Helper)
-    {
+    constructor(
+        address _resolver,
+        address _p256,
+        address _pcs,
+        address _enclaveIdentityHelper,
+        address _x509Helper,
+        address _crlLib
+    ) DaoBase(_resolver) SigVerifyBase(_p256, _x509Helper) {
         Pcs = PcsDao(_pcs);
         EnclaveIdentityLib = EnclaveIdentityHelper(_enclaveIdentityHelper);
         crlLibAddr = _crlLib;
     }
 
-    function getCollateralValidity(bytes32 key) external view override returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp) {
-        (issueDateTimestamp, nextUpdateTimestamp, ) = _loadEnclaveIdentityIssueEvaluation(key);
+    function getCollateralValidity(bytes32 key)
+        external
+        view
+        override
+        returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp)
+    {
+        (issueDateTimestamp, nextUpdateTimestamp,) = _loadEnclaveIdentityIssueEvaluation(key);
     }
-    
+
     function getIdentityContentHash(bytes32 key) external view returns (bytes32) {
         return _loadIdentityContentHash(key);
     }
@@ -91,8 +100,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     {
         bytes memory attestedIdentityData = _onFetchDataFromResolver(ENCLAVE_ID_KEY(id, version), false);
         if (attestedIdentityData.length > 0) {
-            (, enclaveIdObj) =
-                abi.decode(attestedIdentityData, (IdentityObj, EnclaveIdentityJsonObj));
+            (, enclaveIdObj) = abi.decode(attestedIdentityData, (IdentityObj, EnclaveIdentityJsonObj));
         }
     }
 
@@ -114,7 +122,8 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         _checkCollateralDuplicate(key, hash);
 
         _validateQeIdentity(enclaveIdentityObj, hash);
-        (bytes memory req, bytes32 identityContentHash) = _buildEnclaveIdentityAttestationRequest(id, version, key, enclaveIdentityObj);
+        (bytes memory req, bytes32 identityContentHash) =
+            _buildEnclaveIdentityAttestationRequest(id, version, key, enclaveIdentityObj);
         attestationId = _attestEnclaveIdentity(req, hash, key);
 
         _storeIdentityContentHash(key, identityContentHash);
@@ -153,7 +162,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         bytes32 key,
         EnclaveIdentityJsonObj calldata enclaveIdentityObj
     ) private returns (bytes memory reqData, bytes32 identityContentHash) {
-        (IdentityObj memory identity, string memory identityTcbString) = 
+        (IdentityObj memory identity, string memory identityTcbString) =
             EnclaveIdentityLib.parseIdentityString(enclaveIdentityObj.identityStr);
         if (id != uint256(identity.id)) {
             revert Enclave_Id_Mismatch();
@@ -161,22 +170,25 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
 
         if (id == uint256(EnclaveId.TD_QE) && version != 4 && version != 5) {
             revert Incorrect_Enclave_Id_Version();
-        } 
+        }
 
         if (block.timestamp < identity.issueDateTimestamp || block.timestamp > identity.nextUpdateTimestamp) {
             revert Enclave_Id_Expired();
         }
 
         // make sure new collateral is "newer"
-        (uint64 existingIssueDateTimestamp, , uint64 existingEvaluationDataNumber) = _loadEnclaveIdentityIssueEvaluation(key);
-        bool outOfDate = existingEvaluationDataNumber > identity.tcbEvaluationDataNumber ||
-            existingIssueDateTimestamp >= identity.issueDateTimestamp;
+        (uint64 existingIssueDateTimestamp,, uint64 existingEvaluationDataNumber) =
+            _loadEnclaveIdentityIssueEvaluation(key);
+        bool outOfDate = existingEvaluationDataNumber > identity.tcbEvaluationDataNumber
+            || existingIssueDateTimestamp >= identity.issueDateTimestamp;
         if (outOfDate) {
             revert Enclave_Id_Out_Of_Date();
         }
 
         // attest timestamp
-        _storeEnclaveIdentityIssueEvaluation(key, identity.issueDateTimestamp, identity.nextUpdateTimestamp, identity.tcbEvaluationDataNumber);
+        _storeEnclaveIdentityIssueEvaluation(
+            key, identity.issueDateTimestamp, identity.nextUpdateTimestamp, identity.tcbEvaluationDataNumber
+        );
 
         reqData = abi.encode(identity, enclaveIdentityObj);
         identityContentHash = EnclaveIdentityLib.getIdentityContentHash(identity, identityTcbString);
@@ -219,8 +231,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
             }
 
             // Validate signature
-            bool sigVerified =
-                verifySignature(hash, enclaveIdentityObj.signature, signingDer);
+            bool sigVerified = verifySignature(hash, enclaveIdentityObj.signature, signingDer);
             if (!sigVerified) {
                 revert Invalid_TCB_Cert_Signature();
             }
@@ -235,10 +246,19 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     /// @dev which also allows any caller to check expiration of the Enclave Identity before loading the entire data
     /// @dev the functions defined below can be overriden by the inheriting contract
 
-    function _storeEnclaveIdentityIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber) internal virtual;
+    function _storeEnclaveIdentityIssueEvaluation(
+        bytes32 tcbKey,
+        uint64 issueDateTimestamp,
+        uint64 nextUpdateTimestamp,
+        uint32 evaluationDataNumber
+    ) internal virtual;
 
-    function _loadEnclaveIdentityIssueEvaluation(bytes32 tcbKey) internal view virtual returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber);
-    
+    function _loadEnclaveIdentityIssueEvaluation(bytes32 tcbKey)
+        internal
+        view
+        virtual
+        returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber);
+
     /// @dev store time-insensitive content hash
 
     function _storeIdentityContentHash(bytes32 identityKey, bytes32 contentHash) internal virtual;

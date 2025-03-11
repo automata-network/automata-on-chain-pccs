@@ -8,7 +8,6 @@ import "../interfaces/IDaoAttestationResolver.sol";
  * @notice This contract provides the generic API methods to fetch collateral data
  * and its hashes from the Resolver
  */
-
 abstract contract DaoBase {
     IDaoAttestationResolver public immutable resolver;
 
@@ -32,7 +31,7 @@ abstract contract DaoBase {
      * @param key - mapped to a collateral as defined by individual data access objects (DAOs)
      */
     function getAttestedData(bytes32 key) external view returns (bytes memory attestationData) {
-        // invoke _onFetchDataFromResolver() here to invoke additional logic 
+        // invoke _onFetchDataFromResolver() here to invoke additional logic
         attestationData = _onFetchDataFromResolver(key, false);
     }
 

@@ -65,28 +65,29 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     // 3d78f9f9
     error TCB_Out_Of_Date();
 
-    event UpsertedFmpscTcb(
-        uint8 indexed tcbType,
-        bytes6 indexed fmspcTcbBytes,
-        uint32 indexed version
-    );
+    event UpsertedFmpscTcb(uint8 indexed tcbType, bytes6 indexed fmspcTcbBytes, uint32 indexed version);
 
-    constructor(address _resolver, address _p256, address _pcs, address _fmspcHelper, address _x509Helper, address _crlLib)
-        SigVerifyBase(_p256, _x509Helper)
-        DaoBase(_resolver)
-    {
+    constructor(
+        address _resolver,
+        address _p256,
+        address _pcs,
+        address _fmspcHelper,
+        address _x509Helper,
+        address _crlLib
+    ) SigVerifyBase(_p256, _x509Helper) DaoBase(_resolver) {
         Pcs = PcsDao(_pcs);
         FmspcTcbLib = FmspcTcbHelper(_fmspcHelper);
         crlLibAddr = _crlLib;
     }
 
-    function getCollateralValidity(bytes32 key) external view override returns (
-        uint64 issueDateTimestamp,
-        uint64 nextUpdateTimestamp
-    ) {
-        (issueDateTimestamp, nextUpdateTimestamp, ) = _loadTcbInfoIssueEvaluation(key);
+    function getCollateralValidity(bytes32 key)
+        external
+        view
+        override
+        returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp)
+    {
+        (issueDateTimestamp, nextUpdateTimestamp,) = _loadTcbInfoIssueEvaluation(key);
     }
-    
 
     function getTcbInfoContentHash(bytes32 key) external view returns (bytes32) {
         return _loadFmspcTcbContentHash(key);
@@ -120,12 +121,9 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
             _onFetchDataFromResolver(FMSPC_TCB_KEY(uint8(tcbType), fmspcBytes, uint32(version)), false);
         if (attestedTcbData.length > 0) {
             if (version < 3) {
-                (,, tcbObj) =
-                    abi.decode(attestedTcbData, (TcbInfoBasic, bytes, TcbInfoJsonObj));
+                (,, tcbObj) = abi.decode(attestedTcbData, (TcbInfoBasic, bytes, TcbInfoJsonObj));
             } else {
-                (,,,, tcbObj) = abi.decode(
-                    attestedTcbData, (TcbInfoBasic, TDXModule, bytes, bytes, TcbInfoJsonObj)
-                );
+                (,,,, tcbObj) = abi.decode(attestedTcbData, (TcbInfoBasic, TDXModule, bytes, bytes, TcbInfoJsonObj));
             }
         }
     }
@@ -144,30 +142,21 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
             string memory tdxModuleString,
             string memory tdxModuleIdentitiesString
         ) = FmspcTcbLib.parseTcbString(tcbInfoObj.tcbInfoStr);
-        
+
         bytes32 key = FMSPC_TCB_KEY(uint8(tcbInfo.id), tcbInfo.fmspc, tcbInfo.version);
-        
+
         _checkCollateralDuplicate(key, hash);
         _validateTcbInfo(tcbInfoObj);
 
         (bytes memory req, bytes32 contentHash) = _buildTcbAttestationRequest(
-            key,
-            tcbInfoObj,
-            tcbInfo,
-            tcbLevelsString,
-            tdxModuleString,
-            tdxModuleIdentitiesString
+            key, tcbInfoObj, tcbInfo, tcbLevelsString, tdxModuleString, tdxModuleIdentitiesString
         );
 
         attestationId = _attestTcb(req, hash, key);
 
         _storeTcbInfoIssueEvaluation(key, tcbInfo.issueDate, tcbInfo.nextUpdate, tcbInfo.evaluationDataNumber);
         _storeFmspcTcbContentHash(key, contentHash);
-        emit UpsertedFmpscTcb(
-            uint8(tcbInfo.id),
-            tcbInfo.fmspc,
-            tcbInfo.version
-        );
+        emit UpsertedFmpscTcb(uint8(tcbInfo.id), tcbInfo.fmspc, tcbInfo.version);
     }
 
     /**
@@ -202,23 +191,19 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         string memory tcbLevelsString,
         string memory tdxModuleString,
         string memory tdxModuleIdentitiesString
-    )
-        private
-        view
-        returns (bytes memory reqData, bytes32 contentHash)
-    {
+    ) private view returns (bytes memory reqData, bytes32 contentHash) {
         // check expiration before continuing...
         if (block.timestamp < tcbInfo.issueDate || block.timestamp > tcbInfo.nextUpdate) {
             revert TCB_Expired();
         }
 
         // Make sure new collateral is "newer"
-        (uint64 existingIssueDate, , uint32 existingEvaluationDataNumber) = _loadTcbInfoIssueEvaluation(key);
+        (uint64 existingIssueDate,, uint32 existingEvaluationDataNumber) = _loadTcbInfoIssueEvaluation(key);
         if (existingIssueDate > 0) {
             /// I don't think there can be a scenario where an existing tcbinfo with a higher evaluation data number
             /// to be issued BEFORE a new tcbinfo with a lower evaluation data number
-            bool outOfDate = tcbInfo.evaluationDataNumber < existingEvaluationDataNumber ||
-                tcbInfo.issueDate <= existingIssueDate;
+            bool outOfDate =
+                tcbInfo.evaluationDataNumber < existingEvaluationDataNumber || tcbInfo.issueDate <= existingIssueDate;
             if (outOfDate) {
                 revert TCB_Out_Of_Date();
             }
@@ -238,12 +223,9 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
             }
             reqData = abi.encode(tcbInfo, module, encodedModuleIdentities, encodedTcbLevels, tcbInfoObj);
         }
-        
+
         contentHash = FmspcTcbLib.generateFmspcTcbContentHash(
-            tcbInfo,
-            tcbLevelsString,
-            tdxModuleString,
-            tdxModuleIdentitiesString
+            tcbInfo, tcbLevelsString, tdxModuleString, tdxModuleIdentitiesString
         );
     }
 
@@ -281,8 +263,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
             }
 
             // Validate signature
-            bool sigVerified =
-                verifySignature(sha256(bytes(tcbInfoObj.tcbInfoStr)), tcbInfoObj.signature, signingDer);
+            bool sigVerified = verifySignature(sha256(bytes(tcbInfoObj.tcbInfoStr)), tcbInfoObj.signature, signingDer);
             if (!sigVerified) {
                 revert Invalid_TCB_Cert_Signature();
             }
@@ -297,7 +278,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
 
         for (uint256 i = 0; i < n;) {
             arr[i] = FmspcTcbLib.tcbLevelsObjToBytes(tcbLevels[i]);
-            
+
             unchecked {
                 i++;
             }
@@ -306,7 +287,11 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         encoded = abi.encode(arr);
     }
 
-    function _encodeTdxModuleIdentities(TDXModuleIdentity[] memory tdxModuleIdentities) private view returns (bytes memory encoded) {
+    function _encodeTdxModuleIdentities(TDXModuleIdentity[] memory tdxModuleIdentities)
+        private
+        view
+        returns (bytes memory encoded)
+    {
         uint256 n = tdxModuleIdentities.length;
         bytes[] memory arr = new bytes[](n);
 
@@ -327,9 +312,18 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
     /// @dev which also allows any caller to check expiration of TCBInfo before loading the entire data
     /// @dev the functions defined below can be overridden by the inheriting contract
 
-    function _storeTcbInfoIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber) internal virtual;
+    function _storeTcbInfoIssueEvaluation(
+        bytes32 tcbKey,
+        uint64 issueDateTimestamp,
+        uint64 nextUpdateTimestamp,
+        uint32 evaluationDataNumber
+    ) internal virtual;
 
-    function _loadTcbInfoIssueEvaluation(bytes32 tcbKey) internal view virtual returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber);
+    function _loadTcbInfoIssueEvaluation(bytes32 tcbKey)
+        internal
+        view
+        virtual
+        returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber);
 
     /// @dev store time-insensitive content hash
 

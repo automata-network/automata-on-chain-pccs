@@ -67,24 +67,27 @@ contract EnclaveIdentityHelper {
         pure
         returns (bytes32 contentHash)
     {
-        contentHash = keccak256(abi.encodePacked(
-            identity.id,
-            identity.version,
-            identity.tcbEvaluationDataNumber,
-            identity.miscselect,
-            identity.miscselectMask,
-            identity.attributes,
-            identity.attributesMask,
-            identity.mrsigner,
-            identity.isvprodid,
-            bytes(identityTcbString)
-        ));
+        contentHash = keccak256(
+            abi.encodePacked(
+                identity.id,
+                identity.version,
+                identity.tcbEvaluationDataNumber,
+                identity.miscselect,
+                identity.miscselectMask,
+                identity.attributes,
+                identity.attributesMask,
+                identity.mrsigner,
+                identity.isvprodid,
+                bytes(identityTcbString)
+            )
+        );
     }
 
-    function parseIdentityString(string calldata identityStr) external pure returns (
-        IdentityObj memory identity,
-        string memory identityTcbString
-    ) {
+    function parseIdentityString(string calldata identityStr)
+        external
+        pure
+        returns (IdentityObj memory identity, string memory identityTcbString)
+    {
         JSONParserLib.Item memory root = JSONParserLib.parse(identityStr);
         JSONParserLib.Item[] memory identityObj = root.children();
 

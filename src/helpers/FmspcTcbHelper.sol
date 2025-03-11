@@ -122,7 +122,7 @@ contract FmspcTcbHelper {
             tcbInfoContent.pceid,
             bytes(tcbLevelsString)
         );
-        
+
         if (bytes(tdxModuleString).length > 0) {
             content = abi.encodePacked(content, bytes(tdxModuleString));
         }
@@ -136,10 +136,7 @@ contract FmspcTcbHelper {
 
     function tcbLevelsObjToBytes(TCBLevelsObj calldata obj) external pure returns (bytes memory serialized) {
         // first slot = (uint64, uint64, uint64)
-        uint256 firstSlot = 
-            uint256(obj.pcesvn) << (2 * 64) | 
-            uint256(obj.tcbDateTimestamp) << 64 | 
-            uint8(obj.status);
+        uint256 firstSlot = uint256(obj.pcesvn) << (2 * 64) | uint256(obj.tcbDateTimestamp) << 64 | uint8(obj.status);
 
         // second slot = (padded uint16 sgxCpuSvns (16 bytes) + padded uint16 tdxCpuSvns (16 bytes))
         uint256 secondSlot;
@@ -173,11 +170,7 @@ contract FmspcTcbHelper {
             stringSlot = bytes(concat);
         }
 
-        serialized = abi.encodePacked(
-            firstSlot,
-            secondSlot,
-            stringSlot
-        );
+        serialized = abi.encodePacked(firstSlot, secondSlot, stringSlot);
     }
 
     function tcbLevelsObjFromBytes(bytes calldata encoded) external pure returns (TCBLevelsObj memory parsed) {
@@ -190,7 +183,7 @@ contract FmspcTcbHelper {
         parsed.sgxComponentCpuSvns = new uint8[](16);
         parsed.tdxComponentCpuSvns = new uint8[](16);
         bytes32 encodedSlot2 = bytes32(encoded[32:64]);
-        for (uint256 i = 0; i < 16; ) {
+        for (uint256 i = 0; i < 16;) {
             if (encodedSlot2[i] != 0) {
                 parsed.sgxComponentCpuSvns[i] = uint8(bytes1(encodedSlot2[i]));
             }
@@ -204,53 +197,47 @@ contract FmspcTcbHelper {
 
         // Step 3: decode the string
         if (encoded.length > 64) {
-            parsed.advisoryIDs = LibString.split(
-                string(encoded[64: encoded.length]),
-                "\n"
-            );
+            parsed.advisoryIDs = LibString.split(string(encoded[64:encoded.length]), "\n");
         }
     }
 
-    function tdxModuleIdentityToBytes(TDXModuleIdentity calldata tdxModuleIdentity) external pure returns (bytes memory packedTdxModuleIdentity) {
+    function tdxModuleIdentityToBytes(TDXModuleIdentity calldata tdxModuleIdentity)
+        external
+        pure
+        returns (bytes memory packedTdxModuleIdentity)
+    {
         bytes32 slot1 = LibString.packOne(tdxModuleIdentity.id);
 
         // mrsigner is split into two slots
         // first slot: contains the first 32 bytes of mrsigner
         // second slot: contains the remaining 16 bytes, followed by 16 zero bytes
         bytes32 slot2 = bytes32(tdxModuleIdentity.mrsigner);
-        bytes32 slot3 = bytes32(abi.encodePacked(
-            slot2,
-            tdxModuleIdentity.mrsigner.substring(32, 16)
-        ));
+        bytes32 slot3 = bytes32(abi.encodePacked(slot2, tdxModuleIdentity.mrsigner.substring(32, 16)));
 
         // Slot 4 is occupied by packing both the attributes and attributes mask
         // Slot 4 = (attributes, attributesMask)
-        bytes32 slot4 =
-            bytes32(tdxModuleIdentity.attributes) |
-            bytes32(tdxModuleIdentity.attributesMask) >> 128;
+        bytes32 slot4 = bytes32(tdxModuleIdentity.attributes) | bytes32(tdxModuleIdentity.attributesMask) >> 128;
 
         // encode the tdx module array
         uint256 n = tdxModuleIdentity.tcbLevels.length;
         uint256[] memory tdxTcbSlots = new uint256[](n);
         for (uint256 i = 0; i < n;) {
             tdxTcbSlots[i] = _tdxModuleTcbLevelsObjToSlot(tdxModuleIdentity.tcbLevels[i]);
-            
+
             unchecked {
                 i++;
             }
         }
 
         // total slots = 4 + n
-        packedTdxModuleIdentity = abi.encodePacked(
-            slot1,
-            slot2,
-            slot3,
-            slot4,
-            abi.encodePacked(tdxTcbSlots)
-        );
+        packedTdxModuleIdentity = abi.encodePacked(slot1, slot2, slot3, slot4, abi.encodePacked(tdxTcbSlots));
     }
 
-    function tdxModuleIdentityFromBytes(bytes calldata packedTdxModuleIdentity) external pure returns (TDXModuleIdentity memory tdxModuleIdentity) {
+    function tdxModuleIdentityFromBytes(bytes calldata packedTdxModuleIdentity)
+        external
+        pure
+        returns (TDXModuleIdentity memory tdxModuleIdentity)
+    {
         // decode slot 1
         tdxModuleIdentity.id = LibString.unpackOne(bytes32(packedTdxModuleIdentity[0:32]));
 
@@ -268,7 +255,7 @@ contract FmspcTcbHelper {
             uint256 end = offset + 32;
             uint256 slot = uint256(bytes32(packedTdxModuleIdentity[offset:end]));
             tdxModuleIdentity.tcbLevels[i] = _tdxModuleTcbLevelsObjFromSlot(slot);
-            
+
             offset = end;
             unchecked {
                 i++;
@@ -298,12 +285,16 @@ contract FmspcTcbHelper {
     uint16 constant TCB_TDX_MODULE_BIT = 512;
     uint16 constant TCB_TDX_MODULE_IDENTITIES_BIT = 1024;
 
-    function parseTcbString(string calldata tcbInfoStr) external pure returns (
-        TcbInfoBasic memory tcbInfo,
-        string memory tcbLevelsString,
-        string memory tdxModuleString,
-        string memory tdxModuleIdentitiesString
-    ) {
+    function parseTcbString(string calldata tcbInfoStr)
+        external
+        pure
+        returns (
+            TcbInfoBasic memory tcbInfo,
+            string memory tcbLevelsString,
+            string memory tdxModuleString,
+            string memory tdxModuleIdentitiesString
+        )
+    {
         JSONParserLib.Item memory root = JSONParserLib.parse(tcbInfoStr);
         JSONParserLib.Item[] memory tcbInfoObj = root.children();
 
@@ -349,7 +340,9 @@ contract FmspcTcbHelper {
             } else if (f & TCB_EVALUATION_DATA_NUMBER_BIT == 0 && decodedKey.eq("tcbEvaluationDataNumber")) {
                 tcbInfo.evaluationDataNumber = uint32(JSONParserLib.parseUint(val));
                 f |= TCB_EVALUATION_DATA_NUMBER_BIT;
-            } else if (tcbInfo.version > 2 && isTdx && (f & TCB_TDX_MODULE_BIT == 0 || f & TCB_TDX_MODULE_IDENTITIES_BIT == 0)) {
+            } else if (
+                tcbInfo.version > 2 && isTdx && (f & TCB_TDX_MODULE_BIT == 0 || f & TCB_TDX_MODULE_IDENTITIES_BIT == 0)
+            ) {
                 if (f & TCB_TDX_MODULE_BIT == 0 && decodedKey.eq("tdxModule")) {
                     tdxModuleString = val;
                     f |= TCB_TDX_MODULE_BIT;
@@ -361,7 +354,7 @@ contract FmspcTcbHelper {
                 tcbLevelsString = val;
                 f |= TCB_LEVELS_BIT;
             }
-            
+
             unchecked {
                 i++;
             }
@@ -374,7 +367,7 @@ contract FmspcTcbHelper {
             n++;
         }
 
-        bool allFound = f == (2**n) - 1;
+        bool allFound = f == (2 ** n) - 1;
 
         if (!allFound) {
             revert TCBInfo_Invalid();
@@ -426,10 +419,7 @@ contract FmspcTcbHelper {
         }
     }
 
-    function parseTcbTdxModules(
-        string calldata tdxModuleString,
-        string calldata tdxModuleIdentitiesString
-    )
+    function parseTcbTdxModules(string calldata tdxModuleString, string calldata tdxModuleIdentitiesString)
         external
         pure
         returns (TDXModule memory module, TDXModuleIdentity[] memory moduleIdentities)
@@ -446,17 +436,23 @@ contract FmspcTcbHelper {
 
     /// ====== INTERNAL METHODS BELOW ======
 
-    function _tdxModuleTcbLevelsObjToSlot(TDXModuleTCBLevelsObj memory tdxModuleTcbLevelsObj) private pure returns (uint256 tdxTcbPacked) {
+    function _tdxModuleTcbLevelsObjToSlot(TDXModuleTCBLevelsObj memory tdxModuleTcbLevelsObj)
+        private
+        pure
+        returns (uint256 tdxTcbPacked)
+    {
         // tcb levels within tdx module can be packed into a single slot
         // (uint64 packedIsvsvn, uint64 packedTcbDateTimestamp, uint64 packedStatus)
 
-        tdxTcbPacked = 
-            uint256(tdxModuleTcbLevelsObj.isvsvn) << (2 * 64) | 
-            uint256(tdxModuleTcbLevelsObj.tcbDateTimestamp) << 64 | 
-            uint8(tdxModuleTcbLevelsObj.status);
+        tdxTcbPacked = uint256(tdxModuleTcbLevelsObj.isvsvn) << (2 * 64)
+            | uint256(tdxModuleTcbLevelsObj.tcbDateTimestamp) << 64 | uint8(tdxModuleTcbLevelsObj.status);
     }
 
-    function _tdxModuleTcbLevelsObjFromSlot(uint256 tdxTcbPacked) private pure returns (TDXModuleTCBLevelsObj memory tdxModuleTcbLevelsObj) {
+    function _tdxModuleTcbLevelsObjFromSlot(uint256 tdxTcbPacked)
+        private
+        pure
+        returns (TDXModuleTCBLevelsObj memory tdxModuleTcbLevelsObj)
+    {
         uint64 mask = 0xFFFFFFFFFFFFFFFF;
 
         tdxModuleTcbLevelsObj.status = TCBStatus(uint8(uint64(tdxTcbPacked & mask)));
@@ -526,7 +522,8 @@ contract FmspcTcbHelper {
                         key = JSONParserLib.decodeString(component[k].key());
                         if (key.eq("svn")) {
                             if (componentKey.eq("tdxtcbcomponents")) {
-                                tdxComponentCpuSvns[cpusvnCounter++] = uint8(JSONParserLib.parseUint(component[k].value()));
+                                tdxComponentCpuSvns[cpusvnCounter++] =
+                                    uint8(JSONParserLib.parseUint(component[k].value()));
                             } else {
                                 sgxComponentCpuSvns[cpusvnCounter++] =
                                     uint8(JSONParserLib.parseUint(component[k].value()));

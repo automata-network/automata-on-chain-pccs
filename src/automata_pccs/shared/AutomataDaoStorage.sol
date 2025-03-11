@@ -11,7 +11,6 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
  * @title Automata PCCS Dao Storage
  * @notice This contract resolves and stores all collateral data internally
  */
-
 contract AutomataDaoStorage is AutomataTCBManager, IDaoAttestationResolver, Pausable, Ownable {
     mapping(address => bool) _authorized_writers;
     mapping(address => bool) _authorized_readers;

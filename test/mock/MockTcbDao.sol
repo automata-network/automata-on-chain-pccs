@@ -7,16 +7,11 @@ import "../../src/interfaces/IDaoAttestationResolver.sol";
 import "forge-std/console.sol";
 
 contract MockTcbDao is FmspcTcbDao {
-
     constructor(address _resolver, address _p256, address _pcs, address _fmspcHelper, address _x509Helper, address _crl)
         FmspcTcbDao(_resolver, _p256, _pcs, _fmspcHelper, _x509Helper, _crl)
     {}
 
-    function getFmspcTcbV2(bytes6 fmspc)
-        external
-        view
-        returns (bool valid, TCBLevelsObj[] memory tcbLevelsV2)
-    {
+    function getFmspcTcbV2(bytes6 fmspc) external view returns (bool valid, TCBLevelsObj[] memory tcbLevelsV2) {
         bytes32 key = FMSPC_TCB_KEY(uint8(TcbId.SGX), fmspc, 2);
         TcbInfoBasic memory tcbInfo;
         bytes memory data = _fetchDataFromResolver(key, false);
@@ -70,7 +65,11 @@ contract MockTcbDao is FmspcTcbDao {
         }
     }
 
-    function _decodeTdxModuleIdentities(bytes memory encodedTdxModuleIdentities) private view returns (TDXModuleIdentity[] memory tdxModuleIdentities) {
+    function _decodeTdxModuleIdentities(bytes memory encodedTdxModuleIdentities)
+        private
+        view
+        returns (TDXModuleIdentity[] memory tdxModuleIdentities)
+    {
         bytes[] memory encodedTdxModuleIdentitiesArr = abi.decode(encodedTdxModuleIdentities, (bytes[]));
         uint256 n = encodedTdxModuleIdentitiesArr.length;
         tdxModuleIdentities = new TDXModuleIdentity[](n);
@@ -82,13 +81,24 @@ contract MockTcbDao is FmspcTcbDao {
         }
     }
 
-    function _storeTcbInfoIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber) internal override {
+    function _storeTcbInfoIssueEvaluation(
+        bytes32 tcbKey,
+        uint64 issueDateTimestamp,
+        uint64 nextUpdateTimestamp,
+        uint32 evaluationDataNumber
+    ) internal override {
         bytes32 tcbIssueEvaluationKey = _computeTcbIssueEvaluationKey(tcbKey);
-        uint256 slot = (uint256(issueDateTimestamp) << 192) | (uint256(nextUpdateTimestamp) << 128) | evaluationDataNumber;
+        uint256 slot =
+            (uint256(issueDateTimestamp) << 192) | (uint256(nextUpdateTimestamp) << 128) | evaluationDataNumber;
         resolver.attest(tcbIssueEvaluationKey, abi.encode(slot), bytes32(0));
     }
 
-    function _loadTcbInfoIssueEvaluation(bytes32 tcbKey) internal view override returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber) {
+    function _loadTcbInfoIssueEvaluation(bytes32 tcbKey)
+        internal
+        view
+        override
+        returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber)
+    {
         bytes32 tcbIssueEvaluationKey = _computeTcbIssueEvaluationKey(tcbKey);
         bytes memory data = resolver.readAttestation(resolver.collateralPointer(tcbIssueEvaluationKey));
         if (data.length > 0) {

@@ -46,7 +46,12 @@ contract AutomataPckDao is AutomataDaoBase, PckDao {
         resolver.attest(pckValidityKey, abi.encode(slot), bytes32(0));
     }
 
-    function _loadPckValidity(bytes32 key) internal view override returns (uint64 notValidBefore, uint64 notValidAfter) {
+    function _loadPckValidity(bytes32 key)
+        internal
+        view
+        override
+        returns (uint64 notValidBefore, uint64 notValidAfter)
+    {
         bytes32 pckValidityKey = _computePckValidityKey(key);
         bytes memory data = _fetchDataFromResolver(pckValidityKey, false);
         if (data.length > 0) {

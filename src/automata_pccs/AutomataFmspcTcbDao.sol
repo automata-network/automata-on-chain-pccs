@@ -24,15 +24,26 @@ contract AutomataFmspcTcbDao is AutomataDaoBase, FmspcTcbDao {
     /// @dev if i could extract the required info directly from the attestation,
     /// this method will no longer be needed
     /// @dev this is a good TODO for future optimization
-    function _storeTcbInfoIssueEvaluation(bytes32 tcbKey, uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber) internal override {
+    function _storeTcbInfoIssueEvaluation(
+        bytes32 tcbKey,
+        uint64 issueDateTimestamp,
+        uint64 nextUpdateTimestamp,
+        uint32 evaluationDataNumber
+    ) internal override {
         bytes32 tcbIssueEvaluationKey = _computeTcbIssueEvaluationKey(tcbKey);
-        uint256 slot = (uint256(issueDateTimestamp) << 192) | (uint256(nextUpdateTimestamp) << 128) | evaluationDataNumber;
+        uint256 slot =
+            (uint256(issueDateTimestamp) << 192) | (uint256(nextUpdateTimestamp) << 128) | evaluationDataNumber;
         resolver.attest(tcbIssueEvaluationKey, abi.encode(slot), bytes32(0));
     }
 
     /// TEMP it just reads from a separate attestation for now
     /// @dev we will have to come up with hacky low-level storage reads
-    function _loadTcbInfoIssueEvaluation(bytes32 tcbKey) internal view override returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber) {
+    function _loadTcbInfoIssueEvaluation(bytes32 tcbKey)
+        internal
+        view
+        override
+        returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber)
+    {
         bytes32 tcbIssueEvaluationKey = _computeTcbIssueEvaluationKey(tcbKey);
         bytes memory data = _fetchDataFromResolver(tcbIssueEvaluationKey, false);
         if (data.length > 0) {

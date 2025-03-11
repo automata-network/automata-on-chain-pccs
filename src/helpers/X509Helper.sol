@@ -25,7 +25,7 @@ struct X509CertObj {
     bytes tbs;
 }
 
-// 2.5.4.3 
+// 2.5.4.3
 bytes constant COMMON_NAME_OID = hex"550403";
 // 2.5.29.35
 bytes constant AUTHORITY_KEY_IDENTIFIER_OID = hex"551D23";
@@ -75,7 +75,11 @@ contract X509Helper {
         issuerCommonName = _getCommonName(der, tbsPtr);
     }
 
-    function getCertValidity(bytes calldata der) external pure returns (uint256 validityNotBefore, uint256 validityNotAfter) {
+    function getCertValidity(bytes calldata der)
+        external
+        pure
+        returns (uint256 validityNotBefore, uint256 validityNotAfter)
+    {
         uint256 root = der.root();
         uint256 tbsParentPtr = der.firstChildOf(root);
         uint256 tbsPtr = der.firstChildOf(tbsParentPtr);
@@ -218,11 +222,7 @@ contract X509Helper {
         serial = uint256(bytes32(serialBytes) >> shift);
     }
 
-    function _getCommonName(bytes calldata der, uint256 rdnParentPtr)
-        private
-        pure
-        returns (string memory)
-    {
+    function _getCommonName(bytes calldata der, uint256 rdnParentPtr) private pure returns (string memory) {
         // All we are doing here is iterating through a sequence of
         // one or many RelativeDistinguishedName (RDN) sets
         // which consists of one or many AttributeTypeAndValue sequences
@@ -280,7 +280,11 @@ contract X509Helper {
         pubKey = _trimBytes(pubKey, 64);
     }
 
-    function _getAuthorityKeyIdentifier(bytes calldata der, uint256 extnValuePtr) private pure returns (bytes memory akid) {
+    function _getAuthorityKeyIdentifier(bytes calldata der, uint256 extnValuePtr)
+        private
+        pure
+        returns (bytes memory akid)
+    {
         bytes memory extValue = der.bytesAt(extnValuePtr);
 
         // The AUTHORITY_KEY_IDENTIFIER consists of a SEQUENCE with the following elements
@@ -308,14 +312,18 @@ contract X509Helper {
         }
     }
 
-    function _getSubjectKeyIdentifier(bytes calldata der, uint256 extValuePtr) private pure returns (bytes memory skid) {
+    function _getSubjectKeyIdentifier(bytes calldata der, uint256 extValuePtr)
+        private
+        pure
+        returns (bytes memory skid)
+    {
         // The SUBJECT_KEY_IDENTIFIER simply consists of the KeyIdentifier of Octet String type (0x04)
         // so we can return the value as it is
-        
+
         // check octet string tag
         require(der[extValuePtr.ixf()] == 0x04, "keyIdentifier must be of OctetString type");
         uint8 length = uint8(bytes1(der[extValuePtr.ixf() + 1]));
-        skid = der[extValuePtr.ixf() + 2 : extValuePtr.ixf() + 2 + length];
+        skid = der[extValuePtr.ixf() + 2:extValuePtr.ixf() + 2 + length];
     }
 
     function _getSignature(bytes calldata der, uint256 sigPtr) private pure returns (bytes memory sig) {
@@ -366,7 +374,11 @@ contract X509Helper {
         }
     }
 
-    function _findExtensionValuePtr(bytes calldata der, uint256 extensionPtr, bytes memory oid) private pure returns (uint256) {
+    function _findExtensionValuePtr(bytes calldata der, uint256 extensionPtr, bytes memory oid)
+        private
+        pure
+        returns (uint256)
+    {
         uint256 parentPtr = der.firstChildOf(extensionPtr);
         uint256 ptr = der.firstChildOf(parentPtr);
 

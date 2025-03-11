@@ -40,9 +40,7 @@ contract AutomataPckDaoTest is PCSSetupBase {
     }
 
     function testDuplicatePckUpsert() public {
-        vm.expectRevert(abi.encodeWithSelector(
-            DaoBase.Duplicate_Collateral.selector
-        ));
+        vm.expectRevert(abi.encodeWithSelector(DaoBase.Duplicate_Collateral.selector));
         pck.upsertPckCert(CA.PLATFORM, qeid, pceid, tcbm, pckDer);
     }
 

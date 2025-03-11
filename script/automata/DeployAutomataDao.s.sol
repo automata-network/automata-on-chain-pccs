@@ -37,13 +37,15 @@ contract DeployAutomataDao is DeploymentConfig, P256Configuration {
         }
 
         // Deploy PcsDao
-        AutomataPcsDao pcsDao = new AutomataPcsDao{salt: PCS_DAO_SALT}(address(pccsStorage), simulateVerify(), x509, x509Crl);
+        AutomataPcsDao pcsDao =
+            new AutomataPcsDao{salt: PCS_DAO_SALT}(address(pccsStorage), simulateVerify(), x509, x509Crl);
         console.log("[LOG] AutomataPcsDao deployed at: ", address(pcsDao));
         writeToJson("AutomataPcsDao", address(pcsDao));
 
         // Deploy PckDao
-        AutomataPckDao pckDao =
-            new AutomataPckDao{salt: PCK_DAO_SALT}(address(pccsStorage), simulateVerify(), address(pcsDao), x509, x509Crl);
+        AutomataPckDao pckDao = new AutomataPckDao{salt: PCK_DAO_SALT}(
+            address(pccsStorage), simulateVerify(), address(pcsDao), x509, x509Crl
+        );
         console.log("[LOG] AutomataPckDao deployed at: ", address(pckDao));
         writeToJson("AutomataPckDao", address(pckDao));
 
@@ -55,8 +57,9 @@ contract DeployAutomataDao is DeploymentConfig, P256Configuration {
         writeToJson("AutomataEnclaveIdentityDao", address(enclaveIdDao));
 
         // Deploy FmspcDao
-        AutomataFmspcTcbDao fmspcTcbDao =
-            new AutomataFmspcTcbDao{salt: FMSPC_TCB_DAO_SALT}(address(pccsStorage), simulateVerify(), address(pcsDao), fmspcTcbHelper, x509, x509Crl);
+        AutomataFmspcTcbDao fmspcTcbDao = new AutomataFmspcTcbDao{salt: FMSPC_TCB_DAO_SALT}(
+            address(pccsStorage), simulateVerify(), address(pcsDao), fmspcTcbHelper, x509, x509Crl
+        );
         console.log("[LOG] AutomataFmspcTcbDao deployed at: ", address(fmspcTcbDao));
         writeToJson("AutomataFmspcTcbDao", address(fmspcTcbDao));
 
@@ -83,7 +86,8 @@ contract DeployAutomataDao is DeploymentConfig, P256Configuration {
     function deployPck() public broadcastOwner {
         address pccsStorageAddr = readContractAddress("PCCS_STORAGE");
         address pcsDaoAddr = readContractAddress("PCS_DAO");
-        AutomataPckDao pckDao = new AutomataPckDao{salt: PCK_DAO_SALT}(pccsStorageAddr, simulateVerify(), pcsDaoAddr, x509, x509Crl);
+        AutomataPckDao pckDao =
+            new AutomataPckDao{salt: PCK_DAO_SALT}(pccsStorageAddr, simulateVerify(), pcsDaoAddr, x509, x509Crl);
         console.log("[LOG] AutomataPckDao deployed at: ", address(pckDao));
         writeToJson("AutomataPckDao", address(pckDao));
     }
@@ -91,8 +95,9 @@ contract DeployAutomataDao is DeploymentConfig, P256Configuration {
     function deployEnclaveIdDao() public broadcastOwner {
         address pccsStorageAddr = readContractAddress("PCCS_STORAGE");
         address pcsDaoAddr = readContractAddress("PCS_DAO");
-        AutomataEnclaveIdentityDao enclaveIdDao =
-            new AutomataEnclaveIdentityDao{salt: ENCLAVE_ID_DAO_SALT}(pccsStorageAddr, simulateVerify(), pcsDaoAddr, enclaveIdentityHelper, x509, x509Crl);
+        AutomataEnclaveIdentityDao enclaveIdDao = new AutomataEnclaveIdentityDao{salt: ENCLAVE_ID_DAO_SALT}(
+            pccsStorageAddr, simulateVerify(), pcsDaoAddr, enclaveIdentityHelper, x509, x509Crl
+        );
         console.log("[LOG] AutomataEnclaveIdDao deployed at: ", address(enclaveIdDao));
         writeToJson("AutomataEnclaveIdentityDao", address(enclaveIdDao));
     }
@@ -100,8 +105,9 @@ contract DeployAutomataDao is DeploymentConfig, P256Configuration {
     function deployFmspcTcbDao() public broadcastOwner {
         address pccsStorageAddr = readContractAddress("PCCS_STORAGE");
         address pcsDaoAddr = readContractAddress("PCS_DAO");
-        AutomataFmspcTcbDao fmspcTcbDao =
-            new AutomataFmspcTcbDao{salt: FMSPC_TCB_DAO_SALT}(pccsStorageAddr, simulateVerify(), pcsDaoAddr, fmspcTcbHelper, x509, x509Crl);
+        AutomataFmspcTcbDao fmspcTcbDao = new AutomataFmspcTcbDao{salt: FMSPC_TCB_DAO_SALT}(
+            pccsStorageAddr, simulateVerify(), pcsDaoAddr, fmspcTcbHelper, x509, x509Crl
+        );
         console.log("[LOG] AutomataFmspcTcbDao deployed at: ", address(fmspcTcbDao));
         writeToJson("AutomataFmspcTcbDao", address(fmspcTcbDao));
     }

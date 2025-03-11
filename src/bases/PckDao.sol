@@ -60,19 +60,10 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
     // bf00a30d
     error Pck_Out_Of_Date();
 
-    event UpsertedPckCollateral(
-        CA indexed ca, 
-        bytes16 indexed qeid,
-        bytes2 indexed pceid,
-        bytes18 tcbm
-    );
+    event UpsertedPckCollateral(CA indexed ca, bytes16 indexed qeid, bytes2 indexed pceid, bytes18 tcbm);
 
     event UpsertPlatformTcb(
-        bytes16 indexed qeid,
-        bytes2 indexed pceid,
-        bytes16 platformCpuSvn,
-        bytes2 platformPceSvn,
-        bytes18 tcbm
+        bytes16 indexed qeid, bytes2 indexed pceid, bytes16 platformCpuSvn, bytes2 platformPceSvn, bytes18 tcbm
     );
 
     string constant PCK_PLATFORM_CA_COMMON_NAME = "Intel SGX PCK Platform CA";
@@ -111,10 +102,12 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         key = keccak256(abi.encodePacked(TCB_MAPPING_MAGIC, qeid, pceid, platformCpuSvn, platformPceSvn));
     }
 
-    function getCollateralValidity(bytes32 key) external view override returns (
-        uint64 notValidBefore, 
-        uint64 notValidAfter
-    ) {
+    function getCollateralValidity(bytes32 key)
+        external
+        view
+        override
+        returns (uint64 notValidBefore, uint64 notValidAfter)
+    {
         (notValidBefore, notValidAfter) = _loadPckValidity(key);
     }
 
@@ -195,10 +188,10 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
     ) external pckCACheck(ca) returns (bytes32 attestationId) {
         (bytes16 qeidBytes, bytes2 pceidBytes,,, bytes18 tcbmBytes) = _parseStringInputs(qeid, pceid, "", "", tcbm);
         (bytes32 hash, bytes32 key, X509CertObj memory pck) = _validatePck(ca, cert, qeidBytes, pceidBytes, tcbmBytes);
-        
+
         // attest timestamp
         _storePckValidity(key, uint64(pck.validityNotBefore), uint64(pck.validityNotAfter));
-        
+
         attestationId = _attestPck(cert, hash, key);
         _upsertTcbm(qeidBytes, pceidBytes, tcbmBytes);
 
@@ -243,13 +236,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         bytes32 tcbmMappingKey = TCB_MAPPING_KEY(qeidBytes, pceidBytes, platformCpuSvnBytes, platformPceSvnBytes);
         _setTcbrToTcbmMapping(tcbmMappingKey, tcbmBytes);
 
-        emit UpsertPlatformTcb(
-            qeidBytes,
-            pceidBytes,
-            platformCpuSvnBytes,
-            platformPceSvnBytes,
-            tcbmBytes
-        );
+        emit UpsertPlatformTcb(qeidBytes, pceidBytes, platformCpuSvnBytes, platformPceSvnBytes, tcbmBytes);
 
         return bytes32(0);
     }
@@ -305,9 +292,13 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
      */
     function _getAllTcbs(bytes16 qeidBytes, bytes2 pceidBytes) internal view virtual returns (bytes18[] memory tcbms);
 
-    function _validatePck(CA ca, bytes memory der, bytes16 qeid, bytes2 pceid, bytes18 tcbm) internal view returns (bytes32 hash, bytes32 key, X509CertObj memory pck) {
+    function _validatePck(CA ca, bytes memory der, bytes16 qeid, bytes2 pceid, bytes18 tcbm)
+        internal
+        view
+        returns (bytes32 hash, bytes32 key, X509CertObj memory pck)
+    {
         pck = pckLib.parseX509DER(der);
-        
+
         hash = keccak256(pck.tbs);
         key = PCK_KEY(qeid, pceid, tcbm);
 
@@ -322,7 +313,7 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
 
         // Step 2: Rollback prevention: new certificate should not have an issued date
         // that is older than the existing certificate
-        (uint64 existingCertNotValidBefore, ) = _loadPckValidity(key);
+        (uint64 existingCertNotValidBefore,) = _loadPckValidity(key);
         bool outOfDate = existingCertNotValidBefore >= pck.validityNotBefore;
         if (outOfDate) {
             revert Pck_Out_Of_Date();
@@ -446,8 +437,9 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
 
     function _storePckValidity(bytes32 key, uint64 notValidBefore, uint64 notValidAfter) internal virtual;
 
-    function _loadPckValidity(bytes32 key) internal view virtual returns (
-        uint64 notValidBefore,
-        uint64 notValidAfter
-    );
+    function _loadPckValidity(bytes32 key)
+        internal
+        view
+        virtual
+        returns (uint64 notValidBefore, uint64 notValidAfter);
 }

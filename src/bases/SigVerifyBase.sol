@@ -12,7 +12,6 @@ interface IX509 {
  * @title Signature verification base contract
  * @notice It can be extended by any contracts that required ECDSA verification
  */
-
 abstract contract SigVerifyBase is P256Verifier {
     address public x509;
 
