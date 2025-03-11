@@ -167,21 +167,21 @@ Our DAO implementation can be found in the [`automata_pccs`](./src/automata_pccs
 
 ### #BUIDL 🛠️
 
-- Install [Foundry](https://book.getfoundry.sh/getting-started/installation)
+1. Install [Foundry](https://book.getfoundry.sh/getting-started/installation)
 
-- Create `.env` file with the provided example.
+2. Install the dependencies
 
 ```bash
-cp env/.{network}.env.example .env
+forge install
 ```
 
-- Compile the contracts
+3. Compile the contracts
 
 ```bash
 forge build
 ```
 
-- Run tests
+4. Run tests
 
 ```bash
 forge test
@@ -189,18 +189,38 @@ forge test
 
 To view gas report, pass the `--gas-report` flag.
 
-#### Deployment
+### Deployment
 
-- Deploy the Helper contracts
+Before you begin, it is HIGHLY recommended that you store and encrypt wallet keys using [Cast](https://book.getfoundry.sh/reference/cast/cast-wallet-import).
 
 ```bash
-forge script DeployHelpers --rpc-url $RPC_URL -vvv --broadcast
+cast wallet import --keystore-dir ./keystore dcap_prod --interactive
 ```
 
-Make sure to update `.env` file with the appropriate addresses, then run `source .env`.
+If you had [**decided against taking the .env pledge**](https://github.com/smartcontractkit/full-blockchain-solidity-course-js/discussions/5), you can (but shouldn't) pass your wallet key to the `PRIVATE_KEY` environmental variable.
 
-- Deploy `automata-pccs`
+Once you have set up your wallet, you may run the following script to deploy the PCCS Contracts.
 
 ```bash
-forge script DeployAutomataDao --rpc-url $RPC_URL -vvv --broadcast --sig "deployAll(bool)" true
+make deploy-all RPC_URL=<rpc-url>
+```
+
+You may also pass `SIMULATE=true` at the end of the command to run the script without broadcasting the transactions.
+
+After deploying the contracts, run the commands below to verify contracts on the explorer.
+
+Etherscan:
+```bash
+make verify-all RPC_URL=<rpc-url> ETHERSCAN_API_KEY=<etherscan-api-key>
+```
+
+Blockscout:
+```bash
+make verify-all RPC_URL=<rpc-url> VERIFIER=blockscout VERIFIER_URL=<explorer-api-url>
+```
+
+To see all available commands, run:
+
+```bash
+make help
 ```
