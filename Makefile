@@ -9,36 +9,35 @@ PRIVATE_KEY ?=
 
 # Required environment variables check
 check_env:
-ifndef RPC_URL
-	$(error RPC_URL is not set)
-else 
-	$(eval CHAIN_ID := $(shell cast chain-id --rpc-url $(RPC_URL)))
-	@echo "Chain ID: $(CHAIN_ID)"
-endif
+	ifndef RPC_URL
+		$(error RPC_URL is not set)
+	else 
+		$(eval CHAIN_ID := $(shell cast chain-id --rpc-url $(RPC_URL)))
+		@echo "Chain ID: $(CHAIN_ID)"
+	endif
 
 # Get the Owner's Wallet Address
 get_owner:
-ifdef PRIVATE_KEY
-	$(eval OWNER := $(shell cast wallet address --private-key $(PRIVATE_KEY)))
-else
-	$(eval KEYSTORE_PASSWORD := $(shell read -s -p "Enter keystore password: " pwd; echo $$pwd))
-	$(eval OWNER := $(shell cast wallet address --keystore $(KEYSTORE_PATH) --password $(KEYSTORE_PASSWORD) \
-	|| (echo "Improper wallet configuration"; exit 1)))
-endif
-	@echo "\nWallet Owner: $(OWNER)"
+	ifdef PRIVATE_KEY
+		$(eval OWNER := $(shell cast wallet address --private-key $(PRIVATE_KEY)))
+	else
+		$(eval KEYSTORE_PASSWORD := $(shell read -s -p "Enter keystore password: " pwd; echo $$pwd))
+		$(eval OWNER := $(shell cast wallet address --keystore $(KEYSTORE_PATH) --password $(KEYSTORE_PASSWORD) \
+		|| (echo "Improper wallet configuration"; exit 1)))
+	endif
+		@echo "\nWallet Owner: $(OWNER)"
 
 # Deployment targets
 deploy-helpers: check_env get_owner
 	@echo "Deploying helper contracts..."
-	@mkdir -p .addresses
 	@OWNER=$(OWNER) \
-		ETHERSCAN_API_KEY=$(ETHERSCAN_API_KEY) \
-		forge script script/helper/DeployHelpers.s.sol:DeployHelpers \
-		--rpc-url $(RPC_URL) \
-		$(if $(PRIVATE_KEY), --private-key $(PRIVATE_KEY), \
-			--keystore $(KEYSTORE_PATH) --password $(KEYSTORE_PASSWORD)) \
-		$(if $(SIMULATED),, --broadcast) \
-		-vv
+			ETHERSCAN_API_KEY=$(ETHERSCAN_API_KEY) \
+			forge script script/helper/DeployHelpers.s.sol:DeployHelpers \
+			--rpc-url $(RPC_URL) \
+			$(if $(PRIVATE_KEY), --private-key $(PRIVATE_KEY), \
+				--keystore $(KEYSTORE_PATH) --password $(KEYSTORE_PASSWORD)) \
+			$(if $(SIMULATED),, --broadcast) \
+			-vv
 	@echo "Helper contracts deployed"
 
 deploy-dao: check_env get_owner
@@ -62,50 +61,50 @@ deploy-all: deploy-helpers deploy-dao
 	@echo "Deployment completed"
 
 # Contract verification
-# verify-helpers: check_env
-# 	@echo "Verifying helper contracts..."
-# 	@if [ ! -f deployment/$(CHAIN_ID).json ]; then \
-# 		echo "Helper addresses not found. Deploy helpers first."; \
-# 		exit 1; \
-# 	fi
-# 	@for contract in EnclaveIdentityHelper FmspcTcbHelper PCKHelper X509CRLHelper; do \
-# 		addr=$$(grep "$$contract:" .addresses/helpers.txt | cut -d' ' -f3); \
-# 		if [ ! -z "$$addr" ]; then \
-# 			echo "Verifying $$contract at $$addr..."; \
-# 			forge verify-contract \
-# 				--rpc-url $(RPC_URL) \
-# 				--verifier $(VERIFIER) \
-# 				--watch \
-# 				$(if $(VERIFIER_URL),--verifier-url $(VERIFIER_URL),) \
-# 				$(if $(ETHERSCAN_API_KEY),--etherscan-api-key $(ETHERSCAN_API_KEY),) \
-# 				$$addr \
-# 				src/helpers/$$contract.sol:$$contract || true; \
-# 		fi \
-# 	done
+verify-helpers: check_env
+	@echo "Verifying helper contracts..."
+	@if [ ! -f deployment/$(CHAIN_ID).json ]; then \
+		echo "Helper addresses not found. Deploy helpers first."; \
+		exit 1; \
+	fi
+	@for contract in EnclaveIdentityHelper FmspcTcbHelper PCKHelper X509CRLHelper; do \
+		addr=$$(jq -r ".$$contract" deployment/$(CHAIN_ID).json); \
+		if [ "$$addr" != "null" ]; then \
+			echo "Verifying $$contract at $$addr..."; \
+			forge verify-contract \
+				--rpc-url $(RPC_URL) \
+				--verifier $(VERIFIER) \
+				--watch \
+				$(if $(VERIFIER_URL),--verifier-url $(VERIFIER_URL),) \
+				$(if $(ETHERSCAN_API_KEY),--etherscan-api-key $(ETHERSCAN_API_KEY),) \
+				$$addr \
+				src/helpers/$$contract.sol:$$contract || true; \
+		fi \
+	done
 
-# verify-dao: check_env
-# 	@echo "Verifying DAO contracts..."
-# 	@if [ ! -f addresses/dao.txt ]; then \
-# 		echo "DAO addresses not found. Deploy DAOs first."; \
-# 		exit 1; \
-# 	fi
-# 	@for contract in AutomataDaoStorage AutomataPcsDao AutomataPckDao AutomataEnclaveIdentityDao AutomataFmspcTcbDao; do \
-# 		addr=$$(grep "$$contract:" .addresses/dao.txt | cut -d' ' -f3); \
-# 		if [ ! -z "$$addr" ]; then \
-# 			echo "Verifying $$contract at $$addr..."; \
-# 			forge verify-contract \
-# 				--rpc-url $(RPC_URL) \
-# 				--verifier $(VERIFIER) \
-# 				--watch \
-# 				$(if $(VERIFIER_URL),--verifier-url $(VERIFIER_URL),) \
-# 				$(if $(ETHERSCAN_API_KEY),--etherscan-api-key $(ETHERSCAN_API_KEY),) \
-# 				$$addr \
-# 				src/automata_pccs/$$contract.sol:$$contract || true; \
-# 		fi \
-# 	done
+verify-dao: check_env
+	@echo "Verifying DAO contracts..."
+	@if [ ! -f deployment/$(CHAIN_ID).json ]; then \
+		echo "DAO addresses not found. Deploy DAOs first."; \
+		exit 1; \
+	fi
+	@for contract in AutomataDaoStorage AutomataPcsDao AutomataPckDao AutomataEnclaveIdentityDao AutomataFmspcTcbDao; do \
+		addr=$$(jq -r ".$$contract" deployment/$(CHAIN_ID).json); \
+		if [ "$$addr" != "null" ]; then \
+			echo "Verifying $$contract at $$addr..."; \
+			forge verify-contract \
+			--rpc-url $(RPC_URL) \
+			--verifier $(VERIFIER) \
+			--watch \
+			$(if $(VERIFIER_URL),--verifier-url $(VERIFIER_URL),) \
+			$(if $(ETHERSCAN_API_KEY),--etherscan-api-key $(ETHERSCAN_API_KEY),) \
+			$$addr \
+			src/automata_pccs/$$contract.sol:$$contract || true; \
+		fi \
+	done
 
-# verify-all: verify-helpers verify-dao
-# 	@echo "Verification completed"
+verify-all: verify-helpers verify-dao
+	@echo "Verification completed"
 
 # Utility targets
 clean:
