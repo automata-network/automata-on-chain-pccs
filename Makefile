@@ -9,35 +9,35 @@ PRIVATE_KEY ?=
 
 # Required environment variables check
 check_env:
-	ifndef RPC_URL
-		$(error RPC_URL is not set)
-	else 
-		$(eval CHAIN_ID := $(shell cast chain-id --rpc-url $(RPC_URL)))
-		@echo "Chain ID: $(CHAIN_ID)"
-	endif
+ifdef RPC_URL
+	$(eval CHAIN_ID := $(shell cast chain-id --rpc-url $(RPC_URL)))
+	@echo "Chain ID: $(CHAIN_ID)"
+else 
+	$(error RPC_URL is not set)
+endif
 
 # Get the Owner's Wallet Address
 get_owner:
-	ifdef PRIVATE_KEY
-		$(eval OWNER := $(shell cast wallet address --private-key $(PRIVATE_KEY)))
-	else
-		$(eval KEYSTORE_PASSWORD := $(shell read -s -p "Enter keystore password: " pwd; echo $$pwd))
-		$(eval OWNER := $(shell cast wallet address --keystore $(KEYSTORE_PATH) --password $(KEYSTORE_PASSWORD) \
+ifdef PRIVATE_KEY
+	$(eval OWNER := $(shell cast wallet address --private-key $(PRIVATE_KEY)))
+else
+	$(eval KEYSTORE_PASSWORD := $(shell read -s -p "Enter keystore password: " pwd; echo $$pwd))
+	$(eval OWNER := $(shell cast wallet address --keystore $(KEYSTORE_PATH) --password $(KEYSTORE_PASSWORD) \
 		|| (echo "Improper wallet configuration"; exit 1)))
-	endif
-		@echo "\nWallet Owner: $(OWNER)"
+endif
+	@echo "\nWallet Owner: $(OWNER)"
 
 # Deployment targets
 deploy-helpers: check_env get_owner
 	@echo "Deploying helper contracts..."
 	@OWNER=$(OWNER) \
-			ETHERSCAN_API_KEY=$(ETHERSCAN_API_KEY) \
-			forge script script/helper/DeployHelpers.s.sol:DeployHelpers \
-			--rpc-url $(RPC_URL) \
-			$(if $(PRIVATE_KEY), --private-key $(PRIVATE_KEY), \
-				--keystore $(KEYSTORE_PATH) --password $(KEYSTORE_PASSWORD)) \
-			$(if $(SIMULATED),, --broadcast) \
-			-vv
+		ETHERSCAN_API_KEY=$(ETHERSCAN_API_KEY) \
+		forge script script/helper/DeployHelpers.s.sol:DeployHelpers \
+		--rpc-url $(RPC_URL) \
+		$(if $(PRIVATE_KEY), --private-key $(PRIVATE_KEY), \
+		--keystore $(KEYSTORE_PATH) --password $(KEYSTORE_PASSWORD)) \
+		$(if $(SIMULATED),, --broadcast) \
+		-vv
 	@echo "Helper contracts deployed"
 
 deploy-dao: check_env get_owner
@@ -51,7 +51,7 @@ deploy-dao: check_env get_owner
 		forge script script/automata/DeployAutomataDao.s.sol:DeployAutomataDao \
 		--rpc-url $(RPC_URL) \
 		$(if $(PRIVATE_KEY), --private-key $(PRIVATE_KEY), \
-			--keystore $(KEYSTORE_PATH) --password $(KEYSTORE_PASSWORD)) \
+		--keystore $(KEYSTORE_PATH) --password $(KEYSTORE_PASSWORD)) \
 		$(if $(SIMULATED),, --broadcast) \
 		-vv \
 		--sig "deployAll(bool)" $(WITH_STORAGE)
@@ -93,13 +93,13 @@ verify-dao: check_env
 		if [ "$$addr" != "null" ]; then \
 			echo "Verifying $$contract at $$addr..."; \
 			forge verify-contract \
-			--rpc-url $(RPC_URL) \
-			--verifier $(VERIFIER) \
-			--watch \
-			$(if $(VERIFIER_URL),--verifier-url $(VERIFIER_URL),) \
-			$(if $(ETHERSCAN_API_KEY),--etherscan-api-key $(ETHERSCAN_API_KEY),) \
-			$$addr \
-			src/automata_pccs/$$contract.sol:$$contract || true; \
+				--rpc-url $(RPC_URL) \
+				--verifier $(VERIFIER) \
+				--watch \
+				$(if $(VERIFIER_URL),--verifier-url $(VERIFIER_URL),) \
+				$(if $(ETHERSCAN_API_KEY),--etherscan-api-key $(ETHERSCAN_API_KEY),) \
+				$$addr \
+				src/automata_pccs/$$contract.sol:$$contract || true; \
 		fi \
 	done
 

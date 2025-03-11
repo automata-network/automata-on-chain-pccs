@@ -18,3 +18,4 @@ deployment/31337.json
 **/.DS_Store
 **/node_modules/
 **/keystore/
+**/.vscode
