@@ -11,6 +11,10 @@ broadcast/**/dry-run/
 # Dotenv file
 .env
 
-**/.DS_Store
+# Ignore development deployment files
+deployment/31337.json
 
+# Misc
+**/.DS_Store
 **/node_modules/
+**/keystore/
