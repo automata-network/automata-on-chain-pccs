@@ -6,7 +6,7 @@ const enclaveIdentityDaoInterface = new ethers.Interface(EnclaveIdentityABI);
 
 function checkPrefix(challenge) {
     let prefixed = '';
-    if (challenge.substring(0, 2) !== '0x') {
+    if (!challenge.startsWith('0x')) {
         prefixed = '0x' + challenge;
     } else {
         prefixed = challenge;
@@ -20,7 +20,7 @@ function upsertEnclaveIdentity(id, version, enclaveIdentity, signature) {
         signature: checkPrefix(signature)
     };
     return [
-        "upsertEnclaveIdentity()", id, version, enclaveIdentityObj
+        "upsertEnclaveIdentity", id, version, enclaveIdentityObj
     ]
 }
 
@@ -32,7 +32,7 @@ function parseEnclaveIdentity(data) {
 }
 
 /// To upsert, run the command: node identity.js -u <id> <version> <path>
-/// The upsert commmand generates the individual function arguments to be passed to the contract.
+/// The upsert command generates the individual function arguments to be passed to the contract.
 /// To parse the returned identity, node identity.js -p <solidity-returned-data>
 /// The get command retrieves the Identity from the contract and returns the output as a JSON
 /// To save a local copy of the JSON file, append the -s flag at the end.
