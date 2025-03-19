@@ -1,7 +1,6 @@
 # Configuration
 VERIFIER ?= etherscan
 VERIFIER_URL ?= 
-ETHERSCAN_API_KEY ?= verifyContract
 WITH_STORAGE ?= true
 SIMULATED ?=
 KEYSTORE_PATH ?= keystore/dcap_prod
@@ -31,12 +30,12 @@ endif
 deploy-helpers: check_env get_owner
 	@echo "Deploying helper contracts..."
 	@OWNER=$(OWNER) \
-		ETHERSCAN_API_KEY=$(ETHERSCAN_API_KEY) \
 		forge script script/helper/DeployHelpers.s.sol:DeployHelpers \
 		--rpc-url $(RPC_URL) \
 		$(if $(PRIVATE_KEY), --private-key $(PRIVATE_KEY), \
 		--keystore $(KEYSTORE_PATH) --password $(KEYSTORE_PASSWORD)) \
 		$(if $(SIMULATED),, --broadcast) \
+		$(if $(LEGACY), --legacy) \
 		-vv
 	@echo "Helper contracts deployed"
 
@@ -47,12 +46,12 @@ deploy-dao: check_env get_owner
 		exit 1; \
 	fi
 	@OWNER=$(OWNER) \
-		ETHERSCAN_API_KEY=$(ETHERSCAN_API_KEY) \
 		forge script script/automata/DeployAutomataDao.s.sol:DeployAutomataDao \
 		--rpc-url $(RPC_URL) \
 		$(if $(PRIVATE_KEY), --private-key $(PRIVATE_KEY), \
 		--keystore $(KEYSTORE_PATH) --password $(KEYSTORE_PASSWORD)) \
 		$(if $(SIMULATED),, --broadcast) \
+		$(if $(LEGACY), --legacy) \
 		-vv \
 		--sig "deployAll(bool)" $(WITH_STORAGE)
 	@echo "DAO contracts deployed"
@@ -70,13 +69,11 @@ verify-helpers: check_env
 	@for contract in EnclaveIdentityHelper FmspcTcbHelper PCKHelper X509CRLHelper; do \
 		addr=$$(jq -r ".$$contract" deployment/$(CHAIN_ID).json); \
 		if [ "$$addr" != "null" ]; then \
-			echo "Verifying $$contract at $$addr..."; \
 			forge verify-contract \
 				--rpc-url $(RPC_URL) \
 				--verifier $(VERIFIER) \
 				--watch \
-				$(if $(VERIFIER_URL),--verifier-url $(VERIFIER_URL),) \
-				$(if $(ETHERSCAN_API_KEY),--etherscan-api-key $(ETHERSCAN_API_KEY),) \
+				$(if $(VERIFIER_URL),--verifier-url $(VERIFIER_URL)) \
 				$$addr \
 				src/helpers/$$contract.sol:$$contract || true; \
 		fi \
@@ -91,15 +88,23 @@ verify-dao: check_env
 	@for contract in AutomataDaoStorage AutomataPcsDao AutomataPckDao AutomataEnclaveIdentityDao AutomataFmspcTcbDao; do \
 		addr=$$(jq -r ".$$contract" deployment/$(CHAIN_ID).json); \
 		if [ "$$addr" != "null" ]; then \
-			echo "Verifying $$contract at $$addr..."; \
-			forge verify-contract \
-				--rpc-url $(RPC_URL) \
-				--verifier $(VERIFIER) \
-				--watch \
-				$(if $(VERIFIER_URL),--verifier-url $(VERIFIER_URL),) \
-				$(if $(ETHERSCAN_API_KEY),--etherscan-api-key $(ETHERSCAN_API_KEY),) \
-				$$addr \
-				src/automata_pccs/$$contract.sol:$$contract || true; \
+			if [ "$$contract" != "AutomataDaoStorage" ]; then \
+				forge verify-contract \
+					--rpc-url $(RPC_URL) \
+					--verifier $(VERIFIER) \
+					--watch \
+					$(if $(VERIFIER_URL),--verifier-url $(VERIFIER_URL)) \
+					$$addr \
+					src/automata_pccs/$$contract.sol:$$contract || true; \
+			else \
+				forge verify-contract \
+					--rpc-url $(RPC_URL) \
+					--verifier $(VERIFIER) \
+					--watch \
+					$(if $(VERIFIER_URL),--verifier-url $(VERIFIER_URL)) \
+					$$addr \
+					src/automata_pccs/shared/AutomataDaoStorage.sol:AutomataDaoStorage || true; \
+			fi \
 		fi \
 	done
 
