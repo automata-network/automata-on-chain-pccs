@@ -72,7 +72,7 @@ The Helper contracts provide APIs for parsing collaterals and converting into So
 | `FmspcTcbHelper.sol` | Automata Mainnet | [0x181dc716922c84554aeA8bafa07c906F4e4C15B2](https://explorer.ata.network/address/0x181dc716922c84554aeA8bafa07c906F4e4C15B2) |
 |  | Base Mainnet | [0x181dc716922c84554aeA8bafa07c906F4e4C15B2](https://basescan.org/address/0x181dc716922c84554aeA8bafa07c906F4e4C15B2) |
 |  | OP Mainnet | [0x181dc716922c84554aeA8bafa07c906F4e4C15B2](https://optimistic.etherscan.io/address/0x181dc716922c84554aeA8bafa07c906F4e4C15B2) |
-|  | World Mainnet | [0xc99bF04C31bF3d026B5B47b2574FC19C1459B732](https://worldchain-mainnet.explorer.alchemy.com/address/0xc99bF04C31bF3d026B5B47b2574FC19C1459B732) |
+|  | World Mainnet | [0x181dc716922c84554aeA8bafa07c906F4e4C15B2](https://worldchain-mainnet.explorer.alchemy.com/address/0x181dc716922c84554aeA8bafa07c906F4e4C15B2) |
 |  | Arbitrum Mainnet | [0x181dc716922c84554aeA8bafa07c906F4e4C15B2](https://arbiscan.io/address/0x181dc716922c84554aeA8bafa07c906F4e4C15B2) |
 | `PCKHelper.sol` | Automata Mainnet | [0xeD75bb6543c53d49f4445055Ba18380068025370](https://explorer.ata.network/address/0xeD75bb6543c53d49f4445055Ba18380068025370) |
 |  | Base Mainnet | [0xeD75bb6543c53d49f4445055Ba18380068025370](https://basescan.org/address/0xeD75bb6543c53d49f4445055Ba18380068025370) |
@@ -131,22 +131,22 @@ Our DAO implementation can be found in the [`automata_pccs`](./src/automata_pccs
 | `AutomataEnclaveIdentityDao.sol` | Automata Mainnet | [0xd74e880029cd3B6b434f16beA5F53A06989458Ee](https://explorer.ata.network/address/0xd74e880029cd3B6b434f16beA5F53A06989458Ee) |
 |  | Base Mainnet | [0xd74e880029cd3B6b434f16beA5F53A06989458Ee](https://basescan.org/address/0xd74e880029cd3B6b434f16beA5F53A06989458Ee) |
 |  | OP Mainnet | [0xd74e880029cd3B6b434f16beA5F53A06989458Ee](https://optimistic.etherscan.io/address/0xd74e880029cd3B6b434f16beA5F53A06989458Ee) |
-|  | World Mainnet | [0x28111536292b34f37120861A46B39BF39187d73a](https://worldchain-mainnet.explorer.alchemy.com/address/0x28111536292b34f37120861A46B39BF39187d73a) |
+|  | World Mainnet | [0xd74e880029cd3B6b434f16beA5F53A06989458Ee](https://worldchain-mainnet.explorer.alchemy.com/address/0xd74e880029cd3B6b434f16beA5F53A06989458Ee) |
 |  | Arbitrum Mainnet | [0xd74e880029cd3B6b434f16beA5F53A06989458Ee](https://arbiscan.io/address/0xd74e880029cd3B6b434f16beA5F53A06989458Ee) |
 | `AutomataFmspcTcbDao.sol` | Automata Mainnet | [0xd3A3f34E8615065704cCb5c304C0cEd41bB81483](https://explorer.ata.network/address/0xd3A3f34E8615065704cCb5c304C0cEd41bB81483) |
 |  | Base Mainnet | [0xd3A3f34E8615065704cCb5c304C0cEd41bB81483](https://basescan.org/address/0xd3A3f34E8615065704cCb5c304C0cEd41bB81483) |
 |  | OP Mainnet | [0xd3A3f34E8615065704cCb5c304C0cEd41bB81483](https://optimistic.etherscan.io/address/0xd3A3f34E8615065704cCb5c304C0cEd41bB81483) |
-|  | World Mainnet | [0x868c18869f68E0E0b0b7B2B4439f7fDDd0421e6b](https://worldchain-mainnet.explorer.alchemy.com/address/0x868c18869f68E0E0b0b7B2B4439f7fDDd0421e6b) |
+|  | World Mainnet | [0xd3A3f34E8615065704cCb5c304C0cEd41bB81483](https://worldchain-mainnet.explorer.alchemy.com/address/0xd3A3f34E8615065704cCb5c304C0cEd41bB81483) |
 |  | Arbitrum Mainnet | [0xd3A3f34E8615065704cCb5c304C0cEd41bB81483](https://arbiscan.io/address/0xd3A3f34E8615065704cCb5c304C0cEd41bB81483) |
 | `AutomataPckDao.sol` | Automata Mainnet | [0xa4615C2a260413878241ff7605AD9577feB356A5](https://explorer.ata.network/address/0xa4615C2a260413878241ff7605AD9577feB356A5) |
 |  | Base Mainnet | [0xa4615C2a260413878241ff7605AD9577feB356A5](https://basescan.org/address/0xa4615C2a260413878241ff7605AD9577feB356A5) |
 |  | OP Mainnet | [0xa4615C2a260413878241ff7605AD9577feB356A5](https://optimistic.etherscan.io/address/0xa4615C2a260413878241ff7605AD9577feB356A5) |
-|  | World Mainnet | [0xeCc198936FcA3Ca1fDc97B8612B32185908917B0](https://worldchain-mainnet.explorer.alchemy.com/address/0xeCc198936FcA3Ca1fDc97B8612B32185908917B0) |
+|  | World Mainnet | [0xa4615C2a260413878241ff7605AD9577feB356A5](https://worldchain-mainnet.explorer.alchemy.com/address/0xa4615C2a260413878241ff7605AD9577feB356A5) |
 |  | Arbitrum Mainnet | [0xa4615C2a260413878241ff7605AD9577feB356A5](https://arbiscan.io/address/0xa4615C2a260413878241ff7605AD9577feB356A5) |
 | `AutomataPcsDao.sol` | Automata Mainnet | [0xB270cD8550DA117E3accec36A90c4b0b48daD342](https://explorer.ata.network/address/0xB270cD8550DA117E3accec36A90c4b0b48daD342) |
 |  | Base Mainnet | [0xB270cD8550DA117E3accec36A90c4b0b48daD342](https://basescan.org/address/0xB270cD8550DA117E3accec36A90c4b0b48daD342) |
 |  | OP Mainnet | [0xB270cD8550DA117E3accec36A90c4b0b48daD342](https://optimistic.etherscan.io/address/0xB270cD8550DA117E3accec36A90c4b0b48daD342) |
-|  | World Mainnet | [0x86f8865BCe8BE62CB8096b5B94fA3fB3a6ED330c](https://worldchain-mainnet.explorer.alchemy.com/address/0x86f8865BCe8BE62CB8096b5B94fA3fB3a6ED330c) |
+|  | World Mainnet | [0xB270cD8550DA117E3accec36A90c4b0b48daD342](https://worldchain-mainnet.explorer.alchemy.com/address/0xB270cD8550DA117E3accec36A90c4b0b48daD342) |
 |  | Arbitrum Mainnet | [0xB270cD8550DA117E3accec36A90c4b0b48daD342](https://arbiscan.io/address/0xB270cD8550DA117E3accec36A90c4b0b48daD342) |
 
 ---
