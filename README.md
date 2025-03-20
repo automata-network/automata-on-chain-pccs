@@ -73,31 +73,37 @@ The Helper contracts provide APIs for parsing collaterals and converting into So
 |  | Network | Address |
 | --- | --- | --- |
 | `EnclaveIdentityHelper.sol` | Automata Mainnet | [0x635A8A01e84cDcE1475FCeB7D57FEcadD3d1a0A0](https://explorer.ata.network/address/0x635A8A01e84cDcE1475FCeB7D57FEcadD3d1a0A0) |
+|  | Ethereum Mainnet | [0x635A8A01e84cDcE1475FCeB7D57FEcadD3d1a0A0](https://etherscan.io/address/0x635A8A01e84cDcE1475FCeB7D57FEcadD3d1a0A0) |
 |  | Base Mainnet | [0x635A8A01e84cDcE1475FCeB7D57FEcadD3d1a0A0](https://basescan.org/address/0x635A8A01e84cDcE1475FCeB7D57FEcadD3d1a0A0) |
 |  | OP Mainnet | [0x635A8A01e84cDcE1475FCeB7D57FEcadD3d1a0A0](https://optimistic.etherscan.io/address/0x635A8A01e84cDcE1475FCeB7D57FEcadD3d1a0A0) |
 |  | World Mainnet | [0x635A8A01e84cDcE1475FCeB7D57FEcadD3d1a0A0](https://worldchain-mainnet.explorer.alchemy.com/address/0x635A8A01e84cDcE1475FCeB7D57FEcadD3d1a0A0) |
 |  | Arbitrum Mainnet | [0x635A8A01e84cDcE1475FCeB7D57FEcadD3d1a0A0](https://arbiscan.io/address/0x635A8A01e84cDcE1475FCeB7D57FEcadD3d1a0A0) |
 |  | Polygon PoS Mainnet | [0x635A8A01e84cDcE1475FCeB7D57FEcadD3d1a0A0](https://polygonscan.com/address/0x635A8A01e84cDcE1475FCeB7D57FEcadD3d1a0A0) |
+|  | BSC Mainnet | [0x635A8A01e84cDcE1475FCeB7D57FEcadD3d1a0A0](https://bscscan.com/address/0x635A8A01e84cDcE1475FCeB7D57FEcadD3d1a0A0) |
 | `FmspcTcbHelper.sol` | Automata Mainnet | [0x181dc716922c84554aeA8bafa07c906F4e4C15B2](https://explorer.ata.network/address/0x181dc716922c84554aeA8bafa07c906F4e4C15B2) |
+|  | Ethereum Mainnet | [0x181dc716922c84554aeA8bafa07c906F4e4C15B2](https://etherscan.io/address/0x181dc716922c84554aeA8bafa07c906F4e4C15B2) |
 |  | Base Mainnet | [0x181dc716922c84554aeA8bafa07c906F4e4C15B2](https://basescan.org/address/0x181dc716922c84554aeA8bafa07c906F4e4C15B2) |
 |  | OP Mainnet | [0x181dc716922c84554aeA8bafa07c906F4e4C15B2](https://optimistic.etherscan.io/address/0x181dc716922c84554aeA8bafa07c906F4e4C15B2) |
 |  | World Mainnet | [0x181dc716922c84554aeA8bafa07c906F4e4C15B2](https://worldchain-mainnet.explorer.alchemy.com/address/0x181dc716922c84554aeA8bafa07c906F4e4C15B2) |
 |  | Arbitrum Mainnet | [0x181dc716922c84554aeA8bafa07c906F4e4C15B2](https://arbiscan.io/address/0x181dc716922c84554aeA8bafa07c906F4e4C15B2) |
 |  | Polygon PoS Mainnet | [0x181dc716922c84554aeA8bafa07c906F4e4C15B2](https://polygonscan.com/address/0x181dc716922c84554aeA8bafa07c906F4e4C15B2) |
+|  | BSC Mainnet | [0x181dc716922c84554aeA8bafa07c906F4e4C15B2](https://bscscan.com/address/0x181dc716922c84554aeA8bafa07c906F4e4C15B2) |
 | `PCKHelper.sol` | Automata Mainnet | [0xeD75bb6543c53d49f4445055Ba18380068025370](https://explorer.ata.network/address/0xeD75bb6543c53d49f4445055Ba18380068025370) |
+|  | Ethereum Mainnet | [0xeD75bb6543c53d49f4445055Ba18380068025370](https://etherscan.io/address/0xeD75bb6543c53d49f4445055Ba18380068025370) |
 |  | Base Mainnet | [0xeD75bb6543c53d49f4445055Ba18380068025370](https://basescan.org/address/0xeD75bb6543c53d49f4445055Ba18380068025370) |
 |  | OP Mainnet | [0xeD75bb6543c53d49f4445055Ba18380068025370](https://optimistic.etherscan.io/address/0xeD75bb6543c53d49f4445055Ba18380068025370) |
 |  | World Mainnet | [0xeD75bb6543c53d49f4445055Ba18380068025370](https://worldchain-mainnet.explorer.alchemy.com/address/0xeD75bb6543c53d49f4445055Ba18380068025370) |
 |  | Arbitrum Mainnet | [0xeD75bb6543c53d49f4445055Ba18380068025370](https://arbiscan.io/address/0xeD75bb6543c53d49f4445055Ba18380068025370) |
 |  | Polygon PoS Mainnet | [0xeD75bb6543c53d49f4445055Ba18380068025370](https://polygonscan.com/address/0xeD75bb6543c53d49f4445055Ba18380068025370) |
+|  | BSC Mainnet | [0xeD75bb6543c53d49f4445055Ba18380068025370](https://bscscan.com/address/0xeD75bb6543c53d49f4445055Ba18380068025370) |
 | `X509CRLHelper.sol` | Automata Mainnet | [0xA454FB9522631D586f3A790c6CDc6f1B70Ca903C](https://explorer.ata.network/address/0xA454FB9522631D586f3A790c6CDc6f1B70Ca903C) |
+|  | Ethereum Mainnet | [0xA454FB9522631D586f3A790c6CDc6f1B70Ca903C](https://etherscan.io/address/0xA454FB9522631D586f3A790c6CDc6f1B70Ca903C) |
 |  | Base Mainnet | [0xA454FB9522631D586f3A790c6CDc6f1B70Ca903C](https://basescan.org/address/0xA454FB9522631D586f3A790c6CDc6f1B70Ca903C) |
 |  | OP Mainnet | [0xA454FB9522631D586f3A790c6CDc6f1B70Ca903C](https://optimistic.etherscan.io/address/0xA454FB9522631D586f3A790c6CDc6f1B70Ca903C) |
 |  | World Mainnet | [0xA454FB9522631D586f3A790c6CDc6f1B70Ca903C](https://worldchain-mainnet.explorer.alchemy.com/address/0xA454FB9522631D586f3A790c6CDc6f1B70Ca903C) |
 |  | Arbitrum Mainnet | [0xA454FB9522631D586f3A790c6CDc6f1B70Ca903C](https://arbiscan.io/address/0xA454FB9522631D586f3A790c6CDc6f1B70Ca903C) |
 |  | Polygon PoS Mainnet | [0xA454FB9522631D586f3A790c6CDc6f1B70Ca903C](https://polygonscan.com/address/0xA454FB9522631D586f3A790c6CDc6f1B70Ca903C) |
-
-<!-- |  | Ethereum Mainnet | [0x635A8A01e84cDcE1475FCeB7D57FEcadD3d1a0A0](https://etherscan.io/address/0x635A8A01e84cDcE1475FCeB7D57FEcadD3d1a0A0) | -->
+|  | BSC Mainnet | [0xA454FB9522631D586f3A790c6CDc6f1B70Ca903C](https://bscscan.com/address/0xA454FB9522631D586f3A790c6CDc6f1B70Ca903C) |
 
 ### Base libraries and Automata DAO contracts
 
@@ -149,29 +155,37 @@ Our DAO implementation can be found in the [`automata_pccs`](./src/automata_pccs
 |  | Network | Address |
 | --- | --- | --- |
 | `AutomataEnclaveIdentityDao.sol` | Automata Mainnet | [0xd74e880029cd3B6b434f16beA5F53A06989458Ee](https://explorer.ata.network/address/0xd74e880029cd3B6b434f16beA5F53A06989458Ee) |
+|  | Ethereum Mainnet | [0xc3ea5Ff40263E16cD2f4413152A77e7A6b10B0C9](https://etherscan.io/address/0xc3ea5Ff40263E16cD2f4413152A77e7A6b10B0C9) |
 |  | Base Mainnet | [0xd74e880029cd3B6b434f16beA5F53A06989458Ee](https://basescan.org/address/0xd74e880029cd3B6b434f16beA5F53A06989458Ee) |
 |  | OP Mainnet | [0xd74e880029cd3B6b434f16beA5F53A06989458Ee](https://optimistic.etherscan.io/address/0xd74e880029cd3B6b434f16beA5F53A06989458Ee) |
 |  | World Mainnet | [0xd74e880029cd3B6b434f16beA5F53A06989458Ee](https://worldchain-mainnet.explorer.alchemy.com/address/0xd74e880029cd3B6b434f16beA5F53A06989458Ee) |
 |  | Arbitrum Mainnet | [0xd74e880029cd3B6b434f16beA5F53A06989458Ee](https://arbiscan.io/address/0xd74e880029cd3B6b434f16beA5F53A06989458Ee) |
 |  | Polygon PoS Mainnet | [0xd74e880029cd3B6b434f16beA5F53A06989458EeC](https://polygonscan.com/address/0xd74e880029cd3B6b434f16beA5F53A06989458Ee) |
+|  | BSC Mainnet | [0xd74e880029cd3B6b434f16beA5F53A06989458EeC](https://bscscan.com/address/0xd74e880029cd3B6b434f16beA5F53A06989458EeC) |
 | `AutomataFmspcTcbDao.sol` | Automata Mainnet | [0xd3A3f34E8615065704cCb5c304C0cEd41bB81483](https://explorer.ata.network/address/0xd3A3f34E8615065704cCb5c304C0cEd41bB81483) |
+|  | Ethereum Mainnet | [0x63eF330eAaadA189861144FCbc9176dae41A5BAf](https://etherscan.io/address/0x63eF330eAaadA189861144FCbc9176dae41A5BAf) |
 |  | Base Mainnet | [0xd3A3f34E8615065704cCb5c304C0cEd41bB81483](https://basescan.org/address/0xd3A3f34E8615065704cCb5c304C0cEd41bB81483) |
 |  | OP Mainnet | [0xd3A3f34E8615065704cCb5c304C0cEd41bB81483](https://optimistic.etherscan.io/address/0xd3A3f34E8615065704cCb5c304C0cEd41bB81483) |
 |  | World Mainnet | [0xd3A3f34E8615065704cCb5c304C0cEd41bB81483](https://worldchain-mainnet.explorer.alchemy.com/address/0xd3A3f34E8615065704cCb5c304C0cEd41bB81483) |
 |  | Arbitrum Mainnet | [0xd3A3f34E8615065704cCb5c304C0cEd41bB81483](https://arbiscan.io/address/0xd3A3f34E8615065704cCb5c304C0cEd41bB81483) |
 |  | Polygon PoS Mainnet | [0xd3A3f34E8615065704cCb5c304C0cEd41bB81483](https://polygonscan.com/address/0xd3A3f34E8615065704cCb5c304C0cEd41bB81483) |
+|  | BSC Mainnet | [0xd3A3f34E8615065704cCb5c304C0cEd41bB81483](https://bscscan.com/address/0xd3A3f34E8615065704cCb5c304C0cEd41bB81483) |
 | `AutomataPckDao.sol` | Automata Mainnet | [0xa4615C2a260413878241ff7605AD9577feB356A5](https://explorer.ata.network/address/0xa4615C2a260413878241ff7605AD9577feB356A5) |
+|  | Ethereum Mainnet | [0x75A2BafFfb2096990246F1a2dA65801Ea2A00b36](https://etherscan.io/address/0x75A2BafFfb2096990246F1a2dA65801Ea2A00b36) |
 |  | Base Mainnet | [0xa4615C2a260413878241ff7605AD9577feB356A5](https://basescan.org/address/0xa4615C2a260413878241ff7605AD9577feB356A5) |
 |  | OP Mainnet | [0xa4615C2a260413878241ff7605AD9577feB356A5](https://optimistic.etherscan.io/address/0xa4615C2a260413878241ff7605AD9577feB356A5) |
 |  | World Mainnet | [0xa4615C2a260413878241ff7605AD9577feB356A5](https://worldchain-mainnet.explorer.alchemy.com/address/0xa4615C2a260413878241ff7605AD9577feB356A5) |
 |  | Arbitrum Mainnet | [0xa4615C2a260413878241ff7605AD9577feB356A5](https://arbiscan.io/address/0xa4615C2a260413878241ff7605AD9577feB356A5) |
 |  | Polygon PoS Mainnet | [0xa4615C2a260413878241ff7605AD9577feB356A5](https://polygonscan.com/address/0xa4615C2a260413878241ff7605AD9577feB356A5) |
+|  | BSC Mainnet | [0xa4615C2a260413878241ff7605AD9577feB356A5](https://bscscan.com/address/0xa4615C2a260413878241ff7605AD9577feB356A5) |
 | `AutomataPcsDao.sol` | Automata Mainnet | [0xB270cD8550DA117E3accec36A90c4b0b48daD342](https://explorer.ata.network/address/0xB270cD8550DA117E3accec36A90c4b0b48daD342) |
+|  | Ethereum Mainnet | [0x45CF7485A0D394130153a3630EA0729999511C2e](https://etherscan.io/address/0x45CF7485A0D394130153a3630EA0729999511C2e) |
 |  | Base Mainnet | [0xB270cD8550DA117E3accec36A90c4b0b48daD342](https://basescan.org/address/0xB270cD8550DA117E3accec36A90c4b0b48daD342) |
 |  | OP Mainnet | [0xB270cD8550DA117E3accec36A90c4b0b48daD342](https://optimistic.etherscan.io/address/0xB270cD8550DA117E3accec36A90c4b0b48daD342) |
 |  | World Mainnet | [0xB270cD8550DA117E3accec36A90c4b0b48daD342](https://worldchain-mainnet.explorer.alchemy.com/address/0xB270cD8550DA117E3accec36A90c4b0b48daD342) |
 |  | Arbitrum Mainnet | [0xB270cD8550DA117E3accec36A90c4b0b48daD342](https://arbiscan.io/address/0xB270cD8550DA117E3accec36A90c4b0b48daD342) |
 |  | Polygon PoS Mainnet | [0xB270cD8550DA117E3accec36A90c4b0b48daD342](https://polygonscan.com/address/0xB270cD8550DA117E3accec36A90c4b0b48daD342) |
+|  | BSC Mainnet | [0xB270cD8550DA117E3accec36A90c4b0b48daD342](https://bscscan.com/address/0xB270cD8550DA117E3accec36A90c4b0b48daD342) |
 
 ---
 
