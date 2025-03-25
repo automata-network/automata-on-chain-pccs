@@ -10,7 +10,6 @@ pragma solidity >=0.8.0;
  * @notice Future upgrades/re-deployments of all other PCCS contracts can simply point to this Resolver
  * to retain collateral data.
  */
-
 interface IDaoAttestationResolver {
     /**
      * @param key - identifies a specific collateral. Definition varies by DAO

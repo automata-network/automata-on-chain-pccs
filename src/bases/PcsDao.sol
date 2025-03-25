@@ -48,8 +48,10 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
     error Root_Key_Mismatch();
     // 291990cd
     error Certificate_Revoked(CA ca, uint256 serialNum);
-    // dba942a2
-    error Certificate_Expired();
+    // 5f066611
+    error Certificate_Expired(CA ca);
+    // 6d8932ad
+    error Crl_Expired(CA ca);
     // 1e7ab599
     error Invalid_Issuer_Name();
     // 92ec707e
@@ -72,6 +74,15 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
         DaoBase(_resolver)
     {
         crlLib = X509CRLHelper(_crl);
+    }
+
+    function getCollateralValidity(bytes32 key)
+        external
+        view
+        override
+        returns (uint64 notValidBefore, uint64 notValidAfter)
+    {
+        (notValidBefore, notValidAfter) = _loadPcsValidity(key);
     }
 
     function PCS_KEY(CA ca, bool isCrl) public pure returns (bytes32 key) {
@@ -106,7 +117,11 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
      * @param cert the DER-encoded certificate
      */
     function upsertPcsCertificates(CA ca, bytes calldata cert) external returns (bytes32 attestationId) {
-        (bytes32 hash, bytes32 key) = _validatePcsCert(ca, cert);
+        (bytes32 hash, bytes32 key, X509CertObj memory parsedX509Cert) = _validatePcsCert(ca, cert);
+
+        // attest validity
+        _storePcsValidity(key, uint64(parsedX509Cert.validityNotBefore), uint64(parsedX509Cert.validityNotAfter));
+
         attestationId = _attestPcs(cert, hash, key);
 
         emit UpsertedPCSCollateral(ca, false);
@@ -141,34 +156,43 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
     }
 
     function _upsertPcsCrl(CA ca, bytes calldata crl) private returns (bytes32 attestationId) {
-        (bytes32 hash, bytes32 key) = _validatePcsCrl(ca, crl);
+        (bytes32 hash, bytes32 key, X509CRLObj memory currentCrl) = _validatePcsCrl(ca, crl);
+
+        // attest crl timestamp
+        _storePcsValidity(key, uint64(currentCrl.validityNotBefore), uint64(currentCrl.validityNotAfter));
+
         attestationId = _attestPcs(crl, hash, key);
 
         emit UpsertedPCSCollateral(ca, true);
     }
 
-    function _validatePcsCert(CA ca, bytes calldata cert) private view returns (bytes32 hash, bytes32 key) {
+    function _validatePcsCert(CA ca, bytes calldata cert)
+        private
+        view
+        returns (bytes32 hash, bytes32 key, X509CertObj memory currentCert)
+    {
         X509Helper x509Lib = X509Helper(x509);
-        X509CertObj memory currentCert = x509Lib.parseX509DER(cert);
+        currentCert = x509Lib.parseX509DER(cert);
+
+        key = PCS_KEY(ca, false);
+        hash = keccak256(currentCert.tbs);
+
+        // Step 0: Check whether the provided certificate has been previously attested
+        _checkCollateralDuplicate(key, hash);
 
         // Step 1: Check whether cert has expired
-        bool validTimestamp = 
-            block.timestamp > currentCert.validityNotBefore && 
-            block.timestamp < currentCert.validityNotAfter;
+        bool validTimestamp =
+            block.timestamp > currentCert.validityNotBefore && block.timestamp < currentCert.validityNotAfter;
         if (!validTimestamp) {
-            revert Certificate_Expired();
+            revert Certificate_Expired(ca);
         }
 
         // Step 2: Rollback prevention: new certificate should not have an issued date
         // that is older than the existing certificate
-        key = PCS_KEY(ca, false);
-        bytes memory existingData = _fetchDataFromResolver(key, false);
-        if (existingData.length > 0) {
-            (uint256 existingCertNotValidBefore, ) = x509Lib.getCertValidity(existingData);
-            bool outOfDate = existingCertNotValidBefore > currentCert.validityNotBefore;
-            if (outOfDate) {
-                revert Certificate_Out_Of_Date();
-            }
+        (uint64 existingCertNotValidBefore,) = _loadPcsValidity(key);
+        bool outOfDate = existingCertNotValidBefore >= currentCert.validityNotBefore;
+        if (outOfDate) {
+            revert Certificate_Out_Of_Date();
         }
 
         // Step 3: Check issuer and subject common names are valid
@@ -191,7 +215,9 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
         }
 
         // Step 4: Check Revocation Status
-        bytes memory rootCrlData = _fetchDataFromResolver(PCS_KEY(CA.ROOT, true), false);
+        bytes32 rootCrlKey = PCS_KEY(CA.ROOT, true);
+
+        bytes memory rootCrlData = _fetchDataFromResolver(rootCrlKey, false);
         if (ca == CA.ROOT) {
             bytes memory pubKey = currentCert.subjectPublicKey;
             if (keccak256(pubKey) != ROOT_CA_PUBKEY_HASH) {
@@ -206,47 +232,50 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
         }
 
         // Step 4: Check signature
-        bytes memory rootCert = _getIssuer(CA.ROOT);
         bytes32 digest = sha256(currentCert.tbs);
         bool sigVerified;
         if (ca == CA.ROOT) {
             // the root certificate is issued by its own key
             sigVerified = verifySignature(digest, currentCert.signature, cert);
-        } else if (rootCert.length > 0) {
-            sigVerified = verifySignature(digest, currentCert.signature, rootCert);
         } else {
-            // all other certificates should already have an iusuer configured
-            revert Missing_Issuer();
+            bytes memory rootCert = _getIssuer(CA.ROOT);
+            if (rootCert.length > 0) {
+                sigVerified = verifySignature(digest, currentCert.signature, rootCert);
+            } else {
+                // all other certificates should already have an iusuer configured
+                revert Missing_Issuer();
+            }
         }
 
         if (!sigVerified) {
             revert Invalid_Signature();
         }
-
-        hash = keccak256(currentCert.tbs);
     }
 
-    function _validatePcsCrl(CA ca, bytes calldata crl) private view returns (bytes32 hash, bytes32 key) {
-        X509CRLObj memory currentCrl = crlLib.parseCRLDER(crl);
-        
+    function _validatePcsCrl(CA ca, bytes calldata crl)
+        private
+        view
+        returns (bytes32 hash, bytes32 key, X509CRLObj memory currentCrl)
+    {
+        currentCrl = crlLib.parseCRLDER(crl);
+
+        key = PCS_KEY(ca, true);
+        hash = keccak256(currentCrl.tbs);
+        _checkCollateralDuplicate(key, hash);
+
         // Step 1: Check whether CRL has expired
-        bool validTimestamp = 
-            block.timestamp > currentCrl.validityNotBefore && 
-            block.timestamp < currentCrl.validityNotAfter;
+        bool validTimestamp =
+            block.timestamp > currentCrl.validityNotBefore && block.timestamp < currentCrl.validityNotAfter;
         if (!validTimestamp) {
-            revert Certificate_Expired();
+            revert Crl_Expired(ca);
         }
 
         // Step 2: Rollback prevention: new CRL should not have an issued date
         // that is older than the existing CRL
-        key = PCS_KEY(ca, true);
-        bytes memory existingData = _fetchDataFromResolver(key, false);
-        if (existingData.length > 0) {
-            (uint256 existingCrlNotValidBefore, ) = crlLib.getCrlValidity(existingData);
-            bool outOfDate = existingCrlNotValidBefore > currentCrl.validityNotBefore;
-            if (outOfDate) {
-                revert Certificate_Out_Of_Date();
-            }
+        (uint64 existingCrlNotValidBefore,) = _loadPcsValidity(key);
+        bool outOfDate = existingCrlNotValidBefore >= currentCrl.validityNotBefore;
+        if (outOfDate) {
+            revert Certificate_Out_Of_Date();
         }
 
         // Step 3: Check CRL issuer
@@ -266,17 +295,48 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
         if (!sigVerified) {
             revert Invalid_Signature();
         }
-
-        hash = keccak256(currentCrl.tbs);
     }
 
-    function _getIssuer(CA ca) private view returns (bytes memory issuerCert) {
-        if (ca == CA.PLATFORM || ca == CA.PROCESSOR) {
+    function _getIssuer(CA issuerCa) private view returns (bytes memory issuerCert) {
+        bytes32 key;
+
+        if (issuerCa == CA.PLATFORM || issuerCa == CA.PROCESSOR) {
             // this is applicable to crls only
             // since all certs in the pcsdao are issued by the root
-            issuerCert = _fetchDataFromResolver(PCS_KEY(ca, false), false);
+            key = PCS_KEY(issuerCa, false);
         } else {
-            issuerCert = _fetchDataFromResolver(PCS_KEY(CA.ROOT, false), false);
+            key = PCS_KEY(CA.ROOT, false);
+        }
+
+        // check CA issuer expiration
+        (uint64 issuerNotValidBefore, uint64 issuerNotValidAfter) = _loadPcsValidity(key);
+        if (block.timestamp < issuerNotValidBefore || block.timestamp > issuerNotValidAfter) {
+            // it is also possible that the issuer might be missing
+            // but it requires re-upserting the issuer anyway to fix the issue
+            // regardless of the error
+            revert Certificate_Expired(issuerCa);
+        }
+
+        issuerCert = _fetchDataFromResolver(key, false);
+
+        // check issuer revocation status if not root
+        if (issuerCa != CA.ROOT) {
+            bytes memory rootCrl = _fetchDataFromResolver(PCS_KEY(CA.ROOT, true), false);
+            if (rootCrl.length > 0) {
+                uint256 serialNum = X509Helper(x509).getSerialNumber(issuerCert);
+                bool revoked = crlLib.serialNumberIsRevoked(serialNum, rootCrl);
+                if (revoked) {
+                    revert Certificate_Revoked(issuerCa, serialNum);
+                }
+            }
         }
     }
+
+    function _storePcsValidity(bytes32 key, uint64 notValidBefore, uint64 notValidAfter) internal virtual;
+
+    function _loadPcsValidity(bytes32 key)
+        internal
+        view
+        virtual
+        returns (uint64 notValidBefore, uint64 notValidAfter);
 }

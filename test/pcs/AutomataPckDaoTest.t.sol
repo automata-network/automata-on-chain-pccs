@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "../pcs/PCSSetupBase.t.sol";
 import {AutomataPckDao} from "../../src/automata_pccs/AutomataPckDao.sol";
+import {DaoBase} from "../../src/bases/DaoBase.sol";
 
 contract AutomataPckDaoTest is PCSSetupBase {
     // TEMP: placeholder only, circle back on this to verify the inputs
@@ -36,6 +37,11 @@ contract AutomataPckDaoTest is PCSSetupBase {
     function testGetPlatformTcb() public readAsAuthorizedCaller {
         string memory fetchedTcbm = pck.getPlatformTcbByIdAndSvns(qeid, pceid, cpusvn, pcesvn);
         assertEq(keccak256(bytes(fetchedTcbm)), keccak256(bytes(tcbm)));
+    }
+
+    function testDuplicatePckUpsert() public {
+        vm.expectRevert(abi.encodeWithSelector(DaoBase.Duplicate_Collateral.selector));
+        pck.upsertPckCert(CA.PLATFORM, qeid, pceid, tcbm, pckDer);
     }
 
     function testPckIssuerChain() public readAsAuthorizedCaller {

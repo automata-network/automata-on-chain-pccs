@@ -10,7 +10,8 @@ import {DaoBase} from "./DaoBase.sol";
 import {SigVerifyBase} from "./SigVerifyBase.sol";
 import {PcsDao} from "./PcsDao.sol";
 
-/// @notice The on-chain schema for Identity.json is stored as ABI-encoded tuple of (EnclaveIdentityHelper.IdentityObj, string, bytes)
+/// @notice The on-chain schema for Identity.json is to store as ABI-encoded tuple of (EnclaveIdentityHelper.IdentityObj, EnclaveIdentityHelper.EnclaveIdentityJsonObj)
+/// @notice In other words, the tuple simply consists of the collateral in both parsed and string forms.
 /// @notice see {{ EnclaveIdentityHelper.IdentityObj }} for struct definition
 
 /**
@@ -23,6 +24,7 @@ import {PcsDao} from "./PcsDao.sol";
 abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     PcsDao public Pcs;
     EnclaveIdentityHelper public EnclaveIdentityLib;
+    address public crlLibAddr;
 
     // first 4 bytes of keccak256("ENCLAVE_ID_MAGIC")
     bytes4 constant ENCLAVE_ID_MAGIC = 0xff818fce;
@@ -31,6 +33,12 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     error Enclave_Id_Mismatch();
     // 4e0f5696
     error Incorrect_Enclave_Id_Version();
+    // 841a0280
+    error Missing_TCB_Cert();
+    // ea8cd522
+    error TCB_Cert_Expired();
+    // 7fb57a7a
+    error TCB_Cert_Revoked(uint256 serialNum);
     // 8de7233f
     error Invalid_TCB_Cert_Signature();
     // 9ac04499
@@ -40,12 +48,30 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
 
     event UpsertedEnclaveIdentity(uint256 indexed id, uint256 indexed version);
 
-    constructor(address _resolver, address _p256, address _pcs, address _enclaveIdentityHelper, address _x509Helper)
-        DaoBase(_resolver)
-        SigVerifyBase(_p256, _x509Helper)
-    {
+    constructor(
+        address _resolver,
+        address _p256,
+        address _pcs,
+        address _enclaveIdentityHelper,
+        address _x509Helper,
+        address _crlLib
+    ) DaoBase(_resolver) SigVerifyBase(_p256, _x509Helper) {
         Pcs = PcsDao(_pcs);
         EnclaveIdentityLib = EnclaveIdentityHelper(_enclaveIdentityHelper);
+        crlLibAddr = _crlLib;
+    }
+
+    function getCollateralValidity(bytes32 key)
+        external
+        view
+        override
+        returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp)
+    {
+        (issueDateTimestamp, nextUpdateTimestamp,) = _loadEnclaveIdentityIssueEvaluation(key);
+    }
+
+    function getIdentityContentHash(bytes32 key) external view returns (bytes32) {
+        return _loadIdentityContentHash(key);
     }
 
     /**
@@ -64,7 +90,8 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
      * @param id 0: QE; 1: QVE; 2: TD_QE
      * https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/39989a42bbbb0c968153a47254b6de79a27eb603/QuoteVerification/QVL/Src/AttestationLibrary/src/Verifiers/EnclaveIdentityV2.h#L49-L52
      * @param version the input version parameter (v3 or v4)
-     * @return enclaveIdObj See {EnclaveIdentityHelper.sol} to learn more about the structure definition
+     * @return enclaveIdObj - consisting of the Identity JSON string and the signature.
+     *  See {EnclaveIdentityHelper.sol} to learn more about the structure definition
      */
     function getEnclaveIdentity(uint256 id, uint256 version)
         external
@@ -73,8 +100,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     {
         bytes memory attestedIdentityData = _onFetchDataFromResolver(ENCLAVE_ID_KEY(id, version), false);
         if (attestedIdentityData.length > 0) {
-            (, enclaveIdObj.identityStr, enclaveIdObj.signature) =
-                abi.decode(attestedIdentityData, (IdentityObj, string, bytes));
+            (, enclaveIdObj) = abi.decode(attestedIdentityData, (IdentityObj, EnclaveIdentityJsonObj));
         }
     }
 
@@ -83,16 +109,24 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
      * @param id 0: QE; 1: QVE; 2: TD_QE
      * https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/39989a42bbbb0c968153a47254b6de79a27eb603/QuoteVerification/QVL/Src/AttestationLibrary/src/Verifiers/EnclaveIdentityV2.h#L49-L52
      * @param version the input version parameter (v3 or v4)
-     * @param enclaveIdentityObj See {EnclaveIdentityHelper.sol} to learn more about the structure definition
+     * @param enclaveIdentityObj enclaveIdObj - consisting of the Identity JSON string and the signature.
+     * See {EnclaveIdentityHelper.sol} to learn more about the structure definition
      */
     function upsertEnclaveIdentity(uint256 id, uint256 version, EnclaveIdentityJsonObj calldata enclaveIdentityObj)
         external
         returns (bytes32 attestationId)
     {
-        _validateQeIdentity(enclaveIdentityObj);
-        (bytes32 key, bytes memory req) = _buildEnclaveIdentityAttestationRequest(id, version, enclaveIdentityObj);
+        bytes32 key = ENCLAVE_ID_KEY(id, version);
         bytes32 hash = sha256(bytes(enclaveIdentityObj.identityStr));
+
+        _checkCollateralDuplicate(key, hash);
+
+        _validateQeIdentity(enclaveIdentityObj, hash);
+        (bytes memory req, bytes32 identityContentHash) =
+            _buildEnclaveIdentityAttestationRequest(id, version, key, enclaveIdentityObj);
         attestationId = _attestEnclaveIdentity(req, hash, key);
+
+        _storeIdentityContentHash(key, identityContentHash);
 
         emit UpsertedEnclaveIdentity(id, version);
     }
@@ -120,54 +154,114 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     }
 
     /**
-     * @notice constructs the Identity.json attestation data
+     * @notice constructs the EnclaveIdentityHelper.IdentityObj attestation data
      */
     function _buildEnclaveIdentityAttestationRequest(
         uint256 id,
         uint256 version,
+        bytes32 key,
         EnclaveIdentityJsonObj calldata enclaveIdentityObj
-    ) private view returns (bytes32 key, bytes memory reqData) {
-        IdentityObj memory identity = EnclaveIdentityLib.parseIdentityString(enclaveIdentityObj.identityStr);
+    ) private returns (bytes memory reqData, bytes32 identityContentHash) {
+        (IdentityObj memory identity, string memory identityTcbString) =
+            EnclaveIdentityLib.parseIdentityString(enclaveIdentityObj.identityStr);
         if (id != uint256(identity.id)) {
             revert Enclave_Id_Mismatch();
         }
 
         if (id == uint256(EnclaveId.TD_QE) && version != 4 && version != 5) {
             revert Incorrect_Enclave_Id_Version();
-        } 
+        }
 
         if (block.timestamp < identity.issueDateTimestamp || block.timestamp > identity.nextUpdateTimestamp) {
             revert Enclave_Id_Expired();
         }
 
         // make sure new collateral is "newer"
-        key = ENCLAVE_ID_KEY(id, version);
-        bytes memory existingData = _onFetchDataFromResolver(key, false);
-        if (existingData.length > 0) {
-            (IdentityObj memory existingIdentity, , ) =
-                abi.decode(existingData, (IdentityObj, string, bytes));
-            bool outOfDate = existingIdentity.tcbEvaluationDataNumber > identity.tcbEvaluationDataNumber ||
-                existingIdentity.issueDateTimestamp > identity.issueDateTimestamp;
-            if (outOfDate) {
-                revert Enclave_Id_Out_Of_Date();
-            }
+        (uint64 existingIssueDateTimestamp,, uint64 existingEvaluationDataNumber) =
+            _loadEnclaveIdentityIssueEvaluation(key);
+        bool outOfDate = existingEvaluationDataNumber > identity.tcbEvaluationDataNumber
+            || existingIssueDateTimestamp >= identity.issueDateTimestamp;
+        if (outOfDate) {
+            revert Enclave_Id_Out_Of_Date();
         }
 
-        reqData = abi.encode(identity, enclaveIdentityObj.identityStr, enclaveIdentityObj.signature);
+        // attest timestamp
+        _storeEnclaveIdentityIssueEvaluation(
+            key, identity.issueDateTimestamp, identity.nextUpdateTimestamp, identity.tcbEvaluationDataNumber
+        );
+
+        reqData = abi.encode(identity, enclaveIdentityObj);
+        identityContentHash = EnclaveIdentityLib.getIdentityContentHash(identity, identityTcbString);
     }
 
     /**
      * @notice validates IdentityString is signed by Intel TCB Signing Cert
      */
-    function _validateQeIdentity(EnclaveIdentityJsonObj calldata enclaveIdentityObj) private view {
-        bytes memory signingDer = _fetchDataFromResolver(Pcs.PCS_KEY(CA.SIGNING, false), false);
+    function _validateQeIdentity(EnclaveIdentityJsonObj calldata enclaveIdentityObj, bytes32 hash) private view {
+        // check issuer expiration
+        bytes32 issuerKey = Pcs.PCS_KEY(CA.SIGNING, false);
+        (uint256 issuerNotValidBefore, uint256 issuerNotValidAfter) = Pcs.getCollateralValidity(issuerKey);
+        if (block.timestamp < issuerNotValidBefore || block.timestamp > issuerNotValidAfter) {
+            revert TCB_Cert_Expired();
+        }
 
-        // Validate signature
-        bool sigVerified =
-            verifySignature(sha256(bytes(enclaveIdentityObj.identityStr)), enclaveIdentityObj.signature, signingDer);
+        bytes memory signingDer = _fetchDataFromResolver(issuerKey, false);
+        if (signingDer.length > 0) {
+            bytes memory rootCrl = _fetchDataFromResolver(Pcs.PCS_KEY(CA.ROOT, true), false);
+            if (rootCrl.length > 0) {
+                // check revocation
+                (, bytes memory serialNumberData) = x509.staticcall(
+                    abi.encodeWithSelector(
+                        0xb29b51cb, // X509Helper.getSerialNumber(bytes)
+                        signingDer
+                    )
+                );
+                uint256 serialNumber = abi.decode(serialNumberData, (uint256));
+                (, bytes memory serialNumberRevokedData) = crlLibAddr.staticcall(
+                    abi.encodeWithSelector(
+                        0xcedb9781, // X508CRLHelper.serialNumberIsRevoked(uint256,bytes)
+                        serialNumber,
+                        rootCrl
+                    )
+                );
+                bool revoked = abi.decode(serialNumberRevokedData, (bool));
+                if (revoked) {
+                    revert TCB_Cert_Revoked(serialNumber);
+                }
+            }
 
-        if (!sigVerified) {
-            revert Invalid_TCB_Cert_Signature();
+            // Validate signature
+            bool sigVerified = verifySignature(hash, enclaveIdentityObj.signature, signingDer);
+            if (!sigVerified) {
+                revert Invalid_TCB_Cert_Signature();
+            }
+        } else {
+            revert Missing_TCB_Cert();
         }
     }
+
+    /// @dev for the time being, we will require a method to "cache" the issuance timestamp
+    /// @dev and the evaluation data number
+    /// @dev this reduces the amount of data to read, when performing rollback check
+    /// @dev which also allows any caller to check expiration of the Enclave Identity before loading the entire data
+    /// @dev the functions defined below can be overriden by the inheriting contract
+
+    function _storeEnclaveIdentityIssueEvaluation(
+        bytes32 tcbKey,
+        uint64 issueDateTimestamp,
+        uint64 nextUpdateTimestamp,
+        uint32 evaluationDataNumber
+    ) internal virtual;
+
+    function _loadEnclaveIdentityIssueEvaluation(bytes32 tcbKey)
+        internal
+        view
+        virtual
+        returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber);
+
+    /// @dev store time-insensitive content hash
+
+    function _storeIdentityContentHash(bytes32 identityKey, bytes32 contentHash) internal virtual;
+
+    function _loadIdentityContentHash(bytes32 identityKey) internal view virtual returns (bytes32 contentHash);
 }

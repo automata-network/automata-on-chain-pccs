@@ -15,4 +15,29 @@ contract AutomataPcsDao is AutomataDaoBase, PcsDao {
     {
         data = super._onFetchDataFromResolver(key, hash);
     }
+
+    function _storePcsValidity(bytes32 key, uint64 notValidBefore, uint64 notValidAfter) internal override {
+        bytes32 pcsValidityKey = _computePcsValidityKey(key);
+        uint256 slot = (uint256(notValidBefore) << 64) | notValidAfter;
+        resolver.attest(pcsValidityKey, abi.encode(slot), bytes32(0));
+    }
+
+    function _loadPcsValidity(bytes32 key)
+        internal
+        view
+        override
+        returns (uint64 notValidBefore, uint64 notValidAfter)
+    {
+        bytes32 pcsValidityKey = _computePcsValidityKey(key);
+        bytes memory data = _fetchDataFromResolver(pcsValidityKey, false);
+        if (data.length > 0) {
+            (uint256 slot) = abi.decode(data, (uint256));
+            notValidBefore = uint64(slot >> 64);
+            notValidAfter = uint64(slot);
+        }
+    }
+
+    function _computePcsValidityKey(bytes32 key) private pure returns (bytes32 ret) {
+        ret = keccak256(abi.encodePacked(key, "pcsValidity"));
+    }
 }

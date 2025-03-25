@@ -5,12 +5,11 @@ import {X509Helper, X509CertObj, Asn1Decode, NodePtr, BytesUtils} from "./X509He
 
 /**
  * @title PCK X509 Certificate Parser
- * @notice This is an extension of the X509Helper library, 
+ * @notice This is an extension of the X509Helper library,
  * that parses the SGX Extension ASN.1 sequence as an add-on.
- * @dev This is the default library to be used as a X509 Certificate parser, 
+ * @dev This is the default library to be used as a X509 Certificate parser,
  * for all Intel DCAP-related contracts.
  */
-
 contract PCKHelper is X509Helper {
     using Asn1Decode for bytes;
     using NodePtr for uint256;

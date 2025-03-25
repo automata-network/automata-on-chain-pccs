@@ -10,11 +10,11 @@ import {DateTimeUtils} from "../utils/DateTimeUtils.sol";
  * @notice This is a simplified structure of a DER-decoded X509 CRL
  */
 struct X509CRLObj {
-    uint256 serialNumber;
     string issuerCommonName;
     uint256 validityNotBefore;
     uint256 validityNotAfter;
     uint256[] serialNumbersRevoked;
+    bytes authorityKeyIdentifier;
     // for signature verification in the cert chain
     bytes signature;
     bytes tbs;
@@ -31,8 +31,12 @@ contract X509CRLHelper {
     using NodePtr for uint256;
     using BytesUtils for bytes;
 
+    // 2.5.4.3
+    bytes constant COMMON_NAME_OID = hex"550403";
     // 2.5.29.20
     bytes constant CRL_NUMBER_OID = hex"551d14";
+    // 2.5.29.35
+    bytes constant AUTHORITY_KEY_IDENTIFIER_OID = hex"551D23";
 
     /// =================================================================================
     /// USE THE GETTERS BELOW IF YOU DON'T WANT TO PARSE THE ENTIRE X509 CRL
@@ -48,23 +52,20 @@ contract X509CRLHelper {
         sig = _getSignature(der, sigPtr);
     }
 
-    function getSerialNumber(bytes calldata der) external pure returns (uint256 serialNum) {
-        uint256 root = der.root();
-        uint256 tbsParentPtr = der.firstChildOf(root);
-        uint256 tbsPtr = der.firstChildOf(tbsParentPtr);
-        serialNum = _parseSerialNumber(der.bytesAt(tbsPtr));
-    }
-
     function getIssuerCommonName(bytes calldata der) external pure returns (string memory issuerCommonName) {
         uint256 root = der.root();
         uint256 tbsParentPtr = der.firstChildOf(root);
         uint256 tbsPtr = der.firstChildOf(tbsParentPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
-        issuerCommonName = _getCommonName(der, der.firstChildOf(tbsPtr));
+        issuerCommonName = _getCommonName(der, tbsPtr);
     }
 
-    function getCrlValidity(bytes calldata der) external pure returns (uint256 validityNotBefore, uint256 validityNotAfter) {
+    function getCrlValidity(bytes calldata der)
+        external
+        pure
+        returns (uint256 validityNotBefore, uint256 validityNotAfter)
+    {
         uint256 root = der.root();
         uint256 tbsParentPtr = der.firstChildOf(root);
         uint256 tbsPtr = der.firstChildOf(tbsParentPtr);
@@ -83,8 +84,20 @@ contract X509CRLHelper {
         tbsPtr = der.nextSiblingOf(tbsPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
-        uint256[] memory ret = _getRevokedSerialNumbers(der, tbsPtr, true, serialNumber);
-        revoked = ret[0] == serialNumber;
+        if (bytes1(der[tbsPtr.ixs()]) == 0x30) {
+            uint256[] memory ret = _getRevokedSerialNumbers(der, tbsPtr, true, serialNumber);
+            revoked = ret[0] == serialNumber;
+        }
+    }
+
+    /// @dev according to RFC 5280, the Authority Key Identifier is mandatory for CA certificates
+    /// @dev if not present, this method returns 0x00
+    function getAuthorityKeyIdentifier(bytes calldata der) external pure returns (bytes memory akid) {
+        uint256 extensionPtr = _getExtensionPtr(der);
+        uint256 extnValuePtr = _findExtensionValuePtr(der, extensionPtr, AUTHORITY_KEY_IDENTIFIER_OID);
+        if (extnValuePtr != 0) {
+            akid = _getAuthorityKeyIdentifier(der, extnValuePtr);
+        }
     }
 
     /// x509 CRL generally contain a sequence of elements in the following order:
@@ -114,12 +127,10 @@ contract X509CRLHelper {
 
         uint256 tbsPtr = der.firstChildOf(tbsParentPtr);
 
-        crl.serialNumber = uint256(bytes32(der.bytesAt(tbsPtr)));
-
         tbsPtr = der.nextSiblingOf(tbsPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
 
-        crl.issuerCommonName = _getCommonName(der, der.firstChildOf(tbsPtr));
+        crl.issuerCommonName = _getCommonName(der, tbsPtr);
 
         tbsPtr = der.nextSiblingOf(tbsPtr);
         (crl.validityNotBefore, crl.validityNotAfter) = _getValidity(der, tbsPtr);
@@ -127,7 +138,20 @@ contract X509CRLHelper {
         tbsPtr = der.nextSiblingOf(tbsPtr);
         tbsPtr = der.nextSiblingOf(tbsPtr);
 
-        crl.serialNumbersRevoked = _getRevokedSerialNumbers(der, tbsPtr, false, 0);
+        if (bytes1(der[tbsPtr.ixs()]) == 0x30) {
+            // the revoked certificates field is present
+            crl.serialNumbersRevoked = _getRevokedSerialNumbers(der, tbsPtr, false, 0);
+            tbsPtr = der.nextSiblingOf(tbsPtr);
+        }
+
+        if (bytes1(der[tbsPtr.ixs()]) == 0xA0) {
+            uint256 authorityKeyIdentifierPtr = _findExtensionValuePtr(der, tbsPtr, AUTHORITY_KEY_IDENTIFIER_OID);
+            if (authorityKeyIdentifierPtr != 0) {
+                crl.authorityKeyIdentifier = _getAuthorityKeyIdentifier(der, authorityKeyIdentifierPtr);
+            }
+        } else {
+            revert("Extension is missing");
+        }
 
         // tbs iteration completed
         // now we just need to look for the signature
@@ -137,15 +161,37 @@ contract X509CRLHelper {
         crl.signature = _getSignature(der, sigPtr);
     }
 
-    function _getCommonName(bytes calldata der, uint256 commonNameParentPtr)
-        private
-        pure
-        returns (string memory commonName)
-    {
-        commonNameParentPtr = der.firstChildOf(commonNameParentPtr);
-        commonNameParentPtr = der.firstChildOf(commonNameParentPtr);
-        commonNameParentPtr = der.nextSiblingOf(commonNameParentPtr);
-        commonName = string(der.bytesAt(commonNameParentPtr));
+    function _getCommonName(bytes calldata der, uint256 rdnParentPtr) private pure returns (string memory) {
+        // All we are doing here is iterating through a sequence of
+        // one or many RelativeDistinguishedName (RDN) sets
+        // which consists of one or many AttributeTypeAndValue sequences
+        // we are only interested in the sequence with the CommonName type
+
+        uint256 rdnPtr = der.firstChildOf(rdnParentPtr);
+        bool commonNameFound = false;
+        while (rdnPtr != 0) {
+            uint256 sequencePtr = der.firstChildOf(rdnPtr);
+            while (sequencePtr.ixl() <= rdnPtr.ixl()) {
+                uint256 oidPtr = der.firstChildOf(sequencePtr);
+                if (BytesUtils.compareBytes(der.bytesAt(oidPtr), COMMON_NAME_OID)) {
+                    commonNameFound = true;
+                    return string(der.bytesAt(der.nextSiblingOf(oidPtr)));
+                } else if (sequencePtr.ixl() == rdnPtr.ixl()) {
+                    break;
+                } else {
+                    sequencePtr = der.nextSiblingOf(sequencePtr);
+                }
+            }
+            if (rdnPtr.ixl() < rdnParentPtr.ixl()) {
+                rdnPtr = der.nextSiblingOf(rdnPtr);
+            } else {
+                rdnPtr = 0;
+            }
+        }
+
+        if (!commonNameFound) {
+            revert("Missing common name");
+        }
     }
 
     function _getValidity(bytes calldata der, uint256 validityPtr)
@@ -165,30 +211,24 @@ contract X509CRLHelper {
         returns (uint256[] memory serialNumbers)
     {
         uint256 revokedPtr = der.firstChildOf(revokedParentPtr);
-
-        if (der[revokedPtr.ixs()] == 0xA0) {
-            uint256 crlExtensionPtr = der.firstChildOf(revokedPtr);
-            require(BytesUtils.compareBytes(der.bytesAt(crlExtensionPtr), CRL_NUMBER_OID), "invalid CRL");
-        } else {
-            bytes memory serials;
-            while (revokedPtr.ixl() <= revokedParentPtr.ixl()) {
-                uint256 serialPtr = der.firstChildOf(revokedPtr);
-                bytes memory serialBytes = der.bytesAt(serialPtr);
-                uint256 serialNumber = _parseSerialNumber(serialBytes);
-                serials = abi.encodePacked(serials, serialNumber);
-                if (breakIfFound && filter == serialNumber) {
-                    serialNumbers = new uint256[](1);
-                    serialNumbers[0] = filter;
-                    return serialNumbers;
-                }
-                revokedPtr = der.nextSiblingOf(revokedPtr);
+        bytes memory serials;
+        while (revokedPtr.ixl() <= revokedParentPtr.ixl()) {
+            uint256 serialPtr = der.firstChildOf(revokedPtr);
+            bytes memory serialBytes = der.bytesAt(serialPtr);
+            uint256 serialNumber = _parseSerialNumber(serialBytes);
+            serials = abi.encodePacked(serials, serialNumber);
+            if (breakIfFound && filter == serialNumber) {
+                serialNumbers = new uint256[](1);
+                serialNumbers[0] = filter;
+                return serialNumbers;
             }
-            uint256 count = serials.length / 32;
-            // ABI encoding format for a dynamic uint256[] value
-            serials = abi.encodePacked(abi.encode(0x20), abi.encode(count), serials);
-            serialNumbers = new uint256[](count);
-            serialNumbers = abi.decode(serials, (uint256[]));
+            revokedPtr = der.nextSiblingOf(revokedPtr);
         }
+        uint256 count = serials.length / 32;
+        // ABI encoding format for a dynamic uint256[] value
+        serials = abi.encodePacked(abi.encode(0x20), abi.encode(count), serials);
+        serialNumbers = new uint256[](count);
+        serialNumbers = abi.decode(serials, (uint256[]));
     }
 
     function _parseSerialNumber(bytes memory serialBytes) private pure returns (uint256 serial) {
@@ -208,6 +248,38 @@ contract X509CRLHelper {
         sig = abi.encodePacked(r, s);
     }
 
+    function _getAuthorityKeyIdentifier(bytes calldata der, uint256 extnValuePtr)
+        private
+        pure
+        returns (bytes memory akid)
+    {
+        bytes memory extValue = der.bytesAt(extnValuePtr);
+
+        // The AUTHORITY_KEY_IDENTIFIER consists of a SEQUENCE with the following elements
+        // [0] - keyIdentifier (ESSENTIAL, but OPTIONAL as per RFC 5280)
+        // [1] - authorityCertIssuer (OPTIONAL as per RFC 5280)
+        // [2] - authorityCertSerialNumber (OPTIONAL as per RFC 5280)
+        // since we are interested in only the key identifier
+        // we iterate through the sequence until we find a tag matches with [0]
+
+        uint256 parentPtr = extValue.root();
+        uint256 ptr = extValue.firstChildOf(parentPtr);
+        bytes1 contextTag = 0x80;
+        while (true) {
+            bytes1 tag = bytes1(extValue[ptr.ixs()]);
+            if (tag == contextTag) {
+                akid = extValue.bytesAt(ptr);
+                break;
+            }
+
+            if (ptr.ixl() < parentPtr.ixl()) {
+                ptr = extValue.nextSiblingOf(ptr);
+            } else {
+                break;
+            }
+        }
+    }
+
     /// @dev remove unnecessary prefix from the input
     function _trimBytes(bytes memory input, uint256 expectedLength) private pure returns (bytes memory output) {
         uint256 n = input.length;
@@ -223,5 +295,51 @@ contract X509CRLHelper {
             uint256 lengthDiff = n - expectedLength;
             output = input.substring(lengthDiff, expectedLength);
         }
+    }
+
+    function _getExtensionPtr(bytes calldata der) private pure returns (uint256 extensionPtr) {
+        uint256 root = der.root();
+        uint256 tbsParentPtr = der.firstChildOf(root);
+        extensionPtr = der.firstChildOf(tbsParentPtr);
+        // iterate through the sequence until we find the extension tag (0xA3)
+        while (extensionPtr.ixl() <= tbsParentPtr.ixl()) {
+            bytes1 tag = bytes1(der[extensionPtr.ixs()]);
+            if (tag == 0xA0) {
+                return extensionPtr;
+            } else {
+                if (extensionPtr.ixl() == tbsParentPtr.ixl()) {
+                    revert("Extension is missing");
+                } else {
+                    extensionPtr = der.nextSiblingOf(extensionPtr);
+                }
+            }
+        }
+    }
+
+    function _findExtensionValuePtr(bytes calldata der, uint256 extensionPtr, bytes memory oid)
+        private
+        pure
+        returns (uint256)
+    {
+        uint256 parentPtr = der.firstChildOf(extensionPtr);
+        uint256 ptr = der.firstChildOf(parentPtr);
+
+        while (ptr != 0) {
+            uint256 oidPtr = der.firstChildOf(ptr);
+            if (der[oidPtr.ixs()] != 0x06) {
+                revert("Missing OID");
+            }
+            if (BytesUtils.compareBytes(der.bytesAt(oidPtr), oid)) {
+                return der.nextSiblingOf(oidPtr);
+            }
+
+            if (ptr.ixl() < parentPtr.ixl()) {
+                ptr = der.nextSiblingOf(ptr);
+            } else {
+                ptr = 0;
+            }
+        }
+
+        return 0; // not found
     }
 }
