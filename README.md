@@ -19,11 +19,9 @@ On-chain PCCS provides an open and permissionless service where users can freely
 
 ## Contracts
 
-> ℹ️ **Note**: 
+> ℹ️ **UPDATE (March 2025)**： The EVM contracts for both Automata On Chain PCCS and [Automata DCAP Attestation](https://github.com/automata-network/automata-dcap-attestation) have been fully audited by Trail of Bits. 
 >
-> The deployment addresses shown here are currently based on the latest [changes](https://github.com/automata-network/automata-on-chain-pccs/pull/9) made.
->
-> To view deployments on the previous version (will be deprecated soon), you may refer to this [branch](https://github.com/automata-network/automata-on-chain-pccs/tree/v0).
+> Click [here](https://github.com/trailofbits/publications/blob/master/reviews/2025-02-automata-dcap-attestation-onchain-pccs-securityreview.pdf) to view the audit report.
 
 There are two sets of contracts, i.e. the **Helper** and **Base**.
 
