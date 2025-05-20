@@ -79,33 +79,53 @@ verify-helpers: check_env
 		fi \
 	done
 
-verify-dao: check_env
+verify-dao: check_env get_owner
 	@echo "Verifying DAO contracts..."
 	@if [ ! -f deployment/$(CHAIN_ID).json ]; then \
 		echo "DAO addresses not found. Deploy DAOs first."; \
 		exit 1; \
 	fi
-	@for contract in AutomataDaoStorage AutomataPcsDao AutomataPckDao AutomataEnclaveIdentityDao AutomataFmspcTcbDao; do \
-		addr=$$(jq -r ".$$contract" deployment/$(CHAIN_ID).json); \
-		if [ "$$addr" != "null" ]; then \
-			if [ "$$contract" != "AutomataDaoStorage" ]; then \
-				forge verify-contract \
-					--rpc-url $(RPC_URL) \
-					--verifier $(VERIFIER) \
-					--watch \
-					$(if $(VERIFIER_URL),--verifier-url $(VERIFIER_URL)) \
-					$$addr \
-					src/automata_pccs/$$contract.sol:$$contract || true; \
-			else \
-				forge verify-contract \
-					--rpc-url $(RPC_URL) \
-					--verifier $(VERIFIER) \
-					--watch \
-					$(if $(VERIFIER_URL),--verifier-url $(VERIFIER_URL)) \
-					$$addr \
-					src/automata_pccs/shared/AutomataDaoStorage.sol:AutomataDaoStorage || true; \
-			fi \
-		fi \
+	@echo "Determining P256 Verifier address..."
+	@P256_ADDRESS_VAL=$$(forge script script/utils/P256Configuration.sol:P256Configuration --rpc-url $(RPC_URL) --sig "simulateVerify()" -vv | awk '/P256Verifier address:/ { print $$NF; exit }'); \
+	echo "Using P256 Verifier address: $$P256_ADDRESS_VAL"; \
+	STORAGE_ADDR=$$(jq -r ".AutomataDaoStorage" deployment/$(CHAIN_ID).json); \
+	X509_HELPER_ADDR=$$(jq -r ".PCKHelper" deployment/$(CHAIN_ID).json); \
+	CRL_HELPER_ADDR=$$(jq -r ".X509CRLHelper" deployment/$(CHAIN_ID).json); \
+	PCS_DAO_ADDR=$$(jq -r ".AutomataPcsDao" deployment/$(CHAIN_ID).json); \
+	ENCLAVE_IDENTITY_HELPER_ADDR=$$(jq -r ".EnclaveIdentityHelper" deployment/$(CHAIN_ID).json); \
+	FMSPC_TCB_HELPER_ADDR=$$(jq -r ".FmspcTcbHelper" deployment/$(CHAIN_ID).json); \
+	for contract_name_loop in AutomataDaoStorage AutomataPcsDao AutomataPckDao AutomataEnclaveIdentityDao AutomataFmspcTcbDao; do \
+		contract_addr=$$(jq -r ".$$contract_name_loop" deployment/$(CHAIN_ID).json); \
+		current_encoded_args=""; \
+		current_contract_path_name=""; \
+		if [ "$$contract_addr" != "null" ]; then \
+			echo "Preparing to verify $$contract_name_loop at $$contract_addr..."; \
+			if [ "$$contract_name_loop" = "AutomataDaoStorage" ]; then \
+				current_encoded_args=$$(cast abi-encode "constructor(address)" $(OWNER)); \
+				current_contract_path_name="src/automata_pccs/shared/AutomataDaoStorage.sol:AutomataDaoStorage"; \
+			elif [ "$$contract_name_loop" = "AutomataPcsDao" ]; then \
+				current_encoded_args=$$(cast abi-encode "constructor(address,address,address,address)" $$STORAGE_ADDR $$P256_ADDRESS_VAL $$X509_HELPER_ADDR $$CRL_HELPER_ADDR); \
+				current_contract_path_name="src/automata_pccs/AutomataPcsDao.sol:AutomataPcsDao"; \
+			elif [ "$$contract_name_loop" = "AutomataPckDao" ]; then \
+				current_encoded_args=$$(cast abi-encode "constructor(address,address,address,address,address)" $$STORAGE_ADDR $$P256_ADDRESS_VAL $$PCS_DAO_ADDR $$X509_HELPER_ADDR $$CRL_HELPER_ADDR); \
+				current_contract_path_name="src/automata_pccs/AutomataPckDao.sol:AutomataPckDao"; \
+			elif [ "$$contract_name_loop" = "AutomataEnclaveIdentityDao" ]; then \
+				current_encoded_args=$$(cast abi-encode "constructor(address,address,address,address,address,address)" $$STORAGE_ADDR $$P256_ADDRESS_VAL $$PCS_DAO_ADDR $$ENCLAVE_IDENTITY_HELPER_ADDR $$X509_HELPER_ADDR $$CRL_HELPER_ADDR); \
+				current_contract_path_name="src/automata_pccs/AutomataEnclaveIdentityDao.sol:AutomataEnclaveIdentityDao"; \
+			elif [ "$$contract_name_loop" = "AutomataFmspcTcbDao" ]; then \
+				current_encoded_args=$$(cast abi-encode "constructor(address,address,address,address,address,address)" $$STORAGE_ADDR $$P256_ADDRESS_VAL $$PCS_DAO_ADDR $$FMSPC_TCB_HELPER_ADDR $$X509_HELPER_ADDR $$CRL_HELPER_ADDR); \
+				current_contract_path_name="src/automata_pccs/AutomataFmspcTcbDao.sol:AutomataFmspcTcbDao"; \
+			fi; \
+			echo "Verifying $$contract_name_loop with encoded args: $$current_encoded_args"; \
+			forge verify-contract \
+				--rpc-url $(RPC_URL) \
+				--verifier $(VERIFIER) \
+				--watch \
+				$(if $(VERIFIER_URL),--verifier-url $(VERIFIER_URL)) \
+				$$contract_addr \
+				$$current_contract_path_name \
+				--constructor-args $$current_encoded_args || true; \
+		fi; \
 	done
 
 verify-all: verify-helpers verify-dao
