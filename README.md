@@ -143,10 +143,10 @@ Our DAO implementation can be found in the [`automata_pccs`](./src/automata_pccs
 |  | Arbitrum Sepolia | [0xd74e880029cd3B6b434f16beA5F53A06989458Ee](https://sepolia.arbiscan.io/address/0xd74e880029cd3B6b434f16beA5F53A06989458Ee) |
 |  | World Sepolia | [0xd74e880029cd3B6b434f16beA5F53A06989458Ee](https://worldchain-sepolia.explorer.alchemy.com/address/0xd74e880029cd3B6b434f16beA5F53A06989458Ee) |
 |  | Avalanche C-Chain Fuji | [0xc3ea5Ff40263E16cD2f4413152A77e7A6b10B0C9](https://subnets-test.avax.network/c-chain/address/0xc3ea5Ff40263E16cD2f4413152A77e7A6b10B0C9) |
-|  | BSC Testnet | [0xd74e880029cd3B6b434f16beA5F53A06989458E](https://testnet.bscscan.com/address/0xd74e880029cd3B6b434f16beA5F53A06989458E) |
-|  | Polygon Amoy | [0xd74e880029cd3B6b434f16beA5F53A06989458E](https://amoy.polygonscan.com/address/0xd74e880029cd3B6b434f16beA5F53A06989458E) |
+|  | BSC Testnet | [0xd74e880029cd3B6b434f16beA5F53A06989458Ee](https://testnet.bscscan.com/address/0xd74e880029cd3B6b434f16beA5F53A06989458Ee) |
+|  | Polygon Amoy | [0xd74e880029cd3B6b434f16beA5F53A06989458Ee](https://amoy.polygonscan.com/address/0xd74e880029cd3B6b434f16beA5F53A06989458Ee) |
 |  | Hoodi Testnet | [0xc3ea5Ff40263E16cD2f4413152A77e7A6b10B0C9](https://hoodi.etherscan.io/address/0xc3ea5Ff40263E16cD2f4413152A77e7A6b10B0C9) |
-|  | Unichain Sepolia | [0xd74e880029cd3B6b434f16beA5F53A06989458E](https://sepolia.uniscan.xyz/address/0xd74e880029cd3B6b434f16beA5F53A06989458E) |
+|  | Unichain Sepolia | [0xd74e880029cd3B6b434f16beA5F53A06989458Ee](https://sepolia.uniscan.xyz/address/0xd74e880029cd3B6b434f16beA5F53A06989458Ee) |
 | `AutomataFmspcTcbDao.sol` | Automata Testnet | [0xd3A3f34E8615065704cCb5c304C0cEd41bB81483](https://explorer-testnet.ata.network/address/0xd3A3f34E8615065704cCb5c304C0cEd41bB81483) |
 |  | Ethereum Sepolia | [0x63eF330eAaadA189861144FCbc9176dae41A5BAf](https://sepolia.etherscan.io/address/0x63eF330eAaadA189861144FCbc9176dae41A5BAf) |
 |  | Ethereum Holesky | [0x63eF330eAaadA189861144FCbc9176dae41A5BAf](https://holesky.etherscan.io/address/0x63eF330eAaadA189861144FCbc9176dae41A5BAf6) |
@@ -194,8 +194,8 @@ Our DAO implementation can be found in the [`automata_pccs`](./src/automata_pccs
 |  | OP Mainnet | [0xd74e880029cd3B6b434f16beA5F53A06989458Ee](https://optimistic.etherscan.io/address/0xd74e880029cd3B6b434f16beA5F53A06989458Ee) |
 |  | World Mainnet | [0xd74e880029cd3B6b434f16beA5F53A06989458Ee](https://worldchain-mainnet.explorer.alchemy.com/address/0xd74e880029cd3B6b434f16beA5F53A06989458Ee) |
 |  | Arbitrum Mainnet | [0xd74e880029cd3B6b434f16beA5F53A06989458Ee](https://arbiscan.io/address/0xd74e880029cd3B6b434f16beA5F53A06989458Ee) |
-|  | Polygon PoS Mainnet | [0xd74e880029cd3B6b434f16beA5F53A06989458EeC](https://polygonscan.com/address/0xd74e880029cd3B6b434f16beA5F53A06989458Ee) |
-|  | BSC Mainnet | [0xd74e880029cd3B6b434f16beA5F53A06989458EeC](https://bscscan.com/address/0xd74e880029cd3B6b434f16beA5F53A06989458EeC) |
+|  | Polygon PoS Mainnet | [0xd74e880029cd3B6b434f16beA5F53A06989458Ee](https://polygonscan.com/address/0xd74e880029cd3B6b434f16beA5F53A06989458Ee) |
+|  | BSC Mainnet | [0xd74e880029cd3B6b434f16beA5F53A06989458Ee](https://bscscan.com/address/0xd74e880029cd3B6b434f16beA5F53A06989458Ee) |
 |  | Avalanche C-Chain | [0xc3ea5Ff40263E16cD2f4413152A77e7A6b10B0C9](https://subnets.avax.network/c-chain/address/0xc3ea5Ff40263E16cD2f4413152A77e7A6b10B0C9) |
 | `AutomataFmspcTcbDao.sol` | Automata Mainnet | [0xd3A3f34E8615065704cCb5c304C0cEd41bB81483](https://explorer.ata.network/address/0xd3A3f34E8615065704cCb5c304C0cEd41bB81483) |
 |  | Ethereum Mainnet | [0x63eF330eAaadA189861144FCbc9176dae41A5BAf](https://etherscan.io/address/0x63eF330eAaadA189861144FCbc9176dae41A5BAf) |
@@ -205,7 +205,7 @@ Our DAO implementation can be found in the [`automata_pccs`](./src/automata_pccs
 |  | Arbitrum Mainnet | [0xd3A3f34E8615065704cCb5c304C0cEd41bB81483](https://arbiscan.io/address/0xd3A3f34E8615065704cCb5c304C0cEd41bB81483) |
 |  | Polygon PoS Mainnet | [0xd3A3f34E8615065704cCb5c304C0cEd41bB81483](https://polygonscan.com/address/0xd3A3f34E8615065704cCb5c304C0cEd41bB81483) |
 |  | BSC Mainnet | [0xd3A3f34E8615065704cCb5c304C0cEd41bB81483](https://bscscan.com/address/0xd3A3f34E8615065704cCb5c304C0cEd41bB81483) |
-|  | Avalanche C-Chain | [0x63eF330eAaadA189861144FCbc9176dae41A5BAf](https://subnets.avax.network/c-chain/address/0x635A8A01e84cDcE1475FCeB7D57FEcadD3d1a0A0) |
+|  | Avalanche C-Chain | [0x63eF330eAaadA189861144FCbc9176dae41A5BAf](https://subnets.avax.network/c-chain/address/0x63eF330eAaadA189861144FCbc9176dae41A5BAf) |
 | `AutomataPckDao.sol` | Automata Mainnet | [0xa4615C2a260413878241ff7605AD9577feB356A5](https://explorer.ata.network/address/0xa4615C2a260413878241ff7605AD9577feB356A5) |
 |  | Ethereum Mainnet | [0x75A2BafFfb2096990246F1a2dA65801Ea2A00b36](https://etherscan.io/address/0x75A2BafFfb2096990246F1a2dA65801Ea2A00b36) |
 |  | Base Mainnet | [0xa4615C2a260413878241ff7605AD9577feB356A5](https://basescan.org/address/0xa4615C2a260413878241ff7605AD9577feB356A5) |
