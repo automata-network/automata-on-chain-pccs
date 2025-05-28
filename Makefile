@@ -15,7 +15,7 @@ else
 	$(error RPC_URL is not set)
 endif
 
-# Get the Owner's Wallet Address
+# Get the Owner's Wallet Address from private key or keystore
 get_owner:
 ifdef PRIVATE_KEY
 	$(eval OWNER := $(shell cast wallet address --private-key $(PRIVATE_KEY)))
@@ -25,6 +25,14 @@ else
 		|| (echo "Improper wallet configuration"; exit 1)))
 endif
 	@echo "\nWallet Owner: $(OWNER)"
+
+# Get the Owner's wallet address from env
+get_owner_env:
+ifdef OWNER
+	@echo "\nUsing Owner from environment: $(OWNER)"
+else
+	$(error OWNER is not set. Please set the OWNER environment variable.)
+endif
 
 # Deployment targets
 deploy-helpers: check_env get_owner
@@ -79,7 +87,7 @@ verify-helpers: check_env
 		fi \
 	done
 
-verify-dao: check_env get_owner
+verify-dao: check_env get_owner_env
 	@echo "Verifying DAO contracts..."
 	@if [ ! -f deployment/$(CHAIN_ID).json ]; then \
 		echo "DAO addresses not found. Deploy DAOs first."; \
