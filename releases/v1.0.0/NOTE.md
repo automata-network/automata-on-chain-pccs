@@ -18,7 +18,7 @@ A production-ready release of the Automata Onchain PCCS smart contract, followin
  
 - Optimized FMSPC TCB parser by reducing unnecessary looping.
  
-- Introduced an interface standard for collateral storage known as the **Resolver**. The Resolver is a centralized location for invididual DAOs to write and for authorized callers to read collaterals.
+- Introduced an interface standard for collateral storage known as the **Resolver**. The Resolver is a centralized location for individual DAOs to write and for authorized callers to read collaterals.
  
 - Implemented collateral rollback protection:
   - Older (but unexpired) collaterals can no longer replace newer entries.

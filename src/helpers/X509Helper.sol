@@ -147,7 +147,7 @@ contract X509Helper {
     /// 1. tbs
     /// - 1a. version
     /// - 1b. serial number
-    /// - 1c. siganture algorithm
+    /// - 1c. signature algorithm
     /// - 1d. issuer
     /// - - 1d(a). common name
     /// - - 1d(b). organization name
