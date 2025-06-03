@@ -15,7 +15,7 @@ contract TcbMockTest is PCSSetupBase, TCBConstants {
             address(pccsStorage),
             P256_VERIFIER,
             address(pcs),
-            address(fsmpcTcbLib),
+            address(fmspcTcbLib),
             address(x509Lib),
             address(x509CrlLib)
         );
