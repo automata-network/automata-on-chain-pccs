@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "../pcs/PCSSetupBase.t.sol";
-import {AutomataTcbEvalDao} from "../../src/automata_pccs/AutomataTcbEvalDao.sol";
+import {AutomataTcbEvalDao, TcbEvalDao} from "../../src/automata_pccs/AutomataTcbEvalDao.sol";
 import "src/helpers/TcbEvalHelper.sol";
 
 contract AutomataTcbEvalDaoTest is PCSSetupBase {
@@ -36,6 +36,14 @@ contract AutomataTcbEvalDaoTest is PCSSetupBase {
         string memory tcbEvaluationDataStr = "{\"id\":\"SGX\",\"version\":1,\"issueDate\":\"2025-06-02T02:43:30Z\",\"nextUpdate\":\"2025-07-02T02:43:30Z\",\"tcbEvalNumbers\":[{\"tcbEvaluationDataNumber\":19,\"tcbRecoveryEventDate\":\"2025-05-13T00:00:00Z\",\"tcbDate\":\"2025-05-14T00:00:00Z\"},{\"tcbEvaluationDataNumber\":18,\"tcbRecoveryEventDate\":\"2024-11-12T00:00:00Z\",\"tcbDate\":\"2024-11-13T00:00:00Z\"},{\"tcbEvaluationDataNumber\":17,\"tcbRecoveryEventDate\":\"2024-03-12T00:00:00Z\",\"tcbDate\":\"2024-03-13T00:00:00Z\"}]}";
         bytes memory sig = hex"a74e6819789f232632ddacd0857f6bebe6e8d4fc93a6ad34188d6d601aa24adcedb1547feca0ce10b1d4c096e9c66207eda65fbb4ef7d41542dfa21704b6099a";
 
+        // Test empty
+        vm.prank(admin);
+        vm.expectRevert(abi.encodeWithSelector(
+            TcbEvalDao.TCB_Eval_Missing.selector, 
+            TcbId.SGX
+        ));
+        tcbEvalDao.getTcbEvaluationObject(TcbId.SGX);
+
         TcbEvalJsonObj memory tcbEvalJsonObj = TcbEvalJsonObj({
             tcbEvaluationDataNumbers: tcbEvaluationDataStr,
             signature: sig
@@ -68,5 +76,7 @@ contract AutomataTcbEvalDaoTest is PCSSetupBase {
         // test standard
         uint32 standardTcbEvaluation = tcbEvalDao.standard(TcbId.SGX);
         assertEq(standardTcbEvaluation, 17);
+
+        vm.stopPrank();
     }
 }

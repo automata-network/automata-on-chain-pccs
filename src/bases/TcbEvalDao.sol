@@ -43,6 +43,8 @@ abstract contract TcbEvalDao is DaoBase, SigVerifyBase {
     error TCB_Eval_Expired();
     // 9ddee474
     error TCB_Eval_Out_Of_Date();
+    // fe17888f
+    error TCB_Eval_Missing(TcbId id);
 
     event UpsertedTcbEval(uint8 indexed tcbId);
 
@@ -160,7 +162,9 @@ abstract contract TcbEvalDao is DaoBase, SigVerifyBase {
         )
     {
         bytes memory attestedTcbEvalData = _onFetchDataFromResolver(TCB_EVAL_KEY(id), false);
-        if (attestedTcbEvalData.length > 0) {
+        if (attestedTcbEvalData.length == 0) {
+            revert TCB_Eval_Missing(id);
+        } else {
             bytes memory encodedTcbEvalNumbers;
             (tcbEvalData, encodedTcbEvalNumbers, tcbEvalObj) =
                 abi.decode(attestedTcbEvalData, (TcbEvalDataBasic, bytes, TcbEvalJsonObj));
