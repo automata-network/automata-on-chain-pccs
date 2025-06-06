@@ -1,18 +1,33 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {OwnableRoles} from "solady/auth/OwnableRoles.sol";
 import {TcbEvalDao, PcsDao, DaoBase} from "../bases/TcbEvalDao.sol";
 import {AutomataDaoBase} from "./shared/AutomataDaoBase.sol";
 
-contract AutomataTcbEvalDao is AutomataDaoBase, TcbEvalDao {
+contract AutomataTcbEvalDao is AutomataDaoBase, TcbEvalDao, OwnableRoles {
+    uint256 public constant ATTESTER_ROLE = _ROLE_0;
+    
     constructor(
         address _storage,
         address _p256,
         address _pcs,
         address _tcbEvalHelper,
         address _x509Helper,
-        address _crl
-    ) TcbEvalDao(_storage, _p256, _pcs, _tcbEvalHelper, _x509Helper, _crl) {}
+        address _crl,
+        address _owner
+    ) TcbEvalDao(_storage, _p256, _pcs, _tcbEvalHelper, _x509Helper, _crl) {
+        _initializeOwner(_owner);
+    }
+
+    function _attestTcbEval(bytes memory reqData, bytes32 hash, bytes32 key)
+        internal
+        override
+        onlyRoles(ATTESTER_ROLE)
+        returns (bytes32 attestationId)
+    {
+        attestationId = super._attestTcbEval(reqData, hash, key);
+    }
 
     function _onFetchDataFromResolver(bytes32 key, bool hash)
         internal
