@@ -97,7 +97,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
      * @notice computes the key that is mapped to the collateral attestation ID
      * @return key = keccak256(type ++ FMSPC ++ version)
      */
-    function FMSPC_TCB_KEY(uint8 tcbType, bytes6 fmspc, uint32 version) public pure returns (bytes32 key) {
+    function FMSPC_TCB_KEY(uint8 tcbType, bytes6 fmspc, uint32 version) public view virtual returns (bytes32 key) {
         key = keccak256(abi.encodePacked(FMSPC_TCB_MAGIC, tcbType, fmspc, version));
     }
 
@@ -198,16 +198,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         }
 
         // Make sure new collateral is "newer"
-        (uint64 existingIssueDate,, uint32 existingEvaluationDataNumber) = _loadTcbInfoIssueEvaluation(key);
-        if (existingIssueDate > 0) {
-            /// I don't think there can be a scenario where an existing tcbinfo with a higher evaluation data number
-            /// to be issued BEFORE a new tcbinfo with a lower evaluation data number
-            bool outOfDate =
-                tcbInfo.evaluationDataNumber < existingEvaluationDataNumber || tcbInfo.issueDate <= existingIssueDate;
-            if (outOfDate) {
-                revert TCB_Out_Of_Date();
-            }
-        }
+        _checkTcbEvaluationData(key, tcbInfo);
 
         TCBLevelsObj[] memory tcbLevels = FmspcTcbLib.parseTcbLevels(tcbInfo.version, tcbLevelsString);
         bytes memory encodedTcbLevels = _encodeTcbLevels(tcbLevels);
@@ -304,6 +295,18 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
         }
 
         encoded = abi.encode(arr);
+    }
+
+    function _checkTcbEvaluationData(bytes32 key, TcbInfoBasic memory tcbInfo) internal view virtual {
+        (uint64 existingIssueDate,, uint32 existingEvaluationDataNumber) = _loadTcbInfoIssueEvaluation(key);
+        if (existingIssueDate > 0) {
+            // new colllateral cannot have a lower evaluation data number than the existing one
+            bool outOfDate =
+                tcbInfo.evaluationDataNumber < existingEvaluationDataNumber || tcbInfo.issueDate <= existingIssueDate;
+            if (outOfDate) {
+                revert TCB_Out_Of_Date();
+            }
+        }
     }
 
     /// @dev for the time being, we will require a method to "cache" the tcbinfo issued timestamp

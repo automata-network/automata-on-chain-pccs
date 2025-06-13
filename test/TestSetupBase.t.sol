@@ -16,7 +16,7 @@ import {PCKHelper, X509CertObj} from "../src/helpers/PCKHelper.sol";
 
 abstract contract TestSetupBase is Test {
     EnclaveIdentityHelper enclaveIdentityLib;
-    FmspcTcbHelper fsmpcTcbLib;
+    FmspcTcbHelper fmspcTcbLib;
     X509CRLHelper x509CrlLib;
     PCKHelper x509Lib;
 
@@ -46,7 +46,7 @@ abstract contract TestSetupBase is Test {
 
         // deploy helper libraries
         enclaveIdentityLib = new EnclaveIdentityHelper();
-        fsmpcTcbLib = new FmspcTcbHelper();
+        fmspcTcbLib = new FmspcTcbHelper();
         x509CrlLib = new X509CRLHelper();
         x509Lib = new PCKHelper();
 
@@ -68,7 +68,7 @@ abstract contract TestSetupBase is Test {
             address(pccsStorage),
             P256_VERIFIER,
             address(pcs),
-            address(fsmpcTcbLib),
+            address(fmspcTcbLib),
             address(x509Lib),
             address(x509CrlLib)
         );

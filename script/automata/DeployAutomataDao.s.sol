@@ -77,15 +77,15 @@ contract DeployAutomataDao is DeploymentConfig, P256Configuration {
     }
 
     function deployPcs() public broadcastOwner {
-        address pccsStorageAddr = readContractAddress("PCCS_STORAGE");
+        address pccsStorageAddr = readContractAddress("AutomataDaoStorage");
         AutomataPcsDao pcsDao = new AutomataPcsDao{salt: PCS_DAO_SALT}(pccsStorageAddr, simulateVerify(), x509, x509Crl);
         console.log("[LOG] AutomataPcsDao deployed at: ", address(pcsDao));
         writeToJson("AutomataPcsDao", address(pcsDao));
     }
 
     function deployPck() public broadcastOwner {
-        address pccsStorageAddr = readContractAddress("PCCS_STORAGE");
-        address pcsDaoAddr = readContractAddress("PCS_DAO");
+        address pccsStorageAddr = readContractAddress("AutomataDaoStorage");
+        address pcsDaoAddr = readContractAddress("AutomataPcsDao");
         AutomataPckDao pckDao =
             new AutomataPckDao{salt: PCK_DAO_SALT}(pccsStorageAddr, simulateVerify(), pcsDaoAddr, x509, x509Crl);
         console.log("[LOG] AutomataPckDao deployed at: ", address(pckDao));
@@ -93,8 +93,8 @@ contract DeployAutomataDao is DeploymentConfig, P256Configuration {
     }
 
     function deployEnclaveIdDao() public broadcastOwner {
-        address pccsStorageAddr = readContractAddress("PCCS_STORAGE");
-        address pcsDaoAddr = readContractAddress("PCS_DAO");
+        address pccsStorageAddr = readContractAddress("AutomataDaoStorage");
+        address pcsDaoAddr = readContractAddress("AutomataPcsDao");
         AutomataEnclaveIdentityDao enclaveIdDao = new AutomataEnclaveIdentityDao{salt: ENCLAVE_ID_DAO_SALT}(
             pccsStorageAddr, simulateVerify(), pcsDaoAddr, enclaveIdentityHelper, x509, x509Crl
         );
@@ -103,8 +103,8 @@ contract DeployAutomataDao is DeploymentConfig, P256Configuration {
     }
 
     function deployFmspcTcbDao() public broadcastOwner {
-        address pccsStorageAddr = readContractAddress("PCCS_STORAGE");
-        address pcsDaoAddr = readContractAddress("PCS_DAO");
+        address pccsStorageAddr = readContractAddress("AutomataDaoStorage");
+        address pcsDaoAddr = readContractAddress("AutomataPcsDao");
         AutomataFmspcTcbDao fmspcTcbDao = new AutomataFmspcTcbDao{salt: FMSPC_TCB_DAO_SALT}(
             pccsStorageAddr, simulateVerify(), pcsDaoAddr, fmspcTcbHelper, x509, x509Crl
         );
