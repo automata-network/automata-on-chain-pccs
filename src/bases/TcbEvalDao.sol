@@ -29,7 +29,7 @@ abstract contract TcbEvalDao is DaoBase, SigVerifyBase {
     // first 4 bytes of keccak256("TCB_EVAL_MAGIC")
     bytes4 constant TCB_EVAL_MAGIC = 0xbebc7284;
 
-    uint64 constant TWELTH_MONTHS_SECONDS = 31557600; // 365.25 days in seconds
+    uint64 constant TWELFTH_MONTHS_SECONDS = 31557600; // 365.25 days in seconds
 
     // c9220efa
     error Missing_TCB_Eval_Cert();
@@ -111,7 +111,7 @@ abstract contract TcbEvalDao is DaoBase, SigVerifyBase {
         uint256 len = tcbEvalNumbers.length;
         for (uint256 i = 0; i < len; i++) {
             // the standard TCB Evaluation Data Number is the highest one that is at least 12 months old
-            if (block.timestamp - tcbEvalNumbers[i].tcbRecoveryEventDate >= TWELTH_MONTHS_SECONDS) {
+            if (block.timestamp - tcbEvalNumbers[i].tcbRecoveryEventDate >= TWELFTH_MONTHS_SECONDS) {
                 tcbEvaluationNumber = tcbEvalNumbers[i].tcbEvaluationDataNumber;
                 break;
             }
@@ -129,7 +129,7 @@ abstract contract TcbEvalDao is DaoBase, SigVerifyBase {
         (TcbEvalDataBasic memory tcbEvalData, string memory tcbEvalNumbersString) =
             TcbEvalLib.parseTcbEvalString(tcbEvalObj.tcbEvaluationDataNumbers);
 
-        bytes32 key = keccak256(abi.encodePacked(TCB_EVAL_MAGIC, tcbEvalData.id));
+        bytes32 key = TCB_EVAL_KEY(tcbEvalData.id);
 
         _checkCollateralDuplicate(key, hash);
         _validateTcbEvalData(tcbEvalObj);
