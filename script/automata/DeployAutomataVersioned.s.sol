@@ -31,6 +31,10 @@ contract DeployAutomataVersioned is DeploymentConfig, P256Configuration {
         AutomataTcbEvalDao tcbEvalDao = new AutomataTcbEvalDao{salt: TCB_EVAL_DAO_SALT}(
             pccsStorageAddr, simulateVerify(), pcsDaoAddr, tcbEvalHelper, x509, x509Crl, owner
         );
+
+        AutomataDaoStorage pccsStorage = AutomataDaoStorage(pccsStorageAddr);
+        pccsStorage.grantDao(address(tcbEvalDao));
+
         console.log("[LOG] AutomataTcbEvalDao deployed at: ", address(tcbEvalDao));
         writeToJson("AutomataTcbEvalDao", address(tcbEvalDao));
     }
@@ -41,6 +45,10 @@ contract DeployAutomataVersioned is DeploymentConfig, P256Configuration {
         AutomataEnclaveIdentityDaoVersioned enclaveIdDao = new AutomataEnclaveIdentityDaoVersioned{salt: ENCLAVE_ID_DAO_SALT}(
             pccsStorageAddr, simulateVerify(), pcsDaoAddr, enclaveIdentityHelper, x509, x509Crl, owner, tcbEvaluationDataNumber
         );
+
+        AutomataDaoStorage pccsStorage = AutomataDaoStorage(pccsStorageAddr);
+        pccsStorage.grantDao(address(enclaveIdDao));
+
         console.log("[LOG] AutomataEnclaveIdDaoVersioned deployed at: ", address(enclaveIdDao));
         writeToJsonVersioned("AutomataEnclaveIdentityDaoVersioned", tcbEvaluationDataNumber, address(enclaveIdDao));
     }
@@ -51,6 +59,10 @@ contract DeployAutomataVersioned is DeploymentConfig, P256Configuration {
         AutomataFmspcTcbDaoVersioned fmspcTcbDao = new AutomataFmspcTcbDaoVersioned{salt: FMSPC_TCB_DAO_SALT}(
             pccsStorageAddr, simulateVerify(), pcsDaoAddr, fmspcTcbHelper, x509, x509Crl, owner, tcbEvaluationDataNumber
         );
+
+        AutomataDaoStorage pccsStorage = AutomataDaoStorage(pccsStorageAddr);
+        pccsStorage.grantDao(address(fmspcTcbDao));
+
         console.log("[LOG] AutomataFmspcTcbDaoVersioned deployed at: ", address(fmspcTcbDao));
         writeToJsonVersioned("AutomataFmspcTcbDaoVersioned", tcbEvaluationDataNumber, address(fmspcTcbDao));
     }
