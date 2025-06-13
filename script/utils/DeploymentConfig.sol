@@ -15,6 +15,22 @@ abstract contract DeploymentConfig is Script {
         contractAddress = stdJson.readAddress(jsonStr, string.concat(".", contractName));
     }
 
+    function readVersionedContractAddress(string memory contractName, uint32 version) internal returns (address contractAddress) {
+        string memory deploymentDir =
+            string.concat(vm.projectRoot(), "/", "deployment", "/", vm.toString(block.chainid), ".json");
+        if (!vm.exists(deploymentDir)) {
+            revert("Cannot find deployment file");
+        }
+        string memory jsonStr = vm.readFile(deploymentDir);
+        contractAddress = stdJson.readAddress(
+            jsonStr, 
+            string.concat(
+                ".", 
+                string.concat(contractName, "_tcbeval_", vm.toString(version))
+            )
+        );
+    }
+
     function writeToJson(string memory contractName, address contractAddress) internal {
         string memory deploymentDir = string.concat(vm.projectRoot(), "/", "deployment");
 
@@ -34,6 +50,36 @@ abstract contract DeploymentConfig is Script {
         }
 
         string memory finalJson = vm.serializeAddress(jsonKey, contractName, contractAddress);
+        vm.writeJson(finalJson, jsonPath);
+    }
+
+    function writeToJsonVersioned(string memory contractName, uint32 version, address contractAddress) internal {
+        string memory deploymentDir = string.concat(vm.projectRoot(), "/", "deployment");
+
+        // check dir exists
+        if (!vm.exists(deploymentDir)) {
+            vm.createDir(deploymentDir, false);
+        }
+
+        // deployment path
+        string memory jsonPath = string.concat(deploymentDir, "/", vm.toString(block.chainid), ".json");
+
+        string memory jsonKey = "deployment key";
+        string memory jsonStr = "";
+        if (vm.exists(jsonPath)) {
+            jsonStr = vm.readFile(jsonPath);
+            vm.serializeJson(jsonKey, jsonStr);
+        }
+
+        string memory finalJson = vm.serializeAddress(
+            jsonKey, 
+            string.concat(
+                contractName, 
+                "_tcbeval_", 
+                vm.toString(version)
+            ),
+            contractAddress
+        );
         vm.writeJson(finalJson, jsonPath);
     }
 }
