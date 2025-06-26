@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import "../utils/DeploymentConfig.sol";
-import {AutomataTcbEvalDao} from "../../src/automata_pccs/AutomataTcbEvalDao.sol";
-import {AutomataFmspcTcbDaoVersioned} from "../../src/automata_pccs/versioned/AutomataFmspcTcbDaoVersioned.sol";
-import {AutomataEnclaveIdentityDaoVersioned} from "../../src/automata_pccs/versioned/AutomataEnclaveIdentityDaoVersioned.sol";
+import "../../utils/DeploymentConfig.sol";
+import {AutomataTcbEvalDao} from "../../../src/automata_pccs/AutomataTcbEvalDao.sol";
+import {AutomataFmspcTcbDaoVersioned} from "../../../src/automata_pccs/versioned/AutomataFmspcTcbDaoVersioned.sol";
+import {AutomataEnclaveIdentityDaoVersioned} from "../../../src/automata_pccs/versioned/AutomataEnclaveIdentityDaoVersioned.sol";
 
 interface IOwnableRoles {
     function grantRoles(address user, uint256 roles) external;

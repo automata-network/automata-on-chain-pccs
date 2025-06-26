@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import "../utils/P256Configuration.sol";
-import "../utils/Salt.sol";
-import "../utils/DeploymentConfig.sol";
+import "../../utils/P256Configuration.sol";
+import "../../utils/Salt.sol";
+import "../../utils/DeploymentConfig.sol";
 
-import {AutomataDaoStorage} from "../../src/automata_pccs/shared/AutomataDaoStorage.sol";
-import {AutomataTcbEvalDao} from "../../src/automata_pccs/AutomataTcbEvalDao.sol";
-import {AutomataFmspcTcbDaoVersioned} from "../../src/automata_pccs/versioned/AutomataFmspcTcbDaoVersioned.sol";
-import {AutomataEnclaveIdentityDaoVersioned} from "../../src/automata_pccs/versioned/AutomataEnclaveIdentityDaoVersioned.sol";
+import {AutomataDaoStorage} from "../../../src/automata_pccs/shared/AutomataDaoStorage.sol";
+import {AutomataTcbEvalDao} from "../../../src/automata_pccs/AutomataTcbEvalDao.sol";
+import {AutomataFmspcTcbDaoVersioned} from "../../../src/automata_pccs/versioned/AutomataFmspcTcbDaoVersioned.sol";
+import {AutomataEnclaveIdentityDaoVersioned} from "../../../src/automata_pccs/versioned/AutomataEnclaveIdentityDaoVersioned.sol";
 
 contract DeployAutomataVersioned is DeploymentConfig, P256Configuration {
     address owner = vm.envAddress("OWNER");
