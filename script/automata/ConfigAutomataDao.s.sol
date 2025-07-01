@@ -13,15 +13,6 @@ contract ConfigAutomataDao is DeploymentConfig {
     address owner = vm.envAddress("OWNER");
 
     address pccsStorageAddr = readContractAddress("AutomataDaoStorage");
-    address pcsDaoAddr = readContractAddress("AutomataPcsDao");
-    address pckDaoAddr = readContractAddress("AutomataPckDao");
-    address fmspcTcbDaoAddr = readContractAddress("AutomataFmspcTcbDao");
-    address enclaveIdDaoAddr = readContractAddress("AutomataEnclaveIdentityDao");
-
-    address x509Crl = readContractAddress("X509CRLHelper");
-    address x509 = readContractAddress("PCKHelper");
-    address enclaveIdentityHelper = readContractAddress("EnclaveIdentityHelper");
-    address fmspcTcbHelper = readContractAddress("FmspcTcbHelper");
 
     function grantDao(address dao) public {
         vm.broadcast(owner);
