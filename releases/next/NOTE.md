@@ -29,6 +29,15 @@
 | `TcbEvalHelper.sol` | Automata Testnet | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://explorer-testnet.ata.network/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
 |  | Ethereum Sepolia | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://sepolia.etherscan.io/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
 |  | Ethereum Holesky | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://holesky.etherscan.io/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
+|  | Ethereum Hoodi | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://hoodi.etherscan.io/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
+|  | BNB Testnet | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://testnet.bscscan.com/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
+|  | Polygon Amoy | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://amoy.polygonscan.com/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
+|  | Avalanche C Fuji | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://testnet.snowtrace.io/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
+|  | Base Sepolia | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://sepolia.basescan.org/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
+|  | OP Sepolia | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://sepolia-optimism.etherscan.io/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
+|  | World Sepolia | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://sepolia.worldscan.org/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
+|  | Arbitrum Sepolia | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://sepolia.arbiscan.io/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
+|  | Unichain Sepolia | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://unichain-sepolia.blockscout.com/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
 
 #### Mainnet
 
@@ -75,6 +84,114 @@
 | `AutomataEnclaveIdentityDaoVersioned` | 17 | [0xE6fE85B78cb82e3b9C8AE57d754C86fe6774aF64](https://holesky.etherscan.io/address/0xE6fE85B78cb82e3b9C8AE57d754C86fe6774aF64) |
 | | 18 | [0x5dF358463632A8eEA0bdeF87f011F032e984b7ef](https://holesky.etherscan.io/address/0x5dF358463632A8eEA0bdeF87f011F032e984b7ef) |
 | | 19 | [0xa0DE0E975599347A76FF9A3baC59d686fE89b73C](https://holesky.etherscan.io/address/0xa0DE0E975599347A76FF9A3baC59d686fE89b73C) |
+
+##### Ethereum Hoodi
+
+| Contract | TCB Evaluation Data Number | Address |
+| --- | --- | --- |
+| `AutomataTcbEvalDao` | N/A | [0x8e1EA521a6A4832A0c3763D75ED4b8017cfB5424](https://hoodi.etherscan.io/address/0x8e1EA521a6A4832A0c3763D75ED4b8017cfB5424) |
+| `AutomataFmspcTcbDaoVersioned` | 17 | [0x3A1fDF33420026d145C59bC6b3129bA81E9bF68e](https://hoodi.etherscan.io/address/0x3A1fDF33420026d145C59bC6b3129bA81E9bF68e) |
+| | 18 | [0xBF3268Dcee73EfDe149d206ebB856380C6EeD374](https://hoodi.etherscan.io/address/0xBF3268Dcee73EfDe149d206ebB856380C6EeD374) |
+| | 19 | [0xb1D89Fd867A1D6a122ed88c092163281c2474111](https://hoodi.etherscan.io/address/0xb1D89Fd867A1D6a122ed88c092163281c2474111) |
+| `AutomataEnclaveIdentityDaoVersioned` | 17 | [0xE6fE85B78cb82e3b9C8AE57d754C86fe6774aF64](https://hoodi.etherscan.io/address/0xE6fE85B78cb82e3b9C8AE57d754C86fe6774aF64) |
+| | 18 | [0x5dF358463632A8eEA0bdeF87f011F032e984b7ef](https://hoodi.etherscan.io/address/0x5dF358463632A8eEA0bdeF87f011F032e984b7ef) |
+| | 19 | [0xa0DE0E975599347A76FF9A3baC59d686fE89b73C](https://hoodi.etherscan.io/address/0xa0DE0E975599347A76FF9A3baC59d686fE89b73C) |
+
+##### BNB Testnet
+
+| Contract | TCB Evaluation Data Number | Address |
+| --- | --- | --- |
+| `AutomataTcbEvalDao` | N/A | [0xcF614258C68730D8cB9713AcAe425875D1FDb370](https://testnet.bscscan.com/address/0xcF614258C68730D8cB9713AcAe425875D1FDb370) |
+| `AutomataFmspcTcbDaoVersioned` | 17 | [0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306](https://testnet.bscscan.com/address/0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306) |
+| | 18 | [0x62E8Cd513B12F248804123f7ed12A0601B79FBAc](https://testnet.bscscan.com/address/0x62E8Cd513B12F248804123f7ed12A0601B79FBAc) |
+| | 19 | [0x43cdd3490785059423A17a90C1d8f46382C518D2](https://testnet.bscscan.com/address/0x43cdd3490785059423A17a90C1d8f46382C518D2) |
+| `AutomataEnclaveIdentityDaoVersioned` | 17 | [0x29aaB215aeE14D4D843C57521BbF2D3B17b45810](https://testnet.bscscan.com/address/0x29aaB215aeE14D4D843C57521BbF2D3B17b45810) |
+| | 18 | [0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56](https://testnet.bscscan.com/address/0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56) |
+| | 19 | [0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0](https://testnet.bscscan.com/address/0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0) |
+
+##### Polygon Amoy
+
+| Contract | TCB Evaluation Data Number | Address |
+| --- | --- | --- |
+| `AutomataTcbEvalDao` | N/A | [0xcF614258C68730D8cB9713AcAe425875D1FDb370](https://amoy.polygonscan.com/address/0xcF614258C68730D8cB9713AcAe425875D1FDb370) |
+| `AutomataFmspcTcbDaoVersioned` | 17 | [0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306](https://amoy.polygonscan.com/address/0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306) |
+| | 18 | [0x62E8Cd513B12F248804123f7ed12A0601B79FBAc](https://amoy.polygonscan.com/address/0x62E8Cd513B12F248804123f7ed12A0601B79FBAc) |
+| | 19 | [0x43cdd3490785059423A17a90C1d8f46382C518D2](https://amoy.polygonscan.com/address/0x43cdd3490785059423A17a90C1d8f46382C518D2) |
+| `AutomataEnclaveIdentityDaoVersioned` | 17 | [0x29aaB215aeE14D4D843C57521BbF2D3B17b45810](https://amoy.polygonscan.com/address/0x29aaB215aeE14D4D843C57521BbF2D3B17b45810) |
+| | 18 | [0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56](https://amoy.polygonscan.com/address/0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56) |
+| | 19 | [0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0](https://amoy.polygonscan.com/address/0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0) |
+
+##### Avalanche C Fuji
+
+| Contract | TCB Evaluation Data Number | Address |
+| --- | --- | --- |
+| `AutomataTcbEvalDao` | N/A | [0x8e1EA521a6A4832A0c3763D75ED4b8017cfB5424](https://testnet.snowtrace.io/address/0x8e1EA521a6A4832A0c3763D75ED4b8017cfB5424) |
+| `AutomataFmspcTcbDaoVersioned` | 17 | [0x3A1fDF33420026d145C59bC6b3129bA81E9bF68e](https://testnet.snowtrace.io/address/0x3A1fDF33420026d145C59bC6b3129bA81E9bF68e) |
+| | 18 | [0xBF3268Dcee73EfDe149d206ebB856380C6EeD374](https://testnet.snowtrace.io/address/0xBF3268Dcee73EfDe149d206ebB856380C6EeD374) |
+| | 19 | [0xb1D89Fd867A1D6a122ed88c092163281c2474111](https://testnet.snowtrace.io/address/0xb1D89Fd867A1D6a122ed88c092163281c2474111) |
+| `AutomataEnclaveIdentityDaoVersioned` | 17 | [0xE6fE85B78cb82e3b9C8AE57d754C86fe6774aF64](https://testnet.snowtrace.io/address/0xE6fE85B78cb82e3b9C8AE57d754C86fe6774aF64) |
+| | 18 | [0x5dF358463632A8eEA0bdeF87f011F032e984b7ef](https://testnet.snowtrace.io/address/0x5dF358463632A8eEA0bdeF87f011F032e984b7ef) |
+| | 19 | [0xa0DE0E975599347A76FF9A3baC59d686fE89b73C](https://testnet.snowtrace.io/address/0xa0DE0E975599347A76FF9A3baC59d686fE89b73C) |
+
+##### Base Sepolia
+
+| Contract | TCB Evaluation Data Number | Address |
+| --- | --- | --- |
+| `AutomataTcbEvalDao` | N/A | [0xcF614258C68730D8cB9713AcAe425875D1FDb370](https://sepolia.basescan.org/address/0xcF614258C68730D8cB9713AcAe425875D1FDb370) |
+| `AutomataFmspcTcbDaoVersioned` | 17 | [0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306](https://sepolia.basescan.org/address/0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306) |
+| | 18 | [0x62E8Cd513B12F248804123f7ed12A0601B79FBAc](https://sepolia.basescan.org/address/0x62E8Cd513B12F248804123f7ed12A0601B79FBAc) |
+| | 19 | [0x43cdd3490785059423A17a90C1d8f46382C518D2](https://sepolia.basescan.org/address/0x43cdd3490785059423A17a90C1d8f46382C518D2) |
+| `AutomataEnclaveIdentityDaoVersioned` | 17 | [0x29aaB215aeE14D4D843C57521BbF2D3B17b45810](https://sepolia.basescan.org/address/0x29aaB215aeE14D4D843C57521BbF2D3B17b45810) |
+| | 18 | [0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56](https://sepolia.basescan.org/address/0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56) |
+| | 19 | [0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0](https://sepolia.basescan.org/address/0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0) |
+
+##### OP Sepolia
+
+| Contract | TCB Evaluation Data Number | Address |
+| --- | --- | --- |
+| `AutomataTcbEvalDao` | N/A | [0xcF614258C68730D8cB9713AcAe425875D1FDb370](https://sepolia-optimism.etherscan.io/address/0xcF614258C68730D8cB9713AcAe425875D1FDb370) |
+| `AutomataFmspcTcbDaoVersioned` | 17 | [0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306](https://sepolia-optimism.etherscan.io/address/0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306) |
+| | 18 | [0x62E8Cd513B12F248804123f7ed12A0601B79FBAc](https://sepolia-optimism.etherscan.io/address/0x62E8Cd513B12F248804123f7ed12A0601B79FBAc) |
+| | 19 | [0x43cdd3490785059423A17a90C1d8f46382C518D2](https://sepolia-optimism.etherscan.io/address/0x43cdd3490785059423A17a90C1d8f46382C518D2) |
+| `AutomataEnclaveIdentityDaoVersioned` | 17 | [0x29aaB215aeE14D4D843C57521BbF2D3B17b45810](https://sepolia-optimism.etherscan.io/address/0x29aaB215aeE14D4D843C57521BbF2D3B17b45810) |
+| | 18 | [0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56](https://sepolia-optimism.etherscan.io/address/0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56) |
+| | 19 | [0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0](https://sepolia-optimism.etherscan.io/address/0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0) |
+
+##### World Sepolia
+
+| Contract | TCB Evaluation Data Number | Address |
+| --- | --- | --- |
+| `AutomataTcbEvalDao` | N/A | [0xcF614258C68730D8cB9713AcAe425875D1FDb370](https://sepolia.worldscan.org/address/0xcF614258C68730D8cB9713AcAe425875D1FDb370) |
+| `AutomataFmspcTcbDaoVersioned` | 17 | [0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306](https://sepolia.worldscan.org/address/0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306) |
+| | 18 | [0x62E8Cd513B12F248804123f7ed12A0601B79FBAc](https://sepolia.worldscan.org/address/0x62E8Cd513B12F248804123f7ed12A0601B79FBAc) |
+| | 19 | [0x43cdd3490785059423A17a90C1d8f46382C518D2](https://sepolia.worldscan.org/address/0x43cdd3490785059423A17a90C1d8f46382C518D2) |
+| `AutomataEnclaveIdentityDaoVersioned` | 17 | [0x29aaB215aeE14D4D843C57521BbF2D3B17b45810](https://sepolia.worldscan.org/address/0x29aaB215aeE14D4D843C57521BbF2D3B17b45810) |
+| | 18 | [0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56](https://sepolia.worldscan.org/address/0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56) |
+| | 19 | [0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0](https://sepolia.worldscan.org/address/0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0) |
+
+##### Arbitrum Sepolia
+
+| Contract | TCB Evaluation Data Number | Address |
+| --- | --- | --- |
+| `AutomataTcbEvalDao` | N/A | [0xcF614258C68730D8cB9713AcAe425875D1FDb370](https://sepolia.arbiscan.io/address/0xcF614258C68730D8cB9713AcAe425875D1FDb370) |
+| `AutomataFmspcTcbDaoVersioned` | 17 | [0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306](https://sepolia.arbiscan.io/address/0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306) |
+| | 18 | [0x62E8Cd513B12F248804123f7ed12A0601B79FBAc](https://sepolia.arbiscan.io/address/0x62E8Cd513B12F248804123f7ed12A0601B79FBAc) |
+| | 19 | [0x43cdd3490785059423A17a90C1d8f46382C518D2](https://sepolia.arbiscan.io/address/0x43cdd3490785059423A17a90C1d8f46382C518D2) |
+| `AutomataEnclaveIdentityDaoVersioned` | 17 | [0x29aaB215aeE14D4D843C57521BbF2D3B17b45810](https://sepolia.arbiscan.io/address/0x29aaB215aeE14D4D843C57521BbF2D3B17b45810) |
+| | 18 | [0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56](https://sepolia.arbiscan.io/address/0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56) |
+| | 19 | [0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0](https://sepolia.arbiscan.io/address/0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0) |
+
+##### Unichain Sepolia
+
+| Contract | TCB Evaluation Data Number | Address |
+| --- | --- | --- |
+| `AutomataTcbEvalDao` | N/A | [0xcF614258C68730D8cB9713AcAe425875D1FDb370](https://unichain-sepolia.blockscout.com/address/0xcF614258C68730D8cB9713AcAe425875D1FDb370) |
+| `AutomataFmspcTcbDaoVersioned` | 17 | [0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306](https://unichain-sepolia.blockscout.com/address/0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306) |
+| | 18 | [0x62E8Cd513B12F248804123f7ed12A0601B79FBAc](https://unichain-sepolia.blockscout.com/address/0x62E8Cd513B12F248804123f7ed12A0601B79FBAc) |
+| | 19 | [0x43cdd3490785059423A17a90C1d8f46382C518D2](https://unichain-sepolia.blockscout.com/address/0x43cdd3490785059423A17a90C1d8f46382C518D2) |
+| `AutomataEnclaveIdentityDaoVersioned` | 17 | [0x29aaB215aeE14D4D843C57521BbF2D3B17b45810](https://unichain-sepolia.blockscout.com/address/0x29aaB215aeE14D4D843C57521BbF2D3B17b45810) |
+| | 18 | [0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56](https://unichain-sepolia.blockscout.com/address/0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56) |
+| | 19 | [0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0](https://unichain-sepolia.blockscout.com/address/0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0) |
 
 #### Mainnet
 
