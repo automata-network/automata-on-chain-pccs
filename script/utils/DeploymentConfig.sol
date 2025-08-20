@@ -5,30 +5,35 @@ import "forge-std/Script.sol";
 import "forge-std/StdJson.sol";
 
 abstract contract DeploymentConfig is Script {
-    function readContractAddress(string memory contractName) internal returns (address contractAddress) {
+    function readContractAddress(string memory contractName, bool revertOnAddressZero) internal returns (address contractAddress) {
         string memory deploymentDir =
             string.concat(vm.projectRoot(), "/", "deployment", "/", vm.toString(block.chainid), ".json");
         if (!vm.exists(deploymentDir)) {
             revert("Cannot find deployment file");
         }
         string memory jsonStr = vm.readFile(deploymentDir);
-        contractAddress = stdJson.readAddress(jsonStr, string.concat(".", contractName));
+        string memory key = string.concat(".", contractName);
+        bool keyExists = vm.keyExists(jsonStr, key);
+        if (revertOnAddressZero || keyExists) {
+            contractAddress = stdJson.readAddress(jsonStr, key);
+        }
     }
 
-    function readVersionedContractAddress(string memory contractName, uint32 version) internal returns (address contractAddress) {
+    function readVersionedContractAddress(string memory contractName, uint32 version, bool revertOnAddressZero) internal returns (address contractAddress) {
         string memory deploymentDir =
             string.concat(vm.projectRoot(), "/", "deployment", "/", vm.toString(block.chainid), ".json");
         if (!vm.exists(deploymentDir)) {
             revert("Cannot find deployment file");
         }
         string memory jsonStr = vm.readFile(deploymentDir);
-        contractAddress = stdJson.readAddress(
-            jsonStr, 
-            string.concat(
-                ".", 
-                string.concat(contractName, "_tcbeval_", vm.toString(version))
-            )
+        string memory key = string.concat(
+            ".", 
+            string.concat(contractName, "_tcbeval_", vm.toString(version))
         );
+        bool keyExists = vm.keyExists(jsonStr, key);
+        if (revertOnAddressZero || keyExists) {
+            contractAddress = stdJson.readAddress(jsonStr, key);
+        }
     }
 
     function writeToJson(string memory contractName, address contractAddress) internal {

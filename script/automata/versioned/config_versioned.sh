@@ -45,7 +45,7 @@ show_usage() {
     echo "  roles                      Role bitmask to configure (default: 1 = ATTESTER_ROLE)"
     echo "  authorize                  Grant (true) or revoke (false) roles (default: true)"
     echo ""
-    echo "Required Environment Variables:"
+    echo "Required Environment Variables (unless MULTICHAIN=true):"
     echo "  RPC_URL                    RPC URL for the target network"
     echo ""
     echo "Required Wallet Credentials (one of):"
@@ -55,6 +55,7 @@ show_usage() {
     echo "Optional Environment Variables:"
     echo "  SIMULATED                  Set to 'true' for simulation mode (default: false)"
     echo "  LEGACY                     Set to 'true' for legacy transaction mode"
+    echo "  MULTICHAIN                 Set to 'true' to run for all chains (default: false)"
     echo ""
     echo "Role Values:"
     echo "  1                          ATTESTER_ROLE (default)"
@@ -99,8 +100,8 @@ else
 fi
 
 # Check required environment variables
-if [ -z "$RPC_URL" ]; then
-    print_error "RPC_URL environment variable is required"
+if [ -z "$RPC_URL" ] && [ "$MULTICHAIN" != "true" ]; then
+    print_error "RPC_URL environment variable is required (unless MULTICHAIN=true)"
     exit 1
 fi
 
@@ -189,21 +190,23 @@ if ! [[ "$USER_ADDRESS" =~ ^0x[a-fA-F0-9]{40}$ ]]; then
 fi
 
 # Get chain ID
-print_info "Detecting chain ID..."
-CHAIN_ID=$(cast chain-id --rpc-url "$RPC_URL")
-print_info "Chain ID: $CHAIN_ID"
-
-# Check if deployment file exists
-DEPLOYMENT_FILE="$PROJECT_ROOT/deployment/$CHAIN_ID.json"
-if [ ! -f "$DEPLOYMENT_FILE" ]; then
-    print_error "Deployment file not found: $DEPLOYMENT_FILE"
-    print_error "Please deploy contracts first using: ./deploy_versioned.sh"
-    exit 1
+if [ -z "$MULTICHAIN" ]; then
+    print_info "Detecting chain ID..."
+    CHAIN_ID=$(cast chain-id --rpc-url "$RPC_URL")
+    print_info "Chain ID: $CHAIN_ID"
 fi
 
-
 # Set up forge command options
-FORGE_ARGS="--rpc-url $RPC_URL $WALLET_ARGS -vv"
+if [ "$MULTICHAIN" = "true" ]; then
+    FORGE_ARGS="$WALLET_ARGS -vv"
+else
+    FORGE_ARGS="--rpc-url $RPC_URL $WALLET_ARGS -vv"
+fi
+
+if [ "$MULTICHAIN" = "true" ]; then
+    print_info "MULTICHAIN mode enabled"
+    export MULTICHAIN=true
+fi
 
 if [ "$SIMULATED" = "true" ]; then
     print_warn "Running in simulation mode (no actual transactions)"
@@ -258,7 +261,6 @@ if [ -n "$TCB_EVAL_DATA_NUMBER" ]; then
     print_info "TCB Eval Data Number: $TCB_EVAL_DATA_NUMBER"
 fi
 print_info "Roles: $ROLES ($ACTION_TEXT)"
-print_info "Chain ID: $CHAIN_ID"
 
 if [ "$SIMULATED" != "true" ]; then
     print_info "Role configurations have been applied on-chain"

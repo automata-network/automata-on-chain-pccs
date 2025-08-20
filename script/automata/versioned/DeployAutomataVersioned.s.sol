@@ -13,10 +13,10 @@ import {AutomataEnclaveIdentityDaoVersioned} from "../../../src/automata_pccs/ve
 contract DeployAutomataVersioned is DeploymentConfig, P256Configuration {
     address owner = vm.envAddress("OWNER");
 
-    address x509Crl = readContractAddress("X509CRLHelper");
-    address x509 = readContractAddress("PCKHelper");
-    address enclaveIdentityHelper = readContractAddress("EnclaveIdentityHelper");
-    address fmspcTcbHelper = readContractAddress("FmspcTcbHelper");
+    address x509Crl = readContractAddress("X509CRLHelper", true);
+    address x509 = readContractAddress("PCKHelper", true);
+    address enclaveIdentityHelper = readContractAddress("EnclaveIdentityHelper", true);
+    address fmspcTcbHelper = readContractAddress("FmspcTcbHelper", true);
 
     modifier broadcastOwner() {
         vm.startBroadcast(owner);
@@ -25,9 +25,9 @@ contract DeployAutomataVersioned is DeploymentConfig, P256Configuration {
     }
 
     function deployTcbEvalDao() public broadcastOwner {
-        address pccsStorageAddr = readContractAddress("AutomataDaoStorage");
-        address pcsDaoAddr = readContractAddress("AutomataPcsDao");
-        address tcbEvalHelper = readContractAddress("TcbEvalHelper");
+        address pccsStorageAddr = readContractAddress("AutomataDaoStorage", true);
+        address pcsDaoAddr = readContractAddress("AutomataPcsDao", true);
+        address tcbEvalHelper = readContractAddress("TcbEvalHelper", true);
         AutomataTcbEvalDao tcbEvalDao = new AutomataTcbEvalDao{salt: TCB_EVAL_DAO_SALT}(
             pccsStorageAddr, simulateVerify(), pcsDaoAddr, tcbEvalHelper, x509, x509Crl, owner
         );
@@ -40,8 +40,8 @@ contract DeployAutomataVersioned is DeploymentConfig, P256Configuration {
     }
 
     function deployEnclaveIdDaoVersioned(uint32 tcbEvaluationDataNumber) public broadcastOwner {
-        address pccsStorageAddr = readContractAddress("AutomataDaoStorage");
-        address pcsDaoAddr = readContractAddress("AutomataPcsDao");
+        address pccsStorageAddr = readContractAddress("AutomataDaoStorage", true);
+        address pcsDaoAddr = readContractAddress("AutomataPcsDao", true);
         AutomataEnclaveIdentityDaoVersioned enclaveIdDao = new AutomataEnclaveIdentityDaoVersioned{salt: ENCLAVE_ID_DAO_SALT}(
             pccsStorageAddr, simulateVerify(), pcsDaoAddr, enclaveIdentityHelper, x509, x509Crl, owner, tcbEvaluationDataNumber
         );
@@ -54,8 +54,8 @@ contract DeployAutomataVersioned is DeploymentConfig, P256Configuration {
     }
 
     function deployFmspcTcbDaoVersioned(uint32 tcbEvaluationDataNumber) public broadcastOwner {
-        address pccsStorageAddr = readContractAddress("AutomataDaoStorage");
-        address pcsDaoAddr = readContractAddress("AutomataPcsDao");
+        address pccsStorageAddr = readContractAddress("AutomataDaoStorage", true);
+        address pcsDaoAddr = readContractAddress("AutomataPcsDao", true);
         AutomataFmspcTcbDaoVersioned fmspcTcbDao = new AutomataFmspcTcbDaoVersioned{salt: FMSPC_TCB_DAO_SALT}(
             pccsStorageAddr, simulateVerify(), pcsDaoAddr, fmspcTcbHelper, x509, x509Crl, owner, tcbEvaluationDataNumber
         );

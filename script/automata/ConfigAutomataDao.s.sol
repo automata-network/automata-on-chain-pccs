@@ -12,7 +12,7 @@ import {AutomataPckDao} from "../../src/automata_pccs/AutomataPckDao.sol";
 contract ConfigAutomataDao is DeploymentConfig {
     address owner = vm.envAddress("OWNER");
 
-    address pccsStorageAddr = readContractAddress("AutomataDaoStorage");
+    address pccsStorageAddr = readContractAddress("AutomataDaoStorage", true);
 
     function grantDao(address dao) public {
         vm.broadcast(owner);
