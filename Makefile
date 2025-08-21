@@ -60,8 +60,7 @@ deploy-dao: check_env get_owner
 		--keystore $(KEYSTORE_PATH) --password $(KEYSTORE_PASSWORD)) \
 		$(if $(SIMULATED),, --broadcast) \
 		$(if $(LEGACY), --legacy) \
-		-vv \
-		--sig "deployAll(bool)" $(WITH_STORAGE)
+		-vv
 	@echo "DAO contracts deployed"
 
 deploy-all: deploy-helpers deploy-dao

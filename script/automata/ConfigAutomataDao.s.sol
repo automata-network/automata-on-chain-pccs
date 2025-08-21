@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "../utils/DeploymentConfig.sol";
+import "../utils/Multichain.sol";
 
 import {AutomataDaoStorage} from "../../src/automata_pccs/shared/AutomataDaoStorage.sol";
 import {AutomataFmspcTcbDao} from "../../src/automata_pccs/AutomataFmspcTcbDao.sol";
@@ -9,7 +10,7 @@ import {AutomataEnclaveIdentityDao} from "../../src/automata_pccs/AutomataEnclav
 import {AutomataPcsDao} from "../../src/automata_pccs/AutomataPcsDao.sol";
 import {AutomataPckDao} from "../../src/automata_pccs/AutomataPckDao.sol";
 
-contract ConfigAutomataDao is DeploymentConfig {
+contract ConfigAutomataDao is DeploymentConfig, Multichain {
     address owner = vm.envAddress("OWNER");
 
     address pccsStorageAddr = readContractAddress("AutomataDaoStorage", true);
@@ -27,9 +28,15 @@ contract ConfigAutomataDao is DeploymentConfig {
         AutomataDaoStorage(pccsStorageAddr).revokeDao(dao);
     }
 
-    function setAuthorizedCaller(address caller, bool authorized) public {
-        vm.broadcast(owner);
+    function setAuthorizedCaller(address caller, bool authorized) public multichain {
+        AutomataDaoStorage pccsStorage = AutomataDaoStorage(pccsStorageAddr);
+        bool authorizedCaller = pccsStorage.isAuthorizedCaller(caller);
 
-        AutomataDaoStorage(pccsStorageAddr).setCallerAuthorization(caller, authorized);
+        if (authorized != authorizedCaller) {
+            vm.broadcast(owner);
+            pccsStorage.setCallerAuthorization(caller, authorized);
+        } else {
+            console.log("Skip setAuthorizedCaller()");
+        }
     }
 }

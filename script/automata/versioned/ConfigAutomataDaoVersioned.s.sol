@@ -13,6 +13,8 @@ interface IOwnableRoles {
 
     function revokeRoles(address user, uint256 roles) external;
 
+    function hasAnyRoles(address user, uint256 roles) external view returns (bool);
+
     function renounceRoles(uint256 roles) external;
 }
 
@@ -57,10 +59,13 @@ contract ConfigureAutomataDaoVersioned is DeploymentConfig, Multichain {
 
     function _configureRoles(address dao, address user, uint256 roles, bool authorize) private broadcastOwner {
         IOwnableRoles daoRoles = IOwnableRoles(dao);
-        if (authorize) {
+        bool hasAnyRoles = daoRoles.hasAnyRoles(user, roles);
+        if (authorize && !hasAnyRoles ) {
             daoRoles.grantRoles(user, roles);
-        } else {
+        } else if (!authorize && hasAnyRoles) {
             daoRoles.revokeRoles(user, roles);
+        } else {
+            console.log("Skip _configureRoles()");
         }
     }
 }

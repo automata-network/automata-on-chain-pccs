@@ -19,13 +19,17 @@ contract DeployAutomataDao is DeploymentConfig, P256Configuration {
     address enclaveIdentityHelper = readContractAddress("EnclaveIdentityHelper", true);
     address fmspcTcbHelper = readContractAddress("FmspcTcbHelper", true);
 
+    function run() public override {
+        deployAll(true, false);
+    }
+
     modifier broadcastOwner() {
         vm.startBroadcast(owner);
         _;
         vm.stopBroadcast();
     }
 
-    function deployAll(bool shouldDeployStorage) public broadcastOwner {
+    function deployAll(bool shouldDeployStorage, bool legacy) public broadcastOwner {
         AutomataDaoStorage pccsStorage;
         if (shouldDeployStorage) {
             pccsStorage = new AutomataDaoStorage{salt: PCCS_STORAGE_SALT}(owner);
@@ -49,25 +53,28 @@ contract DeployAutomataDao is DeploymentConfig, P256Configuration {
         console.log("[LOG] AutomataPckDao deployed at: ", address(pckDao));
         writeToJson("AutomataPckDao", address(pckDao));
 
-        // Deploy EnclaveIdDao
-        AutomataEnclaveIdentityDao enclaveIdDao = new AutomataEnclaveIdentityDao{salt: ENCLAVE_ID_DAO_SALT}(
-            address(pccsStorage), simulateVerify(), address(pcsDao), enclaveIdentityHelper, x509, x509Crl
-        );
-        console.log("[LOG] AutomataEnclaveIdDao deployed at: ", address(enclaveIdDao));
-        writeToJson("AutomataEnclaveIdentityDao", address(enclaveIdDao));
+        if (legacy) {
+            // Deploy EnclaveIdDao
+            AutomataEnclaveIdentityDao enclaveIdDao = new AutomataEnclaveIdentityDao{salt: ENCLAVE_ID_DAO_SALT}(
+                address(pccsStorage), simulateVerify(), address(pcsDao), enclaveIdentityHelper, x509, x509Crl
+            );
+            console.log("[LOG] AutomataEnclaveIdDao deployed at: ", address(enclaveIdDao));
+            writeToJson("AutomataEnclaveIdentityDao", address(enclaveIdDao));
 
-        // Deploy FmspcDao
-        AutomataFmspcTcbDao fmspcTcbDao = new AutomataFmspcTcbDao{salt: FMSPC_TCB_DAO_SALT}(
-            address(pccsStorage), simulateVerify(), address(pcsDao), fmspcTcbHelper, x509, x509Crl
-        );
-        console.log("[LOG] AutomataFmspcTcbDao deployed at: ", address(fmspcTcbDao));
-        writeToJson("AutomataFmspcTcbDao", address(fmspcTcbDao));
+            // Deploy FmspcDao
+            AutomataFmspcTcbDao fmspcTcbDao = new AutomataFmspcTcbDao{salt: FMSPC_TCB_DAO_SALT}(
+                address(pccsStorage), simulateVerify(), address(pcsDao), fmspcTcbHelper, x509, x509Crl
+            );
+            console.log("[LOG] AutomataFmspcTcbDao deployed at: ", address(fmspcTcbDao));
+            writeToJson("AutomataFmspcTcbDao", address(fmspcTcbDao));
+
+            pccsStorage.grantDao(address(enclaveIdDao));
+            pccsStorage.grantDao(address(fmspcTcbDao));
+        }
 
         // grants the DAOs permission to write to storage
         pccsStorage.grantDao(address(pcsDao));
         pccsStorage.grantDao(address(pckDao));
-        pccsStorage.grantDao(address(enclaveIdDao));
-        pccsStorage.grantDao(address(fmspcTcbDao));
     }
 
     function deployStorage() public broadcastOwner {
@@ -81,6 +88,8 @@ contract DeployAutomataDao is DeploymentConfig, P256Configuration {
         AutomataPcsDao pcsDao = new AutomataPcsDao{salt: PCS_DAO_SALT}(pccsStorageAddr, simulateVerify(), x509, x509Crl);
         console.log("[LOG] AutomataPcsDao deployed at: ", address(pcsDao));
         writeToJson("AutomataPcsDao", address(pcsDao));
+
+        AutomataDaoStorage(pccsStorageAddr).grantDao(address(pcsDao));
     }
 
     function deployPck() public broadcastOwner {
@@ -90,6 +99,8 @@ contract DeployAutomataDao is DeploymentConfig, P256Configuration {
             new AutomataPckDao{salt: PCK_DAO_SALT}(pccsStorageAddr, simulateVerify(), pcsDaoAddr, x509, x509Crl);
         console.log("[LOG] AutomataPckDao deployed at: ", address(pckDao));
         writeToJson("AutomataPckDao", address(pckDao));
+
+        AutomataDaoStorage(pccsStorageAddr).grantDao(address(pckDao));
     }
 
     function deployEnclaveIdDao() public broadcastOwner {
@@ -100,6 +111,8 @@ contract DeployAutomataDao is DeploymentConfig, P256Configuration {
         );
         console.log("[LOG] AutomataEnclaveIdDao deployed at: ", address(enclaveIdDao));
         writeToJson("AutomataEnclaveIdentityDao", address(enclaveIdDao));
+
+        AutomataDaoStorage(pccsStorageAddr).grantDao(address(enclaveIdDao));
     }
 
     function deployFmspcTcbDao() public broadcastOwner {
@@ -110,5 +123,7 @@ contract DeployAutomataDao is DeploymentConfig, P256Configuration {
         );
         console.log("[LOG] AutomataFmspcTcbDao deployed at: ", address(fmspcTcbDao));
         writeToJson("AutomataFmspcTcbDao", address(fmspcTcbDao));
+
+        AutomataDaoStorage(pccsStorageAddr).grantDao(address(fmspcTcbDao));
     }
 }
