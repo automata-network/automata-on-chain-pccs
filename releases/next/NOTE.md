@@ -44,6 +44,15 @@
 |  | Network | Address |
 | --- | --- | --- |
 | `TcbEvalHelper.sol` | Automata Mainnet | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://explorer.ata.network/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
+|  | Base Mainnet | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://basescan.org/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
+|  | OP Mainnet | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://optimistic.etherscan.io/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
+|  | World Mainnet | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://worldscan.org/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
+|  | Arbitrum Mainnet | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://arbiscan.io/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
+|  | Polygon Mainnet | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://polygonscan.com/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
+|  | BNB Mainnet | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://bscscan.com/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
+|  | Avalanche C Mainnet | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://snowtrace.io/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
+
+---
 
 ### Automata DAO Contracts
 
@@ -206,3 +215,87 @@
 | `AutomataEnclaveIdentityDaoVersioned` | 17 | [0x29aaB215aeE14D4D843C57521BbF2D3B17b45810](https://explorer.ata.network/address/0x29aaB215aeE14D4D843C57521BbF2D3B17b45810) |
 | | 18 | [0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56](https://explorer.ata.network/address/0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56) |
 | | 19 | [0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0](https://explorer.ata.network/address/0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0) |
+
+##### Base Mainnet
+
+| Contract | TCB Evaluation Data Number | Address |
+| --- | --- | --- |
+| `AutomataTcbEvalDao` | N/A | [0xcF614258C68730D8cB9713AcAe425875D1FDb370](https://basescan.org/address/0xcF614258C68730D8cB9713AcAe425875D1FDb370) |
+| `AutomataFmspcTcbDaoVersioned` | 17 | [0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306](https://basescan.org/address/0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306) |
+| | 18 | [0x62E8Cd513B12F248804123f7ed12A0601B79FBAc](https://basescan.org/address/0x62E8Cd513B12F248804123f7ed12A0601B79FBAc) |
+| | 19 | [0x43cdd3490785059423A17a90C1d8f46382C518D2](https://basescan.org/address/0x43cdd3490785059423A17a90C1d8f46382C518D2) |
+| `AutomataEnclaveIdentityDaoVersioned` | 17 | [0x29aaB215aeE14D4D843C57521BbF2D3B17b45810](https://basescan.org/address/0x29aaB215aeE14D4D843C57521BbF2D3B17b45810) |
+| | 18 | [0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56](https://basescan.org/address/0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56) |
+| | 19 | [0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0](https://basescan.org/address/0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0) |
+
+##### OP Mainnet
+
+| Contract | TCB Evaluation Data Number | Address |
+| --- | --- | --- |
+| `AutomataTcbEvalDao` | N/A | [0xcF614258C68730D8cB9713AcAe425875D1FDb370](https://optimistic.etherscan.io/address/0xcF614258C68730D8cB9713AcAe425875D1FDb370) |
+| `AutomataFmspcTcbDaoVersioned` | 17 | [0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306](https://optimistic.etherscan.io/address/0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306) |
+| | 18 | [0x62E8Cd513B12F248804123f7ed12A0601B79FBAc](https://optimistic.etherscan.io/address/0x62E8Cd513B12F248804123f7ed12A0601B79FBAc) |
+| | 19 | [0x43cdd3490785059423A17a90C1d8f46382C518D2](https://optimistic.etherscan.io/address/0x43cdd3490785059423A17a90C1d8f46382C518D2) |
+| `AutomataEnclaveIdentityDaoVersioned` | 17 | [0x29aaB215aeE14D4D843C57521BbF2D3B17b45810](https://optimistic.etherscan.io/address/0x29aaB215aeE14D4D843C57521BbF2D3B17b45810) |
+| | 18 | [0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56](https://optimistic.etherscan.io/address/0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56) |
+| | 19 | [0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0](https://optimistic.etherscan.io/address/0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0) |
+
+##### World Mainnet
+
+| Contract | TCB Evaluation Data Number | Address |
+| --- | --- | --- |
+| `AutomataTcbEvalDao` | N/A | [0xcF614258C68730D8cB9713AcAe425875D1FDb370](https://worldscan.org/address/0xcF614258C68730D8cB9713AcAe425875D1FDb370) |
+| `AutomataFmspcTcbDaoVersioned` | 17 | [0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306](https://worldscan.org/address/0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306) |
+| | 18 | [0x62E8Cd513B12F248804123f7ed12A0601B79FBAc](https://worldscan.org/address/0x62E8Cd513B12F248804123f7ed12A0601B79FBAc) |
+| | 19 | [0x43cdd3490785059423A17a90C1d8f46382C518D2](https://worldscan.org/address/0x43cdd3490785059423A17a90C1d8f46382C518D2) |
+| `AutomataEnclaveIdentityDaoVersioned` | 17 | [0x29aaB215aeE14D4D843C57521BbF2D3B17b45810](https://worldscan.org/address/0x29aaB215aeE14D4D843C57521BbF2D3B17b45810) |
+| | 18 | [0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56](https://worldscan.org/address/0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56) |
+| | 19 | [0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0](https://worldscan.org/address/0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0) |
+
+##### Arbitrum Mainnet
+
+| Contract | TCB Evaluation Data Number | Address |
+| --- | --- | --- |
+| `AutomataTcbEvalDao` | N/A | [0xcF614258C68730D8cB9713AcAe425875D1FDb370](https://arbiscan.io/address/0xcF614258C68730D8cB9713AcAe425875D1FDb370) |
+| `AutomataFmspcTcbDaoVersioned` | 17 | [0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306](https://arbiscan.io/address/0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306) |
+| | 18 | [0x62E8Cd513B12F248804123f7ed12A0601B79FBAc](https://arbiscan.io/address/0x62E8Cd513B12F248804123f7ed12A0601B79FBAc) |
+| | 19 | [0x43cdd3490785059423A17a90C1d8f46382C518D2](https://arbiscan.io/address/0x43cdd3490785059423A17a90C1d8f46382C518D2) |
+| `AutomataEnclaveIdentityDaoVersioned` | 17 | [0x29aaB215aeE14D4D843C57521BbF2D3B17b45810](https://arbiscan.io/address/0x29aaB215aeE14D4D843C57521BbF2D3B17b45810) |
+| | 18 | [0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56](https://arbiscan.io/address/0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56) |
+| | 19 | [0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0](https://arbiscan.io/address/0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0) |
+
+##### Polygon Mainnet
+
+| Contract | TCB Evaluation Data Number | Address |
+| --- | --- | --- |
+| `AutomataTcbEvalDao` | N/A | [0xcF614258C68730D8cB9713AcAe425875D1FDb370](https://polygonscan.com/address/0xcF614258C68730D8cB9713AcAe425875D1FDb370) |
+| `AutomataFmspcTcbDaoVersioned` | 17 | [0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306](https://polygonscan.com/address/0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306) |
+| | 18 | [0x62E8Cd513B12F248804123f7ed12A0601B79FBAc](https://polygonscan.com/address/0x62E8Cd513B12F248804123f7ed12A0601B79FBAc) |
+| | 19 | [0x43cdd3490785059423A17a90C1d8f46382C518D2](https://polygonscan.com/address/0x43cdd3490785059423A17a90C1d8f46382C518D2) |
+| `AutomataEnclaveIdentityDaoVersioned` | 17 | [0x29aaB215aeE14D4D843C57521BbF2D3B17b45810](https://polygonscan.com/address/0x29aaB215aeE14D4D843C57521BbF2D3B17b45810) |
+| | 18 | [0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56](https://polygonscan.com/address/0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56) |
+| | 19 | [0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0](https://polygonscan.com/address/0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0) |
+
+##### BNB Mainnet
+
+| Contract | TCB Evaluation Data Number | Address |
+| --- | --- | --- |
+| `AutomataTcbEvalDao` | N/A | [0xcF614258C68730D8cB9713AcAe425875D1FDb370](https://bscscan.com/address/0xcF614258C68730D8cB9713AcAe425875D1FDb370) |
+| `AutomataFmspcTcbDaoVersioned` | 17 | [0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306](https://bscscan.com/address/0x3d47b3E543dC4f7557E553e343F32DE0Eb15C306) |
+| | 18 | [0x62E8Cd513B12F248804123f7ed12A0601B79FBAc](https://bscscan.com/address/0x62E8Cd513B12F248804123f7ed12A0601B79FBAc) |
+| | 19 | [0x43cdd3490785059423A17a90C1d8f46382C518D2](https://bscscan.com/address/0x43cdd3490785059423A17a90C1d8f46382C518D2) |
+| `AutomataEnclaveIdentityDaoVersioned` | 17 | [0x29aaB215aeE14D4D843C57521BbF2D3B17b45810](https://bscscan.com/address/0x29aaB215aeE14D4D843C57521BbF2D3B17b45810) |
+| | 18 | [0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56](https://bscscan.com/address/0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56) |
+| | 19 | [0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0](https://bscscan.com/address/0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0) |
+
+##### Avalanche C Mainnet
+
+| Contract | TCB Evaluation Data Number | Address |
+| --- | --- | --- |
+| `AutomataTcbEvalDao` | N/A | [0x8e1EA521a6A4832A0c3763D75ED4b8017cfB5424](https://snowtrace.io/address/0x8e1EA521a6A4832A0c3763D75ED4b8017cfB5424) |
+| `AutomataFmspcTcbDaoVersioned` | 17 | [0x3A1fDF33420026d145C59bC6b3129bA81E9bF68e](https://snowtrace.io/address/0x3A1fDF33420026d145C59bC6b3129bA81E9bF68e) |
+| | 18 | [0xBF3268Dcee73EfDe149d206ebB856380C6EeD374](https://snowtrace.io/address/0xBF3268Dcee73EfDe149d206ebB856380C6EeD374) |
+| | 19 | [0xb1D89Fd867A1D6a122ed88c092163281c2474111](https://snowtrace.io/address/0xb1D89Fd867A1D6a122ed88c092163281c2474111) |
+| `AutomataEnclaveIdentityDaoVersioned` | 17 | [0xE6fE85B78cb82e3b9C8AE57d754C86fe6774aF64](https://snowtrace.io/address/0xE6fE85B78cb82e3b9C8AE57d754C86fe6774aF64) |
+| | 18 | [0x5dF358463632A8eEA0bdeF87f011F032e984b7ef](https://snowtrace.io/address/0x5dF358463632A8eEA0bdeF87f011F032e984b7ef) |
+| | 19 | [0xa0DE0E975599347A76FF9A3baC59d686fE89b73C](https://snowtrace.io/address/0xa0DE0E975599347A76FF9A3baC59d686fE89b73C) |
