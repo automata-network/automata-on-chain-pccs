@@ -8,7 +8,7 @@ abstract contract Multichain {
     address constant HEVM_ADDRESS = 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D;
     Vm constant internalVm = Vm(HEVM_ADDRESS);
 
-    bool useMultichain = internalVm.envBool("MULTICHAIN");
+    bool useMultichain = internalVm.envOr("MULTICHAIN", false);
 
     modifier multichain() {
         if (useMultichain) {
@@ -22,9 +22,9 @@ abstract contract Multichain {
                     // run the script
                     console.log("Running on chain: ", chain);
                     _;
-                } catch {
+                } catch Error(string memory reason) {
                     // if the fork fails, skip it
-                    console.log("Skipping chain: ", chain);
+                    console.log("Skipping chain: ", chain, " Reason: ", reason);
                 }
             }
         } else {
