@@ -51,6 +51,7 @@
 |  | Polygon Mainnet | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://polygonscan.com/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
 |  | BNB Mainnet | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://bscscan.com/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
 |  | Avalanche C Mainnet | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://snowtrace.io/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
+|  | Unichain Mainnet | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://unichain.blockscout.com/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
 
 ---
 
@@ -299,3 +300,15 @@
 | `AutomataEnclaveIdentityDaoVersioned` | 17 | [0xE6fE85B78cb82e3b9C8AE57d754C86fe6774aF64](https://snowtrace.io/address/0xE6fE85B78cb82e3b9C8AE57d754C86fe6774aF64) |
 | | 18 | [0x5dF358463632A8eEA0bdeF87f011F032e984b7ef](https://snowtrace.io/address/0x5dF358463632A8eEA0bdeF87f011F032e984b7ef) |
 | | 19 | [0xa0DE0E975599347A76FF9A3baC59d686fE89b73C](https://snowtrace.io/address/0xa0DE0E975599347A76FF9A3baC59d686fE89b73C) |
+
+##### Unichain Mainnet
+
+| Contract | TCB Evaluation Data Number | Address |
+| --- | --- | --- |
+| `AutomataTcbEvalDao` | N/A | [0x989255E6Bf4d2AE19e503eeF0E7DeD04d38D5a62](https://unichain.blockscout.com/address/0x989255E6Bf4d2AE19e503eeF0E7DeD04d38D5a62) |
+| `AutomataFmspcTcbDaoVersioned` | 17 | [0x171eC97D750490b8916456Da908215bD618472BF](https://unichain.blockscout.com/address/0x171eC97D750490b8916456Da908215bD618472BF) |
+| | 18 | [0xcB1f19e9F477E1Fe98c349F57023C317033976D9](https://unichain.blockscout.com/address/0xcB1f19e9F477E1Fe98c349F57023C317033976D9) |
+| | 19 | [0x0353eFD9c0e0b208442c62Bd7Dd704d456C4FF3d](https://unichain.blockscout.com/address/0x0353eFD9c0e0b208442c62Bd7Dd704d456C4FF3d) |
+| `AutomataEnclaveIdentityDaoVersioned` | 17 | [0xE6B1ba6861Fb3F4f4cc5CAE3C3Fb93C8b4Dc9617](https://unichain.blockscout.com/address/0xE6B1ba6861Fb3F4f4cc5CAE3C3Fb93C8b4Dc9617) |
+| | 18 | [0x0f3c5B8b9da297EFFea8745bedAA37f9671166bD](https://unichain.blockscout.com/address/0x0f3c5B8b9da297EFFea8745bedAA37f9671166bD) |
+| | 19 | [0xeA9A65A523D6e173b825841A8278d2448dEecFb1](https://unichain.blockscout.com/address/0xeA9A65A523D6e173b825841A8278d2448dEecFb1) |
