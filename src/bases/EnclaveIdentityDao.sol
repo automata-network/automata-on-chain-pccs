@@ -244,7 +244,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
     /// @dev and the evaluation data number
     /// @dev this reduces the amount of data to read, when performing rollback check
     /// @dev which also allows any caller to check expiration of the Enclave Identity before loading the entire data
-    /// @dev the functions defined below can be overriden by the inheriting contract
+    /// @dev the functions defined below can be overridden by the inheriting contract
 
     function _storeEnclaveIdentityIssueEvaluation(
         bytes32 tcbKey,
