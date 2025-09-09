@@ -4,13 +4,14 @@ pragma solidity ^0.8.0;
 import "../../utils/P256Configuration.sol";
 import "../../utils/Salt.sol";
 import "../../utils/DeploymentConfig.sol";
+import "../../utils/Multichain.sol";
 
 import {AutomataDaoStorage} from "../../../src/automata_pccs/shared/AutomataDaoStorage.sol";
 import {AutomataTcbEvalDao} from "../../../src/automata_pccs/AutomataTcbEvalDao.sol";
 import {AutomataFmspcTcbDaoVersioned} from "../../../src/automata_pccs/versioned/AutomataFmspcTcbDaoVersioned.sol";
 import {AutomataEnclaveIdentityDaoVersioned} from "../../../src/automata_pccs/versioned/AutomataEnclaveIdentityDaoVersioned.sol";
 
-contract DeployAutomataVersioned is DeploymentConfig, P256Configuration {
+contract DeployAutomataVersioned is DeploymentConfig, P256Configuration, Multichain {
     address owner = vm.envAddress("OWNER");
 
     address x509Crl = readContractAddress("X509CRLHelper", true);
@@ -18,16 +19,13 @@ contract DeployAutomataVersioned is DeploymentConfig, P256Configuration {
     address enclaveIdentityHelper = readContractAddress("EnclaveIdentityHelper", true);
     address fmspcTcbHelper = readContractAddress("FmspcTcbHelper", true);
 
-    modifier broadcastOwner() {
-        vm.startBroadcast(owner);
-        _;
-        vm.stopBroadcast();
-    }
-
-    function deployTcbEvalDao() public broadcastOwner {
+    function deployTcbEvalDao() public multichain {
         address pccsStorageAddr = readContractAddress("AutomataDaoStorage", true);
         address pcsDaoAddr = readContractAddress("AutomataPcsDao", true);
         address tcbEvalHelper = readContractAddress("TcbEvalHelper", true);
+
+        vm.startBroadcast(owner);
+
         AutomataTcbEvalDao tcbEvalDao = new AutomataTcbEvalDao{salt: TCB_EVAL_DAO_SALT}(
             pccsStorageAddr, simulateVerify(), pcsDaoAddr, tcbEvalHelper, x509, x509Crl, owner
         );
@@ -35,13 +33,18 @@ contract DeployAutomataVersioned is DeploymentConfig, P256Configuration {
         AutomataDaoStorage pccsStorage = AutomataDaoStorage(pccsStorageAddr);
         pccsStorage.grantDao(address(tcbEvalDao));
 
+        vm.stopBroadcast();
+
         console.log("[LOG] AutomataTcbEvalDao deployed at: ", address(tcbEvalDao));
         writeToJson("AutomataTcbEvalDao", address(tcbEvalDao));
     }
 
-    function deployEnclaveIdDaoVersioned(uint32 tcbEvaluationDataNumber) public broadcastOwner {
+    function deployEnclaveIdDaoVersioned(uint32 tcbEvaluationDataNumber) public multichain {
         address pccsStorageAddr = readContractAddress("AutomataDaoStorage", true);
         address pcsDaoAddr = readContractAddress("AutomataPcsDao", true);
+
+        vm.startBroadcast(owner);
+
         AutomataEnclaveIdentityDaoVersioned enclaveIdDao = new AutomataEnclaveIdentityDaoVersioned{salt: ENCLAVE_ID_DAO_SALT}(
             pccsStorageAddr, simulateVerify(), pcsDaoAddr, enclaveIdentityHelper, x509, x509Crl, owner, tcbEvaluationDataNumber
         );
@@ -51,11 +54,16 @@ contract DeployAutomataVersioned is DeploymentConfig, P256Configuration {
 
         console.log("[LOG] AutomataEnclaveIdDaoVersioned deployed at: ", address(enclaveIdDao));
         writeToJsonVersioned("AutomataEnclaveIdentityDaoVersioned", tcbEvaluationDataNumber, address(enclaveIdDao));
+
+        vm.stopBroadcast();
     }
 
-    function deployFmspcTcbDaoVersioned(uint32 tcbEvaluationDataNumber) public broadcastOwner {
+    function deployFmspcTcbDaoVersioned(uint32 tcbEvaluationDataNumber) public multichain {
         address pccsStorageAddr = readContractAddress("AutomataDaoStorage", true);
         address pcsDaoAddr = readContractAddress("AutomataPcsDao", true);
+
+        vm.startBroadcast(owner);
+
         AutomataFmspcTcbDaoVersioned fmspcTcbDao = new AutomataFmspcTcbDaoVersioned{salt: FMSPC_TCB_DAO_SALT}(
             pccsStorageAddr, simulateVerify(), pcsDaoAddr, fmspcTcbHelper, x509, x509Crl, owner, tcbEvaluationDataNumber
         );
@@ -65,5 +73,7 @@ contract DeployAutomataVersioned is DeploymentConfig, P256Configuration {
 
         console.log("[LOG] AutomataFmspcTcbDaoVersioned deployed at: ", address(fmspcTcbDao));
         writeToJsonVersioned("AutomataFmspcTcbDaoVersioned", tcbEvaluationDataNumber, address(fmspcTcbDao));
+
+        vm.stopBroadcast();
     }
 }

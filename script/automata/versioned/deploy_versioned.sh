@@ -40,16 +40,17 @@ show_usage() {
     echo "Arguments for 'versioned':"
     echo "  tcb-eval-data-number      TCB evaluation data number for versioned contracts (required)"
     echo ""
-    echo "Required Environment Variables:"
-    echo "  RPC_URL                    RPC URL for the target network"
+echo "Required Environment Variables (unless MULTICHAIN=true):"
+echo "  RPC_URL                    RPC URL for the target network"
     echo ""
     echo "Required Wallet Credentials (one of):"
     echo "  PRIVATE_KEY                Private key for wallet"
     echo "  KEYSTORE_PATH              Path to keystore file (default: keystore/dcap_prod)"
     echo ""
-    echo "Optional Environment Variables:"
-    echo "  SIMULATED                  Set to 'true' for simulation mode (default: false)"
-    echo "  LEGACY                     Set to 'true' for legacy transaction mode"
+echo "Optional Environment Variables:"
+echo "  SIMULATED                  Set to 'true' for simulation mode (default: false)"
+echo "  LEGACY                     Set to 'true' for legacy transaction mode"
+echo "  MULTICHAIN                 Set to 'true' to deploy across all supported chains (default: false)"
     echo ""
     echo "Examples:"
     echo "  $0 tcb-eval                                   Deploy AutomataTcbEvalDao"
@@ -118,8 +119,8 @@ else
 fi
 
 # Check required environment variables
-if [ -z "$RPC_URL" ]; then
-    print_error "RPC_URL environment variable is required"
+if [ -z "$RPC_URL" ] && [ "$MULTICHAIN" != "true" ]; then
+    print_error "RPC_URL environment variable is required (unless MULTICHAIN=true)"
     exit 1
 fi
 
@@ -151,30 +152,40 @@ if [ -z "$OWNER" ]; then
     exit 1
 fi
 
-# Get chain ID
-print_info "Detecting chain ID..."
-CHAIN_ID=$(cast chain-id --rpc-url "$RPC_URL")
-print_info "Chain ID: $CHAIN_ID"
-
-# Check if deployment file exists (helper contracts should be deployed first)
-DEPLOYMENT_FILE="$PROJECT_ROOT/deployment/$CHAIN_ID.json"
-if [ ! -f "$DEPLOYMENT_FILE" ]; then
-    print_error "Helper contracts not found at $DEPLOYMENT_FILE"
-    print_error "Please deploy helper contracts first using: make deploy-helpers"
-    exit 1
+# Get chain ID (single-chain mode only)
+if [ "$MULTICHAIN" != "true" ]; then
+    print_info "Detecting chain ID..."
+    CHAIN_ID=$(cast chain-id --rpc-url "$RPC_URL")
+    print_info "Chain ID: $CHAIN_ID"
 fi
 
-# Validate that required helper contracts exist
-REQUIRED_HELPERS=("PCKHelper" "X509CRLHelper" "EnclaveIdentityHelper" "FmspcTcbHelper" "AutomataDaoStorage" "AutomataPcsDao")
-for helper in "${REQUIRED_HELPERS[@]}"; do
-    if ! jq -e ".$helper" "$DEPLOYMENT_FILE" > /dev/null 2>&1; then
-        print_error "Required helper contract '$helper' not found in $DEPLOYMENT_FILE"
+# Check if deployment file exists (helper contracts should be deployed first) (single-chain mode only)
+if [ "$MULTICHAIN" != "true" ]; then
+    DEPLOYMENT_FILE="$PROJECT_ROOT/deployment/$CHAIN_ID.json"
+    if [ ! -f "$DEPLOYMENT_FILE" ]; then
+        print_error "Helper contracts not found at $DEPLOYMENT_FILE"
+        print_error "Please deploy helper contracts first using: make deploy-helpers"
         exit 1
     fi
-done
+
+    # Validate that required helper contracts exist
+    REQUIRED_HELPERS=("PCKHelper" "X509CRLHelper" "EnclaveIdentityHelper" "FmspcTcbHelper" "AutomataDaoStorage" "AutomataPcsDao")
+    for helper in "${REQUIRED_HELPERS[@]}"; do
+        if ! jq -e ".$helper" "$DEPLOYMENT_FILE" > /dev/null 2>&1; then
+            print_error "Required helper contract '$helper' not found in $DEPLOYMENT_FILE"
+            exit 1
+        fi
+    done
+fi
 
 # Set up forge command options
-FORGE_ARGS="--rpc-url $RPC_URL $WALLET_ARGS -vv"
+if [ "$MULTICHAIN" = "true" ]; then
+    print_info "MULTICHAIN mode enabled"
+    export MULTICHAIN=true
+    FORGE_ARGS="$WALLET_ARGS -vv"
+else
+    FORGE_ARGS="--rpc-url $RPC_URL $WALLET_ARGS -vv"
+fi
 
 if [ "$SIMULATED" = "true" ]; then
     print_warn "Running in simulation mode (no actual deployment)"
@@ -226,10 +237,18 @@ print_info "Deployment completed successfully for $COMMAND command!"
 if [ -n "$TCB_EVALUATION_DATA_NUMBER" ]; then
     print_info "TCB Eval Data Number: $TCB_EVALUATION_DATA_NUMBER"
 fi
-print_info "Chain ID: $CHAIN_ID"
+if [ "$MULTICHAIN" != "true" ]; then
+    print_info "Chain ID: $CHAIN_ID"
+else
+    print_info "Mode: MULTICHAIN"
+fi
 
 if [ "$SIMULATED" != "true" ]; then
-    print_info "Contract addresses have been saved to: $DEPLOYMENT_FILE"
+    if [ "$MULTICHAIN" != "true" ]; then
+        print_info "Contract addresses have been saved to: $DEPLOYMENT_FILE"
+    else
+        print_info "Contract addresses have been saved to deployment/<chainId>.json for each processed chain"
+    fi
     print_info "Next steps:"
     print_info "  1. Configure roles: ./config_versioned.sh"
     print_info "  2. Verify contracts: ./verify_versioned.sh"
