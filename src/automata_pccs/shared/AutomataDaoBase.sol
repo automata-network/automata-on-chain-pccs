@@ -13,7 +13,7 @@ abstract contract AutomataDaoBase is DaoBase {
      * custom logic implementation BEFORE fetching data from the resolver
      * @notice this is added to allow read operations to be called from
      * the PCCSRouter contract (Learn more about PCCSRouter at
-     * https://github.com/automata-network/automata-dcap-attestation/blob/DEV-3373/audit/contracts/PCCSRouter.sol)
+     * https://github.com/automata-network/automata-dcap-attestation/blob/main/evm/contracts/PCCSRouter.sol)
      *
      */
     function _onFetchDataFromResolver(bytes32 key, bool hash)
