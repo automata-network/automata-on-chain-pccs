@@ -149,7 +149,7 @@ Our DAO implementation can be found in the [`automata_pccs`](./src/automata_pccs
 |  | Unichain Sepolia | [0xd74e880029cd3B6b434f16beA5F53A06989458Ee](https://sepolia.uniscan.xyz/address/0xd74e880029cd3B6b434f16beA5F53A06989458Ee) |
 | `AutomataFmspcTcbDao.sol` | Automata Testnet | [0xd3A3f34E8615065704cCb5c304C0cEd41bB81483](https://explorer-testnet.ata.network/address/0xd3A3f34E8615065704cCb5c304C0cEd41bB81483) |
 |  | Ethereum Sepolia | [0x63eF330eAaadA189861144FCbc9176dae41A5BAf](https://sepolia.etherscan.io/address/0x63eF330eAaadA189861144FCbc9176dae41A5BAf) |
-|  | Ethereum Holesky | [0x63eF330eAaadA189861144FCbc9176dae41A5BAf](https://holesky.etherscan.io/address/0x63eF330eAaadA189861144FCbc9176dae41A5BAf6) |
+|  | Ethereum Holesky | [0x63eF330eAaadA189861144FCbc9176dae41A5BAf](https://holesky.etherscan.io/address/0x63eF330eAaadA189861144FCbc9176dae41A5BAf) |
 |  | Base Sepolia | [0xd3A3f34E8615065704cCb5c304C0cEd41bB81483](https://sepolia.basescan.org/address/0xd3A3f34E8615065704cCb5c304C0cEd41bB81483) |
 |  | OP Sepolia | [0xd3A3f34E8615065704cCb5c304C0cEd41bB81483](https://sepolia-optimism.etherscan.io/address/0xd3A3f34E8615065704cCb5c304C0cEd41bB81483) |
 |  | Arbitrum Sepolia | [0xd3A3f34E8615065704cCb5c304C0cEd41bB81483](https://sepolia.arbiscan.io/address/0xd3A3f34E8615065704cCb5c304C0cEd41bB81483) |
