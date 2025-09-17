@@ -38,6 +38,7 @@
 |  | World Sepolia | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://sepolia.worldscan.org/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
 |  | Arbitrum Sepolia | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://sepolia.arbiscan.io/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
 |  | Unichain Sepolia | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://unichain-sepolia.blockscout.com/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
+|  | Hyperliquid Testnet | [0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC](https://testnet.purrsec.com/address/0xc02eCE21bD137410bc8edD30886bA6C7d255F3cC) |
 
 #### Mainnet
 
@@ -226,6 +227,20 @@
 | | 18 | [0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56](https://unichain-sepolia.blockscout.com/address/0x6eE9602b90E8C451FfBCc8d5Dc9C8A3BF0A4fA56) |
 | | 19 | [0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0](https://unichain-sepolia.blockscout.com/address/0x5A4636EA4Bd9DDD5bA78E9405e2FA420317329D0) |
 | | 20 | [0xD5Fdf78606B4D1980F78f1f0E24920D3E79AcBCF](https://unichain-sepolia.blockscout.com/address/0xD5Fdf78606B4D1980F78f1f0E24920D3E79AcBCF) |
+
+##### Hyperliquid Testnet
+
+| Contract | TCB Evaluation Data Number | Address |
+| --- | --- | --- |
+| `AutomataTcbEvalDao` | N/A | [0x733141E56b0Fe934B1843393AA14E180e8A8C0F8](https://testnet.purrsec.com/address/0x733141E56b0Fe934B1843393AA14E180e8A8C0F8) |
+| `AutomataFmspcTcbDaoVersioned` | 17 | [0xe287D601caA2b48cc74bd04Fe1B203dfAcbAaF62](https://testnet.purrsec.com/address/0xe287D601caA2b48cc74bd04Fe1B203dfAcbAaF62) |
+| | 18 | [0xE12B93916e8db0C2304B31dA85D1Da303507aA0d](https://testnet.purrsec.com/address/0xE12B93916e8db0C2304B31dA85D1Da303507aA0d) |
+| | 19 | [0x35c8680C8E5D275D08BF50A76A702a327dA4dB82](https://testnet.purrsec.com/address/0x35c8680C8E5D275D08BF50A76A702a327dA4dB82) |
+| | 20 | [0x0796d6e99fABA80Ff288023d84c6ACB0f55dE9C6](https://testnet.purrsec.com/address/0x0796d6e99fABA80Ff288023d84c6ACB0f55dE9C6) |
+| `AutomataEnclaveIdentityDaoVersioned` | 17 | [0x5e8A0dc02210709a5cEBb5456B0093c416aF4565](https://testnet.purrsec.com/address/0x5e8A0dc02210709a5cEBb5456B0093c416aF4565) |
+| | 18 | [0x150b0AaFe6Dc6C9BC2B5e399eAB0c3bA795f5b84](https://testnet.purrsec.com/address/0x150b0AaFe6Dc6C9BC2B5e399eAB0c3bA795f5b84) |
+| | 19 | [0xEAaDc9036069B00b3bbB20A93AF8601768AA6e3A](https://testnet.purrsec.com/address/0xEAaDc9036069B00b3bbB20A93AF8601768AA6e3A) |
+| | 20 | [0x08cCA3ACC7545e74d3009a3eD233398F2CEa7aeD](https://testnet.purrsec.com/address/0x08cCA3ACC7545e74d3009a3eD233398F2CEa7aeD) |
 
 #### Mainnet
 
