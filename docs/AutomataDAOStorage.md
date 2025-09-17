@@ -1,5 +1,14 @@
 # Automata PCCS DAO and Collateral Storage Management
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Global Constants](#global-constants)
+- [AutomataEnclaveIdentityDAO](#automataenclaveidentitydao)
+- [AutomataFmspcTcbDAO](#automatafmspctcbdao)
+- [AutomataPckDAO](#automatapckdao)
+- [AutomataPcsDAO](#automatapcsdao)
+
 ## Overview
 
 `AutomataDaoStorage` serves as the central location for collateral storage. This contract is designed to be immutable and only writable by individual DAOs. 
