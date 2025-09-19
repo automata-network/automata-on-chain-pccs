@@ -73,7 +73,7 @@ verify-helpers: check_env
 		echo "Helper addresses not found. Deploy helpers first."; \
 		exit 1; \
 	fi
-	@for contract in EnclaveIdentityHelper FmspcTcbHelper PCKHelper X509CRLHelper; do \
+	@for contract in EnclaveIdentityHelper FmspcTcbHelper PCKHelper X509CRLHelper TcbEvalHelper; do \
 		addr=$$(jq -r ".$$contract" deployment/$(CHAIN_ID).json); \
 		if [ "$$addr" != "null" ]; then \
 			forge verify-contract \
