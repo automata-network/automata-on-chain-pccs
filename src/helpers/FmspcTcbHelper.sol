@@ -97,8 +97,6 @@ contract FmspcTcbHelper {
     using BytesUtils for bytes;
 
     error TCBInfo_Invalid();
-    error TCB_TDX_Version_Invalid();
-    error TCB_TDX_ID_Invalid();
 
     /**
      * @notice this method generates content-specific hash
