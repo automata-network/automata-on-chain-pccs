@@ -44,7 +44,7 @@ This list contains the deployment info for the versions that we are currently su
 
 ### #BUIDL 🛠️
 
-1. Install [Foundry](https://book.getfoundry.sh/getting-started/installation)
+1. Install [Foundry](https://getfoundry.sh/introduction/installation/)
 
 2. Install the dependencies
 
