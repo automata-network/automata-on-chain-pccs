@@ -9,6 +9,7 @@ broadcast/
 .env
 
 # Ignore development deployment files
+deployment/22444422.json
 deployment/31337.json
 deployment/33611633.json
 
