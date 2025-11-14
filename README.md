@@ -40,6 +40,31 @@ This list contains the deployment info for the versions that we are currently su
 - [Current](./releases/next/NOTE.md)
 - [v1.0.0](./releases/v1.0.0/NOTE.md)
 
+--- 
+
+### Integration
+
+To install the Automata Onchain PCCS contracts as a dependency for your project, you can either run:
+
+```bash
+forge install automata-network/automata-on-chain-pccs
+```
+OR
+
+```bash
+npm install @automata-network/on-chain-pccs
+```
+
+If you are using Foundry, make sure to include the following to your remappings:
+
+```text
+# Foundry Submodule:
+automata-network/on-chain-pccs/=lib/automata-on-chain-pccs/src/
+
+# NPM
+automata-network/on-chain-pccs/=node_modules/@automata-network/on-chain-pccs/src/
+```
+
 ---
 
 ### #BUIDL 🛠️

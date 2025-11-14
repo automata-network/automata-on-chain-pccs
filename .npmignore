@@ -1,0 +1,44 @@
+# Development and build files
+test/
+script/
+.github/
+
+# Build artifacts
+cache/
+out/
+broadcast/
+lib/
+
+# Deployment files
+deployment/
+
+# Documentation and releases
+README.md
+docs/
+releases/
+
+# Configuration files
+foundry.toml
+remappings.txt
+Makefile
+slither.config.json
+
+# Git files
+.git/
+.gitignore
+.gitmodules
+.gitattributes
+
+# IDE and OS files
+.vscode/
+.DS_Store
+
+# Environment files
+.env
+.env.*
+
+# Node modules (if any)
+node_modules/
+
+# Keystore
+keystore/
