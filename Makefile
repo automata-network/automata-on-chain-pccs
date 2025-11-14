@@ -60,8 +60,7 @@ deploy-dao: check_env get_owner
 		--keystore $(KEYSTORE_PATH) --password $(KEYSTORE_PASSWORD)) \
 		$(if $(SIMULATED),, --broadcast) \
 		$(if $(LEGACY), --legacy) \
-		-vv \
-		--sig "deployAll(bool)" $(WITH_STORAGE)
+		-vv
 	@echo "DAO contracts deployed"
 
 deploy-all: deploy-helpers deploy-dao
@@ -74,7 +73,7 @@ verify-helpers: check_env
 		echo "Helper addresses not found. Deploy helpers first."; \
 		exit 1; \
 	fi
-	@for contract in EnclaveIdentityHelper FmspcTcbHelper PCKHelper X509CRLHelper; do \
+	@for contract in EnclaveIdentityHelper FmspcTcbHelper PCKHelper X509CRLHelper TcbEvalHelper; do \
 		addr=$$(jq -r ".$$contract" deployment/$(CHAIN_ID).json); \
 		if [ "$$addr" != "null" ]; then \
 			forge verify-contract \

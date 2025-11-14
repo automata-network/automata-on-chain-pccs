@@ -2,17 +2,16 @@
 cache/
 out/
 
-# Ignores development broadcast logs
-broadcast/**/31337/
-broadcast/**/run-*.json
-broadcast/**/dry-run/
-!broadcast/**/*-latest.json
+# Ignores all broadcast logs
+broadcast/
 
 # Dotenv file
 .env
 
 # Ignore development deployment files
+deployment/22444422.json
 deployment/31337.json
+deployment/33611633.json
 
 # Misc
 **/.DS_Store

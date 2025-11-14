@@ -1,0 +1,29 @@
+{
+  "name": "@automata-network/on-chain-pccs",
+  "version": "1.1.0",
+  "description": "On-chain PCCS for Intel DCAP attestation - Solidity smart contracts",
+  "author": "Automata Network",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/automata-network/automata-on-chain-pccs.git"
+  },
+  "keywords": [
+    "solidity",
+    "smart-contracts",
+    "attestation",
+    "dcap",
+    "intel",
+    "sgx",
+    "tdx",
+    "pccs"
+  ],
+  "files": [
+    "src",
+    "LICENSE"
+  ],
+  "peerDependencies": {
+    "@openzeppelin/contracts": "5.0.2",
+    "solady": "0.0.160"
+  }
+}

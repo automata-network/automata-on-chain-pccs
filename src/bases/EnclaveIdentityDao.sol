@@ -80,7 +80,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
      * NOT the "version" value found in the Enclave Identity JSON
      * @return key = keccak256(ENCLAVE_ID_MAGIC ++ id ++ version)
      */
-    function ENCLAVE_ID_KEY(uint256 id, uint256 version) public pure returns (bytes32 key) {
+    function ENCLAVE_ID_KEY(uint256 id, uint256 version) public view virtual returns (bytes32 key) {
         key = keccak256(abi.encodePacked(ENCLAVE_ID_MAGIC, id, version));
     }
 
@@ -177,13 +177,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         }
 
         // make sure new collateral is "newer"
-        (uint64 existingIssueDateTimestamp,, uint64 existingEvaluationDataNumber) =
-            _loadEnclaveIdentityIssueEvaluation(key);
-        bool outOfDate = existingEvaluationDataNumber > identity.tcbEvaluationDataNumber
-            || existingIssueDateTimestamp >= identity.issueDateTimestamp;
-        if (outOfDate) {
-            revert Enclave_Id_Out_Of_Date();
-        }
+        _checkTcbEvaluationData(key, identity);
 
         // attest timestamp
         _storeEnclaveIdentityIssueEvaluation(
@@ -237,6 +231,16 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
             }
         } else {
             revert Missing_TCB_Cert();
+        }
+    }
+
+    function _checkTcbEvaluationData(bytes32 key, IdentityObj memory identity) internal view virtual {
+        (uint64 existingIssueDateTimestamp,, uint64 existingEvaluationDataNumber) =
+            _loadEnclaveIdentityIssueEvaluation(key);
+        bool outOfDate = existingEvaluationDataNumber > identity.tcbEvaluationDataNumber
+            || existingIssueDateTimestamp >= identity.issueDateTimestamp;
+        if (outOfDate) {
+            revert Enclave_Id_Out_Of_Date();
         }
     }
 

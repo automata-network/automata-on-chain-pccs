@@ -5,6 +5,7 @@ import "../../src/helpers/EnclaveIdentityHelper.sol";
 import "../../src/helpers/FmspcTcbHelper.sol";
 import "../../src/helpers/PCKHelper.sol";
 import "../../src/helpers/X509CRLHelper.sol";
+import "../../src/helpers/TcbEvalHelper.sol";
 import "../utils/Salt.sol";
 import "../utils/DeploymentConfig.sol";
 
@@ -16,6 +17,7 @@ contract DeployHelpers is DeploymentConfig {
         deployFmspcTcbHelper();
         deployPckHelper();
         deployX509CrlHelper();
+        deployTcbEvalHelper();
     }
 
     function deployEnclaveIdentityHelper() public {
@@ -52,5 +54,14 @@ contract DeployHelpers is DeploymentConfig {
         vm.stopBroadcast();
 
         writeToJson("X509CRLHelper", address(x509Helper));
+    }
+
+    function deployTcbEvalHelper() public {
+        vm.startBroadcast(owner);
+        TcbEvalHelper tcbEvalHelper = new TcbEvalHelper{salt: TCB_EVAL_HELPER_SALT}();
+        console.log("[LOG] TcbEvalHelper: ", address(tcbEvalHelper));
+        vm.stopBroadcast();
+
+        writeToJson("TcbEvalHelper", address(tcbEvalHelper));
     }
 }
