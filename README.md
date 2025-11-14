@@ -69,7 +69,7 @@ automata-network/on-chain-pccs/=node_modules/@automata-network/on-chain-pccs/src
 
 ### #BUIDL 🛠️
 
-1. Install [Foundry](https://book.getfoundry.sh/getting-started/installation)
+1. Install [Foundry](https://getfoundry.sh/introduction/installation/)
 
 2. Install the dependencies
 
@@ -93,7 +93,7 @@ To view gas report, pass the `--gas-report` flag.
 
 ### Deployment
 
-Before you begin, it is HIGHLY recommended that you store and encrypt wallet keys using [Cast](https://book.getfoundry.sh/reference/cast/cast-wallet-import).
+Before you begin, it is HIGHLY recommended that you store and encrypt wallet keys using [Cast](https://getfoundry.sh/cast/reference/wallet/import#cast-wallet-import).
 
 ```bash
 cast wallet import --keystore-dir ./keystore dcap_prod --interactive
