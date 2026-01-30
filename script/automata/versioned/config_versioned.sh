@@ -211,7 +211,7 @@ fi
 if [ "$SIMULATED" = "true" ]; then
     print_warn "Running in simulation mode (no actual transactions)"
 else
-    FORGE_ARGS="$FORGE_ARGS --broadcast"
+    FORGE_ARGS="$FORGE_ARGS --broadcast --skip-simulation"
 fi
 
 if [ "$LEGACY" = "true" ]; then

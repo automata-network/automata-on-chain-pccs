@@ -1,10 +1,31 @@
 # Configuration
 VERIFIER ?= etherscan
-VERIFIER_URL ?= 
+VERIFIER_URL ?=
 WITH_STORAGE ?= true
 SIMULATED ?=
 KEYSTORE_PATH ?= keystore/dcap_prod
 PRIVATE_KEY ?=
+GAS_LIMIT ?=
+GAS_BUFFER ?= 10
+SKIP_ESTIMATE ?=
+
+# Reusable function to resolve DAO contract dependencies
+# Usage: $(call resolve_dao_deps)
+# Sets: P256_ADDR, X509_HELPER, CRL_HELPER, ENCLAVE_HELPER, FMSPC_HELPER, DUMMY
+define resolve_dao_deps
+	$(eval P256_ADDR := $(shell forge script script/utils/P256Configuration.sol:P256Configuration \
+		--rpc-url $(RPC_URL) --sig "simulateVerify()" -vv 2>/dev/null | awk '/P256Verifier address:/ { print $$NF; exit }'))
+	$(eval X509_HELPER := $(shell jq -r '.PCKHelper' deployment/$(CHAIN_ID).json))
+	$(eval CRL_HELPER := $(shell jq -r '.X509CRLHelper' deployment/$(CHAIN_ID).json))
+	$(eval ENCLAVE_HELPER := $(shell jq -r '.EnclaveIdentityHelper' deployment/$(CHAIN_ID).json))
+	$(eval FMSPC_HELPER := $(shell jq -r '.FmspcTcbHelper' deployment/$(CHAIN_ID).json))
+	$(eval DUMMY := 0x0000000000000000000000000000000000000001)
+endef
+
+# Constructor arg specs for gas estimation (using DUMMY for not-yet-deployed contracts)
+DAO_STORAGE_SPEC = AutomataDaoStorage:constructor(address):$(OWNER)
+PCS_DAO_SPEC = AutomataPcsDao:constructor(address,address,address,address):$(DUMMY),$(P256_ADDR),$(X509_HELPER),$(CRL_HELPER)
+PCK_DAO_SPEC = AutomataPckDao:constructor(address,address,address,address,address):$(DUMMY),$(P256_ADDR),$(DUMMY),$(X509_HELPER),$(CRL_HELPER)
 
 # Required environment variables check
 check_env:
@@ -37,12 +58,21 @@ endif
 # Deployment targets
 deploy-helpers: check_env get_owner
 	@echo "Deploying helper contracts..."
+ifndef SKIP_ESTIMATE
+ifndef GAS_LIMIT
+	@echo "Estimating gas from network..."
+	@forge build > /dev/null 2>&1
+	$(eval GAS_LIMIT := $(shell ./script/estimate-gas-deploy.sh $(RPC_URL) $(GAS_BUFFER) \
+		EnclaveIdentityHelper FmspcTcbHelper PCKHelper X509CRLHelper TcbEvalHelper))
+	@echo "Estimated gas limit: $(GAS_LIMIT)"
+endif
+endif
 	@OWNER=$(OWNER) \
 		forge script script/helper/DeployHelpers.s.sol:DeployHelpers \
 		--rpc-url $(RPC_URL) \
 		$(if $(PRIVATE_KEY), --private-key $(PRIVATE_KEY), \
 		--keystore $(KEYSTORE_PATH) --password $(KEYSTORE_PASSWORD)) \
-		$(if $(SIMULATED),, --broadcast) \
+		$(if $(SIMULATED),, --broadcast --skip-simulation) \
 		$(if $(LEGACY), --legacy) \
 		-vv
 	@echo "Helper contracts deployed"
@@ -53,12 +83,22 @@ deploy-dao: check_env get_owner
 		echo "Helper addresses not found. Run deploy-helpers first"; \
 		exit 1; \
 	fi
+ifndef SKIP_ESTIMATE
+ifndef GAS_LIMIT
+	@echo "Estimating gas from network..."
+	@forge build > /dev/null 2>&1
+	$(call resolve_dao_deps)
+	$(eval GAS_LIMIT := $(shell ./script/estimate-gas-deploy.sh $(RPC_URL) $(GAS_BUFFER) \
+		"$(DAO_STORAGE_SPEC)" "$(PCS_DAO_SPEC)" "$(PCK_DAO_SPEC)"))
+	@echo "Estimated gas limit: $(GAS_LIMIT)"
+endif
+endif
 	@OWNER=$(OWNER) \
 		forge script script/automata/DeployAutomataDao.s.sol:DeployAutomataDao \
 		--rpc-url $(RPC_URL) \
 		$(if $(PRIVATE_KEY), --private-key $(PRIVATE_KEY), \
 		--keystore $(KEYSTORE_PATH) --password $(KEYSTORE_PASSWORD)) \
-		$(if $(SIMULATED),, --broadcast) \
+		$(if $(SIMULATED),, --broadcast --skip-simulation) \
 		$(if $(LEGACY), --legacy) \
 		-vv
 	@echo "DAO contracts deployed"
@@ -166,10 +206,18 @@ help:
 	@echo "  ETHERSCAN_API_KEY   API key for contract verification"
 	@echo "  WITH_STORAGE        Deploy with storage (default: true)"
 	@echo "  SIMULATED           Simulate deployment (default: false)"
+	@echo "  GAS_LIMIT           Manual gas limit override"
+	@echo "  GAS_BUFFER          Gas estimate buffer percentage (default: 20)"
+	@echo "  SKIP_ESTIMATE       Skip gas estimation, use GAS_LIMIT directly"
 	@echo ""
 	@echo "Example usage:"
 	@echo "  make deploy-all RPC_URL=xxx"
 	@echo "  make verify-all RPC_URL=xxx ETHERSCAN_API_KEY=xxx"
 	@echo "  make deploy-dao PRIVATE_KEY=xxx RPC_URL=xxx SIMULATED=true"
+	@echo ""
+	@echo "Gas estimation examples:"
+	@echo "  make deploy-helpers RPC_URL=xxx              # Auto-estimate gas from network"
+	@echo "  make deploy-helpers RPC_URL=xxx GAS_BUFFER=30  # Use 30% buffer instead of default 20%"
+	@echo "  make deploy-helpers RPC_URL=xxx GAS_LIMIT=5000000 SKIP_ESTIMATE=true  # Manual gas limit"
 
 .PHONY: check_env clean help deploy-% verify-%

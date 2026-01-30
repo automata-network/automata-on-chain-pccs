@@ -51,6 +51,9 @@ echo "Optional Environment Variables:"
 echo "  SIMULATED                  Set to 'true' for simulation mode (default: false)"
 echo "  LEGACY                     Set to 'true' for legacy transaction mode"
 echo "  MULTICHAIN                 Set to 'true' to deploy across all supported chains (default: false)"
+echo "  GAS_LIMIT                  Skip gas estimation if manually provided (informational only)"
+echo "  GAS_BUFFER                 Gas estimate buffer percentage (default: 10)"
+echo "  SKIP_ESTIMATE              Skip gas estimation entirely"
     echo ""
     echo "Examples:"
     echo "  $0 tcb-eval                                   Deploy AutomataTcbEvalDao"
@@ -103,6 +106,9 @@ elif [ "$COMMAND" = "versioned" ]; then
     fi
 fi
 
+# Set default gas buffer
+GAS_BUFFER=${GAS_BUFFER:-10}
+
 print_info "Starting deployment for $COMMAND command"
 if [ -n "$TCB_EVALUATION_DATA_NUMBER" ]; then
     print_info "TCB Eval Data Number: $TCB_EVALUATION_DATA_NUMBER"
@@ -152,6 +158,48 @@ if [ -z "$OWNER" ]; then
     exit 1
 fi
 
+# Resolve addresses needed for gas estimation
+resolve_addresses() {
+    STORAGE_ADDR=$(jq -r '.AutomataDaoStorage' "$DEPLOYMENT_FILE")
+    PCS_DAO_ADDR=$(jq -r '.AutomataPcsDao' "$DEPLOYMENT_FILE")
+    X509_HELPER=$(jq -r '.PCKHelper' "$DEPLOYMENT_FILE")
+    CRL_HELPER=$(jq -r '.X509CRLHelper' "$DEPLOYMENT_FILE")
+    ENCLAVE_HELPER=$(jq -r '.EnclaveIdentityHelper' "$DEPLOYMENT_FILE")
+    FMSPC_HELPER=$(jq -r '.FmspcTcbHelper' "$DEPLOYMENT_FILE")
+    TCB_EVAL_HELPER=$(jq -r '.TcbEvalHelper' "$DEPLOYMENT_FILE")
+
+    # Get P256 verifier address
+    print_info "Resolving P256 verifier address..."
+    P256_ADDR=$(forge script script/utils/P256Configuration.sol:P256Configuration \
+        --rpc-url "$RPC_URL" --sig "simulateVerify()" -vv 2>/dev/null | \
+        awk '/P256Verifier address:/ { print $NF; exit }')
+
+    if [ -z "$P256_ADDR" ]; then
+        print_error "Failed to resolve P256 verifier address"
+        exit 1
+    fi
+    print_info "P256 verifier address: $P256_ADDR"
+}
+
+# Estimate gas for deployment (informational only)
+# Args: contract_spec1 [contract_spec2 ...]
+estimate_gas() {
+    if [ "$SKIP_ESTIMATE" = "true" ] || [ -n "$GAS_LIMIT" ]; then
+        return
+    fi
+
+    print_info "Estimating gas from network..."
+
+    GAS_LIMIT=$("$PROJECT_ROOT/script/estimate-gas-deploy.sh" "$RPC_URL" "$GAS_BUFFER" "$@")
+
+    if [ -z "$GAS_LIMIT" ] || [ "$GAS_LIMIT" = "0" ]; then
+        print_error "Gas estimation failed"
+        exit 1
+    fi
+
+    print_info "Estimated gas limit: $GAS_LIMIT"
+}
+
 # Get chain ID (single-chain mode only)
 if [ "$MULTICHAIN" != "true" ]; then
     print_info "Detecting chain ID..."
@@ -190,7 +238,7 @@ fi
 if [ "$SIMULATED" = "true" ]; then
     print_warn "Running in simulation mode (no actual deployment)"
 else
-    FORGE_ARGS="$FORGE_ARGS --broadcast"
+    FORGE_ARGS="$FORGE_ARGS --broadcast --skip-simulation"
 fi
 
 if [ "$LEGACY" = "true" ]; then
@@ -199,6 +247,18 @@ fi
 
 # Execute command-specific deployment
 if [ "$COMMAND" = "tcb-eval" ]; then
+    # Resolve addresses and estimate gas (skip in MULTICHAIN mode)
+    if [ "$MULTICHAIN" != "true" ]; then
+        resolve_addresses
+
+        # Estimate gas for AutomataTcbEvalDao
+        # constructor(address,address,address,address,address,address,address)
+        TCB_EVAL_SPEC="AutomataTcbEvalDao:constructor(address,address,address,address,address,address,address):$STORAGE_ADDR,$P256_ADDR,$PCS_DAO_ADDR,$TCB_EVAL_HELPER,$X509_HELPER,$CRL_HELPER,$OWNER"
+        estimate_gas "$TCB_EVAL_SPEC"
+    else
+        print_warn "MULTICHAIN mode: Gas estimation skipped (per-chain estimation)"
+    fi
+
     # Deploy TcbEvalDao only
     print_info "Deploying AutomataTcbEvalDao..."
     cd "$PROJECT_ROOT" && OWNER="$OWNER" forge script script/automata/versioned/DeployAutomataVersioned.s.sol:DeployAutomataVersioned \
@@ -211,6 +271,22 @@ if [ "$COMMAND" = "tcb-eval" ]; then
     fi
 
 elif [ "$COMMAND" = "versioned" ]; then
+    # Resolve addresses and estimate gas (skip in MULTICHAIN mode)
+    if [ "$MULTICHAIN" != "true" ]; then
+        resolve_addresses
+
+        # Estimate gas for both versioned contracts
+        # AutomataEnclaveIdentityDaoVersioned: constructor(address,address,address,address,address,address,address,uint32)
+        ENCLAVE_SPEC="AutomataEnclaveIdentityDaoVersioned:constructor(address,address,address,address,address,address,address,uint32):$STORAGE_ADDR,$P256_ADDR,$PCS_DAO_ADDR,$ENCLAVE_HELPER,$X509_HELPER,$CRL_HELPER,$OWNER,$TCB_EVALUATION_DATA_NUMBER"
+
+        # AutomataFmspcTcbDaoVersioned: constructor(address,address,address,address,address,address,address,uint32)
+        FMSPC_SPEC="AutomataFmspcTcbDaoVersioned:constructor(address,address,address,address,address,address,address,uint32):$STORAGE_ADDR,$P256_ADDR,$PCS_DAO_ADDR,$FMSPC_HELPER,$X509_HELPER,$CRL_HELPER,$OWNER,$TCB_EVALUATION_DATA_NUMBER"
+
+        estimate_gas "$ENCLAVE_SPEC" "$FMSPC_SPEC"
+    else
+        print_warn "MULTICHAIN mode: Gas estimation skipped (per-chain estimation)"
+    fi
+
     # Deploy both versioned DAOs
     print_info "Deploying AutomataEnclaveIdentityDaoVersioned (tcb-eval-data-number: $TCB_EVALUATION_DATA_NUMBER)..."
     cd "$PROJECT_ROOT" && OWNER="$OWNER" forge script script/automata/versioned/DeployAutomataVersioned.s.sol:DeployAutomataVersioned \
