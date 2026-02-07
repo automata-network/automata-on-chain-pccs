@@ -36,5 +36,6 @@ arbitrum = { key = "${ETHERSCAN_API_KEY}" }
 world = { key = "${ETHERSCAN_API_KEY}" }
 bsc = { key = "${ETHERSCAN_API_KEY}" }
 polygon_pos = { key = "${ETHERSCAN_API_KEY}" }
+megaeth_mainnet = { key = "${ETHERSCAN_API_KEY}", chain = 4326 }
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
