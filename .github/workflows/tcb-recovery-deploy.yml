@@ -1,0 +1,155 @@
+name: TCB Recovery Deploy
+
+on:
+  issues:
+    types: [closed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  deploy:
+    if: startsWith(github.event.issue.title, 'Missing Deployment Found')
+    runs-on: ubuntu-latest
+    environment: tcb-deploy
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate issue label
+        id: validate
+        env:
+          ISSUE_LABELS_JSON: ${{ toJson(github.event.issue.labels.*.name) }}
+        run: |
+          has_label=$(jq -r 'index("tcb-recovery-missing-deployment") != null' <<<"$ISSUE_LABELS_JSON")
+          echo "has_label=$has_label" >> "$GITHUB_OUTPUT"
+
+      - name: Parse checked contracts from issue body
+        id: parse
+        if: steps.validate.outputs.has_label == 'true'
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          chmod +x .github/scripts/parse_issue_checklist.sh
+
+          printf '%s\n' "$ISSUE_BODY" > issue-body.md
+          .github/scripts/parse_issue_checklist.sh issue-body.md > checked-deployments.json
+
+          selected_count=$(jq 'length' checked-deployments.json)
+          echo "selected_count=$selected_count" >> "$GITHUB_OUTPUT"
+
+      - name: Install Foundry
+        if: steps.validate.outputs.has_label == 'true' && steps.parse.outputs.selected_count != '0'
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Execute checked deployments
+        id: execute
+        if: steps.validate.outputs.has_label == 'true' && steps.parse.outputs.selected_count != '0'
+        env:
+          CHAIN_RPC_URL_MAP: ${{ secrets.CHAIN_RPC_URL_MAP }}
+          DEPLOYER_PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
+          DEPLOYER_KEYSTORE_BASE64: ${{ secrets.DEPLOYER_KEYSTORE_BASE64 }}
+          DEPLOYER_KEYSTORE_PASSWORD: ${{ secrets.DEPLOYER_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${CHAIN_RPC_URL_MAP:-}" ]; then
+            echo "CHAIN_RPC_URL_MAP secret is required (JSON map keyed by chain ID)."
+            exit 1
+          fi
+
+          wallet_args=()
+          owner=""
+
+          if [ -n "${DEPLOYER_PRIVATE_KEY:-}" ]; then
+            owner="$(cast wallet address --private-key "$DEPLOYER_PRIVATE_KEY")"
+            wallet_args=(--private-key "$DEPLOYER_PRIVATE_KEY")
+          elif [ -n "${DEPLOYER_KEYSTORE_BASE64:-}" ] && [ -n "${DEPLOYER_KEYSTORE_PASSWORD:-}" ]; then
+            keystore_path="$RUNNER_TEMP/deployer-keystore.json"
+            printf '%s' "$DEPLOYER_KEYSTORE_BASE64" | base64 --decode > "$keystore_path"
+            owner="$(cast wallet address --keystore "$keystore_path" --password "$DEPLOYER_KEYSTORE_PASSWORD")"
+            wallet_args=(--keystore "$keystore_path" --password "$DEPLOYER_KEYSTORE_PASSWORD")
+          else
+            echo "Configure DEPLOYER_PRIVATE_KEY or DEPLOYER_KEYSTORE_BASE64 + DEPLOYER_KEYSTORE_PASSWORD."
+            exit 1
+          fi
+
+          while IFS= read -r item; do
+            chain_id="$(jq -r '.chain_id' <<<"$item")"
+            tcb_number="$(jq -r '.tcb' <<<"$item")"
+            contract_name="$(jq -r '.contract' <<<"$item")"
+
+            rpc_url="$(jq -r --arg id "$chain_id" '.[$id] // empty' <<<"$CHAIN_RPC_URL_MAP")"
+            if [ -z "$rpc_url" ]; then
+              echo "Missing RPC URL in CHAIN_RPC_URL_MAP for chain ID $chain_id"
+              exit 1
+            fi
+
+            resolved_chain_id="$(cast chain-id --rpc-url "$rpc_url")"
+            if [ "$resolved_chain_id" != "$chain_id" ]; then
+              echo "RPC URL chain mismatch for chain $chain_id (resolved $resolved_chain_id)"
+              exit 1
+            fi
+
+            deployment_file="deployment/${chain_id}.json"
+            if [ ! -f "$deployment_file" ]; then
+              echo "Missing deployment file: $deployment_file"
+              exit 1
+            fi
+
+            case "$contract_name" in
+              AutomataEnclaveIdentityDaoVersioned.sol)
+                deploy_key="AutomataEnclaveIdentityDaoVersioned_tcbeval_${tcb_number}"
+                sig='deployEnclaveIdDaoVersioned(uint32)'
+                ;;
+              AutomataFmspcTcbDaoVersioned.sol)
+                deploy_key="AutomataFmspcTcbDaoVersioned_tcbeval_${tcb_number}"
+                sig='deployFmspcTcbDaoVersioned(uint32)'
+                ;;
+              *)
+                echo "Unsupported contract in issue checklist: $contract_name"
+                exit 1
+                ;;
+            esac
+
+            if jq -e --arg key "$deploy_key" 'has($key) and .[$key] != null and .[$key] != ""' "$deployment_file" >/dev/null; then
+              echo "Skipping already deployed ${deploy_key} on chain ${chain_id}"
+              continue
+            fi
+
+            echo "Deploying ${contract_name} for TCB ${tcb_number} on chain ${chain_id}"
+            OWNER="$owner" forge script script/automata/versioned/DeployAutomataVersioned.s.sol:DeployAutomataVersioned \
+              --rpc-url "$rpc_url" \
+              "${wallet_args[@]}" \
+              --broadcast --skip-simulation -vv \
+              --sig "$sig" "$tcb_number"
+          done < <(jq -c '.[]' checked-deployments.json)
+
+          if git diff --quiet -- deployment; then
+            echo "changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create deployment pull request
+        id: cpr
+        if: steps.execute.outputs.changes == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: deployment/issue-${{ github.event.issue.number }}
+          commit-message: "chore: deployment updates from issue #${{ github.event.issue.number }}"
+          title: "Deployment updates from issue #${{ github.event.issue.number }}"
+          body: |
+            Automated deployment updates for checked contracts in issue #${{ github.event.issue.number }}.
+
+            Source issue: ${{ github.event.issue.html_url }}
+          base: main
+          labels: deployment,automated
+
+      - name: No checked contracts
+        if: steps.validate.outputs.has_label == 'true' && steps.parse.outputs.selected_count == '0'
+        run: echo "Issue closed with no checked contracts. Nothing to deploy."
