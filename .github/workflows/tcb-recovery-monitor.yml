@@ -3,7 +3,10 @@ name: TCB Recovery Monitor
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 0 * * *" 
+    - cron: "0 0 * * *"
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: read
