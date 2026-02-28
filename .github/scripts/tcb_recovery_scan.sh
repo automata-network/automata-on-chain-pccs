@@ -17,6 +17,7 @@ network_name() {
         998) echo "HyperEVM Testnet" ;;
         999) echo "HyperEVM Mainnet" ;;
         1301) echo "Unichain Sepolia" ;;
+        1315) echo "Story Aeneid Testnet" ;;
         4326) echo "MegaETH Mainnet" ;;
         4801) echo "World Chain Sepolia" ;;
         6343) echo "MegaETH Testnet" ;;
@@ -126,10 +127,27 @@ while IFS= read -r row; do
     fi
 done < <(jq -c '.[]' "$entries_file")
 
-targets=("$early")
-if [ -n "$standard" ] && [ "$standard" != "$early" ]; then
-    targets+=("$standard")
+# Collect all known TCB evaluation data numbers from the Intel API response
+all_numbers=()
+while IFS= read -r n; do
+    all_numbers+=("$n")
+done < <(jq -r '.[].number | tonumber' "$entries_file" | sort -rn)
+
+targets=()
+if [ -n "$standard" ]; then
+    # Include all numbers where number >= standard (i.e., standard, intermediates, and early)
+    for n in "${all_numbers[@]}"; do
+        if [ "$n" -ge "$standard" ]; then
+            targets+=("$n")
+        fi
+    done
+else
+    # No standard available — target all known numbers
+    targets=("${all_numbers[@]}")
 fi
+
+# Deduplicate (shouldn't be needed but defensive)
+targets=($(printf '%s\n' "${targets[@]}" | sort -rnu))
 
 for deployment_file in "$DEPLOYMENT_DIR"/*.json; do
     [ -f "$deployment_file" ] || continue
@@ -178,10 +196,11 @@ missing_count="$(jq 'length' <<<"$missing_json")"
 generated_at="$(date -u '+%Y-%m-%d, %H:%M UTC')"
 issue_title="Missing Deployment Found, ${generated_at}"
 
+targets_list="[$(IFS=,; echo "${targets[*]}")]"
 if [ -n "$standard" ]; then
-    target_text="early=${early}, standard=${standard}"
+    target_text="early=${early}, standard=${standard}, targets=${targets_list}"
 else
-    target_text="early=${early}, standard=unavailable"
+    target_text="early=${early}, standard=unavailable, targets=${targets_list}"
 fi
 
 issue_body=$'# Intel TCB Recovery Deployment Check\n\n'
@@ -246,9 +265,12 @@ else
     standard_json="null"
 fi
 
+targets_json="$(printf '%s\n' "${targets[@]}" | jq -s '.')"
+
 result_json="$(jq -n \
     --argjson early "$early" \
     --argjson standard "$standard_json" \
+    --argjson targets "$targets_json" \
     --arg issue_title "$issue_title" \
     --arg issue_body "$issue_body" \
     --argjson missing "$missing_json" \
@@ -256,6 +278,7 @@ result_json="$(jq -n \
     '{
       early: $early,
       standard: $standard,
+      targets: $targets,
       issue_title: $issue_title,
       issue_body: $issue_body,
       missing: $missing,
