@@ -206,6 +206,10 @@ fi
 if [ "$MULTICHAIN" = "true" ]; then
     print_info "MULTICHAIN mode enabled"
     export MULTICHAIN=true
+    if [ -n "$CHAIN_IDS" ]; then
+        export CHAIN_IDS
+        print_info "CHAIN_IDS filter: $CHAIN_IDS"
+    fi
 fi
 
 if [ "$SIMULATED" = "true" ]; then

@@ -2,6 +2,9 @@
 
 # verify_versioned.sh - Verify versioned Automata contracts on block explorers
 # Usage: ./verify_versioned.sh [verifier] [verifier_url]
+#
+# Supports multichain mode: set MULTICHAIN=true to verify across all chains in rpc_map.
+# Use CHAIN_IDS=1,10,42161 to filter to specific chains.
 
 set -e
 
@@ -38,8 +41,13 @@ show_usage() {
     echo "                            Options: etherscan, blockscout"
     echo "  verifier_url              Custom verifier API URL (optional for etherscan, required for blockscout)"
     echo ""
-    echo "Required Environment Variables:"
+    echo "Required Environment Variables (single-chain mode):"
     echo "  RPC_URL                    RPC URL for the target network"
+    echo "  OWNER                      Owner address for the contracts"
+    echo ""
+    echo "Multichain Environment Variables:"
+    echo "  MULTICHAIN=true            Enable multichain verification via rpc_map"
+    echo "  CHAIN_IDS=1,10,42161       Filter to specific chain IDs (optional)"
     echo "  OWNER                      Owner address for the contracts"
     echo ""
     echo "Optional Environment Variables:"
@@ -50,6 +58,7 @@ show_usage() {
     echo "  $0                                           Verify on Etherscan (default)"
     echo "  $0 etherscan                                 Verify on Etherscan explicitly"
     echo "  $0 blockscout https://blockscout.example.com/api  Verify on custom Blockscout"
+    echo "  MULTICHAIN=true CHAIN_IDS=11155111 $0        Verify on Sepolia via rpc_map"
     echo ""
     echo "Note: For blockscout verifier, verifier_url is required"
 }
@@ -95,92 +104,42 @@ if [ "$VERIFIER" = "blockscout" ] && [ -z "$VERIFIER_URL" ]; then
     exit 1
 fi
 
-# Check required environment variables
-if [ -z "$RPC_URL" ]; then
-    print_error "RPC_URL environment variable is required"
-    exit 1
-fi
-
 if [ -z "$OWNER" ]; then
     print_error "OWNER environment variable is required"
     exit 1
 fi
 
-# Get chain ID
-print_info "Detecting chain ID..."
-CHAIN_ID=$(cast chain-id --rpc-url "$RPC_URL")
-print_info "Chain ID: $CHAIN_ID"
-
-# Check if deployment file exists
-DEPLOYMENT_FILE="$PROJECT_ROOT/deployment/$CHAIN_ID.json"
-if [ ! -f "$DEPLOYMENT_FILE" ]; then
-    print_error "Deployment file not found: $DEPLOYMENT_FILE"
-    print_error "Please deploy contracts first using: ./deploy_versioned.sh"
-    exit 1
-fi
-
-# Get P256 Verifier address
-print_info "Determining P256 Verifier address..."
-P256_ADDRESS=$(cd "$PROJECT_ROOT" && forge script script/utils/P256Configuration.sol:P256Configuration --rpc-url "$RPC_URL" --sig "simulateVerify()" -vv | awk '/P256Verifier address:/ { print $NF; exit }')
-if [ -z "$P256_ADDRESS" ]; then
-    print_error "Failed to determine P256 Verifier address"
-    exit 1
-fi
-print_info "P256 Verifier address: $P256_ADDRESS"
-
 # Read contract addresses from deployment file
 read_contract_address() {
     local contract_name="$1"
-    local address=$(jq -r ".$contract_name" "$DEPLOYMENT_FILE")
+    local deployment_file="$2"
+    local address=$(jq -r ".$contract_name" "$deployment_file")
     if [ "$address" = "null" ] || [ -z "$address" ]; then
         print_error "Contract address not found for: $contract_name"
-        exit 1
+        return 1
     fi
     echo "$address"
 }
-
-# Read versioned contract addresses
-read_versioned_contract_address() {
-    local contract_name="$1"
-    local version="$2"
-    local versioned_key="${contract_name}_v${version}"
-    local address=$(jq -r ".$versioned_key" "$DEPLOYMENT_FILE")
-    if [ "$address" = "null" ] || [ -z "$address" ]; then
-        print_error "Versioned contract address not found for: $versioned_key"
-        exit 1
-    fi
-    echo "$address"
-}
-
-# Get required addresses
-STORAGE_ADDR=$(read_contract_address "AutomataDaoStorage")
-X509_HELPER_ADDR=$(read_contract_address "PCKHelper")
-CRL_HELPER_ADDR=$(read_contract_address "X509CRLHelper")
-PCS_DAO_ADDR=$(read_contract_address "AutomataPcsDao")
-ENCLAVE_IDENTITY_HELPER_ADDR=$(read_contract_address "EnclaveIdentityHelper")
-FMSPC_TCB_HELPER_ADDR=$(read_contract_address "FmspcTcbHelper")
-TCB_EVAL_HELPER_ADDR=$(read_contract_address "TcbEvalHelper")
-
-# Set up forge verify command base
-FORGE_VERIFY_ARGS="--rpc-url $RPC_URL --verifier $VERIFIER --watch"
-
-if [ -n "$VERIFIER_URL" ]; then
-    FORGE_VERIFY_ARGS="$FORGE_VERIFY_ARGS --verifier-url $VERIFIER_URL"
-fi
 
 # Function to verify a contract
 verify_contract() {
     local contract_addr="$1"
     local contract_path="$2"
     local constructor_args="$3"
+    local rpc_url="$4"
     local contract_name=$(basename "$contract_path" | cut -d':' -f2)
-    
+
+    local forge_verify_args="--rpc-url $rpc_url --verifier $VERIFIER --watch"
+    if [ -n "$VERIFIER_URL" ]; then
+        forge_verify_args="$forge_verify_args --verifier-url $VERIFIER_URL"
+    fi
+
     print_info "Verifying $contract_name at $contract_addr..."
-    
+
     if [ -n "$constructor_args" ]; then
         print_info "Constructor args: $constructor_args"
         cd "$PROJECT_ROOT" && forge verify-contract \
-            $FORGE_VERIFY_ARGS \
+            $forge_verify_args \
             "$contract_addr" \
             "$contract_path" \
             --constructor-args "$constructor_args" || {
@@ -189,65 +148,149 @@ verify_contract() {
         }
     else
         cd "$PROJECT_ROOT" && forge verify-contract \
-            $FORGE_VERIFY_ARGS \
+            $forge_verify_args \
             "$contract_addr" \
             "$contract_path" || {
             print_warn "Verification failed for $contract_name, continuing..."
             return 1
         }
     fi
-    
+
     print_info "Successfully verified $contract_name"
     return 0
 }
 
-# Verify AutomataTcbEvalDao
-TCB_EVAL_DAO_ADDR=$(read_contract_address "AutomataTcbEvalDao")
-TCB_EVAL_DAO_ARGS=$(cast abi-encode "constructor(address,address,address,address,address,address,address)" \
-    "$STORAGE_ADDR" "$P256_ADDRESS" "$PCS_DAO_ADDR" "$TCB_EVAL_HELPER_ADDR" "$X509_HELPER_ADDR" "$CRL_HELPER_ADDR" "$OWNER")
+# Core verification logic for a single chain
+verify_chain() {
+    local rpc_url="$1"
+    local chain_id="$2"
 
-verify_contract "$TCB_EVAL_DAO_ADDR" "src/automata_pccs/AutomataTcbEvalDao.sol:AutomataTcbEvalDao" "$TCB_EVAL_DAO_ARGS"
+    print_info "=== Verifying contracts on chain ID: $chain_id ==="
 
-# Find and verify all versioned contracts
-print_info "Searching for versioned contracts in deployment file..."
+    # Check if deployment file exists
+    local deployment_file="$PROJECT_ROOT/deployment/$chain_id.json"
+    if [ ! -f "$deployment_file" ]; then
+        print_warn "Deployment file not found: $deployment_file, skipping chain $chain_id"
+        return 0
+    fi
 
-# Get all versioned contract entries
-VERSIONED_CONTRACTS=$(jq -r 'to_entries[] | select(.key | test("_tcbeval_[0-9]+$")) | "\(.key):\(.value)"' "$DEPLOYMENT_FILE")
+    # Get P256 Verifier address
+    print_info "Determining P256 Verifier address..."
+    local p256_address
+    p256_address=$(cd "$PROJECT_ROOT" && forge script script/utils/P256Configuration.sol:P256Configuration --rpc-url "$rpc_url" --sig "simulateVerify()" -vv | awk '/P256Verifier address:/ { print $NF; exit }')
+    if [ -z "$p256_address" ]; then
+        print_error "Failed to determine P256 Verifier address for chain $chain_id"
+        return 1
+    fi
+    print_info "P256 Verifier address: $p256_address"
 
-if [ -z "$VERSIONED_CONTRACTS" ]; then
-    print_warn "No versioned contracts found in deployment file"
+    # Get required addresses
+    local storage_addr x509_helper_addr crl_helper_addr pcs_dao_addr enclave_identity_helper_addr fmspc_tcb_helper_addr tcb_eval_helper_addr
+    storage_addr=$(read_contract_address "AutomataDaoStorage" "$deployment_file") || return 1
+    x509_helper_addr=$(read_contract_address "PCKHelper" "$deployment_file") || return 1
+    crl_helper_addr=$(read_contract_address "X509CRLHelper" "$deployment_file") || return 1
+    pcs_dao_addr=$(read_contract_address "AutomataPcsDao" "$deployment_file") || return 1
+    enclave_identity_helper_addr=$(read_contract_address "EnclaveIdentityHelper" "$deployment_file") || return 1
+    fmspc_tcb_helper_addr=$(read_contract_address "FmspcTcbHelper" "$deployment_file") || return 1
+    tcb_eval_helper_addr=$(read_contract_address "TcbEvalHelper" "$deployment_file") || return 1
+
+    # Verify AutomataTcbEvalDao
+    local tcb_eval_dao_addr
+    tcb_eval_dao_addr=$(read_contract_address "AutomataTcbEvalDao" "$deployment_file") || return 1
+    local tcb_eval_dao_args
+    tcb_eval_dao_args=$(cast abi-encode "constructor(address,address,address,address,address,address,address)" \
+        "$storage_addr" "$p256_address" "$pcs_dao_addr" "$tcb_eval_helper_addr" "$x509_helper_addr" "$crl_helper_addr" "$OWNER")
+
+    verify_contract "$tcb_eval_dao_addr" "src/automata_pccs/AutomataTcbEvalDao.sol:AutomataTcbEvalDao" "$tcb_eval_dao_args" "$rpc_url"
+
+    # Find and verify all versioned contracts
+    print_info "Searching for versioned contracts in deployment file..."
+
+    local versioned_contracts
+    versioned_contracts=$(jq -r 'to_entries[] | select(.key | test("_tcbeval_[0-9]+$")) | "\(.key):\(.value)"' "$deployment_file")
+
+    if [ -z "$versioned_contracts" ]; then
+        print_warn "No versioned contracts found in deployment file"
+    else
+        echo "$versioned_contracts" | while IFS=':' read -r contract_key contract_addr; do
+            local contract_base tcb_eval_number
+            contract_base=$(echo "$contract_key" | sed 's/_tcbeval_[0-9]*$//')
+            tcb_eval_number=$(echo "$contract_key" | sed 's/.*_tcbeval_//')
+
+            print_info "Found versioned contract: $contract_base tcb-eval-number $tcb_eval_number at $contract_addr"
+
+            case "$contract_base" in
+                "AutomataEnclaveIdentityDaoVersioned")
+                    local constructor_args
+                    constructor_args=$(cast abi-encode "constructor(address,address,address,address,address,address,address,uint32)" \
+                        "$storage_addr" "$p256_address" "$pcs_dao_addr" "$enclave_identity_helper_addr" "$x509_helper_addr" "$crl_helper_addr" "$OWNER" "$tcb_eval_number")
+                    verify_contract "$contract_addr" "src/automata_pccs/versioned/AutomataEnclaveIdentityDaoVersioned.sol:AutomataEnclaveIdentityDaoVersioned" "$constructor_args" "$rpc_url"
+                    ;;
+                "AutomataFmspcTcbDaoVersioned")
+                    local constructor_args
+                    constructor_args=$(cast abi-encode "constructor(address,address,address,address,address,address,address,uint32)" \
+                        "$storage_addr" "$p256_address" "$pcs_dao_addr" "$fmspc_tcb_helper_addr" "$x509_helper_addr" "$crl_helper_addr" "$OWNER" "$tcb_eval_number")
+                    verify_contract "$contract_addr" "src/automata_pccs/versioned/AutomataFmspcTcbDaoVersioned.sol:AutomataFmspcTcbDaoVersioned" "$constructor_args" "$rpc_url"
+                    ;;
+                *)
+                    print_warn "Unknown versioned contract type: $contract_base"
+                    ;;
+            esac
+        done
+    fi
+
+    print_info "=== Chain $chain_id verification complete ==="
+}
+
+# Main execution
+if [ "$MULTICHAIN" = "true" ]; then
+    # Multichain mode: iterate over chains from rpc_map
+    print_info "MULTICHAIN mode enabled"
+
+    # Source the rpc_map helper
+    source "$PROJECT_ROOT/script/utils/rpc_map_helper.sh"
+
+    target_chain_ids=$(get_target_chain_ids)
+    if [ -z "$target_chain_ids" ]; then
+        print_error "No target chain IDs found"
+        exit 1
+    fi
+
+    while IFS= read -r chain_id; do
+        chain_id=$(echo "$chain_id" | tr -d '[:space:]')
+        [ -z "$chain_id" ] && continue
+
+        rpc_url=$(get_rpc_url_for_chain "$chain_id") || {
+            print_warn "Skipping chain $chain_id: no RPC URL found"
+            continue
+        }
+
+        verify_chain "$rpc_url" "$chain_id" || {
+            print_warn "Verification had errors on chain $chain_id, continuing..."
+        }
+    done <<< "$target_chain_ids"
+
+    print_info "Multichain verification completed!"
 else
-    echo "$VERSIONED_CONTRACTS" | while IFS=':' read -r contract_key contract_addr; do
-        # Extract contract name and tcb eval number
-        contract_base=$(echo "$contract_key" | sed 's/_tcbeval_[0-9]*$//')
-        tcb_eval_number=$(echo "$contract_key" | sed 's/.*_tcbeval_//')
-        
-        print_info "Found versioned contract: $contract_base tcb-eval-number $tcb_eval_number at $contract_addr"
-        
-        case "$contract_base" in
-            "AutomataEnclaveIdentityDaoVersioned")
-                constructor_args=$(cast abi-encode "constructor(address,address,address,address,address,address,address,uint32)" \
-                    "$STORAGE_ADDR" "$P256_ADDRESS" "$PCS_DAO_ADDR" "$ENCLAVE_IDENTITY_HELPER_ADDR" "$X509_HELPER_ADDR" "$CRL_HELPER_ADDR" "$OWNER" "$tcb_eval_number")
-                verify_contract "$contract_addr" "src/automata_pccs/versioned/AutomataEnclaveIdentityDaoVersioned.sol:AutomataEnclaveIdentityDaoVersioned" "$constructor_args"
-                ;;
-            "AutomataFmspcTcbDaoVersioned")
-                constructor_args=$(cast abi-encode "constructor(address,address,address,address,address,address,address,uint32)" \
-                    "$STORAGE_ADDR" "$P256_ADDRESS" "$PCS_DAO_ADDR" "$FMSPC_TCB_HELPER_ADDR" "$X509_HELPER_ADDR" "$CRL_HELPER_ADDR" "$OWNER" "$tcb_eval_number")
-                verify_contract "$contract_addr" "src/automata_pccs/versioned/AutomataFmspcTcbDaoVersioned.sol:AutomataFmspcTcbDaoVersioned" "$constructor_args"
-                ;;
-            *)
-                print_warn "Unknown versioned contract type: $contract_base"
-                ;;
-        esac
-    done
-fi
+    # Single-chain mode (original behavior)
+    if [ -z "$RPC_URL" ]; then
+        print_error "RPC_URL environment variable is required"
+        exit 1
+    fi
 
-print_info "Contract verification completed!"
-print_info "Verifier: $VERIFIER"
-print_info "Chain ID: $CHAIN_ID"
+    print_info "Detecting chain ID..."
+    CHAIN_ID=$(cast chain-id --rpc-url "$RPC_URL")
+    print_info "Chain ID: $CHAIN_ID"
 
-if [ "$VERIFIER" = "etherscan" ]; then
-    print_info "Contracts should be visible on Etherscan shortly"
-elif [ "$VERIFIER" = "blockscout" ]; then
-    print_info "Contracts should be visible on Blockscout at: $VERIFIER_URL"
+    verify_chain "$RPC_URL" "$CHAIN_ID"
+
+    print_info "Contract verification completed!"
+    print_info "Verifier: $VERIFIER"
+    print_info "Chain ID: $CHAIN_ID"
+
+    if [ "$VERIFIER" = "etherscan" ]; then
+        print_info "Contracts should be visible on Etherscan shortly"
+    elif [ "$VERIFIER" = "blockscout" ]; then
+        print_info "Contracts should be visible on Blockscout at: $VERIFIER_URL"
+    fi
 fi

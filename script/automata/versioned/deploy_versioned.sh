@@ -230,6 +230,10 @@ fi
 if [ "$MULTICHAIN" = "true" ]; then
     print_info "MULTICHAIN mode enabled"
     export MULTICHAIN=true
+    if [ -n "$CHAIN_IDS" ]; then
+        export CHAIN_IDS
+        print_info "CHAIN_IDS filter: $CHAIN_IDS"
+    fi
     FORGE_ARGS="$WALLET_ARGS -vv"
 else
     FORGE_ARGS="--rpc-url $RPC_URL $WALLET_ARGS -vv"

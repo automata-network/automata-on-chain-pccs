@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "../utils/P256Configuration.sol";
 import "../utils/Salt.sol";
 import "../utils/DeploymentConfig.sol";
+import "../utils/Multichain.sol";
 
 import {AutomataDaoStorage} from "../../src/automata_pccs/shared/AutomataDaoStorage.sol";
 import {AutomataFmspcTcbDao} from "../../src/automata_pccs/AutomataFmspcTcbDao.sol";
@@ -11,15 +12,10 @@ import {AutomataEnclaveIdentityDao} from "../../src/automata_pccs/AutomataEnclav
 import {AutomataPcsDao} from "../../src/automata_pccs/AutomataPcsDao.sol";
 import {AutomataPckDao} from "../../src/automata_pccs/AutomataPckDao.sol";
 
-contract DeployAutomataDao is DeploymentConfig, P256Configuration {
+contract DeployAutomataDao is DeploymentConfig, P256Configuration, Multichain {
     address owner = vm.envAddress("OWNER");
 
-    address x509Crl = readContractAddress("X509CRLHelper", true);
-    address x509 = readContractAddress("PCKHelper", true);
-    address enclaveIdentityHelper = readContractAddress("EnclaveIdentityHelper", true);
-    address fmspcTcbHelper = readContractAddress("FmspcTcbHelper", true);
-
-    function run() public override {
+    function run() public override multichain {
         deployAll(true, false);
     }
 
@@ -30,6 +26,9 @@ contract DeployAutomataDao is DeploymentConfig, P256Configuration {
     }
 
     function deployAll(bool shouldDeployStorage, bool legacy) public broadcastOwner {
+        address x509Crl = readContractAddress("X509CRLHelper", true);
+        address x509 = readContractAddress("PCKHelper", true);
+
         AutomataDaoStorage pccsStorage;
         if (shouldDeployStorage) {
             pccsStorage = new AutomataDaoStorage{salt: PCCS_STORAGE_SALT}(owner);
@@ -54,6 +53,9 @@ contract DeployAutomataDao is DeploymentConfig, P256Configuration {
         writeToJson("AutomataPckDao", address(pckDao));
 
         if (legacy) {
+            address enclaveIdentityHelper = readContractAddress("EnclaveIdentityHelper", true);
+            address fmspcTcbHelper = readContractAddress("FmspcTcbHelper", true);
+
             // Deploy EnclaveIdDao
             AutomataEnclaveIdentityDao enclaveIdDao = new AutomataEnclaveIdentityDao{salt: ENCLAVE_ID_DAO_SALT}(
                 address(pccsStorage), simulateVerify(), address(pcsDao), enclaveIdentityHelper, x509, x509Crl
@@ -77,13 +79,16 @@ contract DeployAutomataDao is DeploymentConfig, P256Configuration {
         pccsStorage.grantDao(address(pckDao));
     }
 
-    function deployStorage() public broadcastOwner {
+    function deployStorage() public multichain broadcastOwner {
         AutomataDaoStorage pccsStorage = new AutomataDaoStorage{salt: PCCS_STORAGE_SALT}(owner);
         console.log("[LOG] AutomataDaoStorage deployed at ", address(pccsStorage));
         writeToJson("AutomataDaoStorage", address(pccsStorage));
     }
 
-    function deployPcs() public broadcastOwner {
+    function deployPcs() public multichain broadcastOwner {
+        address x509Crl = readContractAddress("X509CRLHelper", true);
+        address x509 = readContractAddress("PCKHelper", true);
+
         address pccsStorageAddr = readContractAddress("AutomataDaoStorage", true);
         AutomataPcsDao pcsDao = new AutomataPcsDao{salt: PCS_DAO_SALT}(pccsStorageAddr, simulateVerify(), x509, x509Crl);
         console.log("[LOG] AutomataPcsDao deployed at: ", address(pcsDao));
@@ -92,7 +97,10 @@ contract DeployAutomataDao is DeploymentConfig, P256Configuration {
         AutomataDaoStorage(pccsStorageAddr).grantDao(address(pcsDao));
     }
 
-    function deployPck() public broadcastOwner {
+    function deployPck() public multichain broadcastOwner {
+        address x509Crl = readContractAddress("X509CRLHelper", true);
+        address x509 = readContractAddress("PCKHelper", true);
+
         address pccsStorageAddr = readContractAddress("AutomataDaoStorage", true);
         address pcsDaoAddr = readContractAddress("AutomataPcsDao", true);
         AutomataPckDao pckDao =
@@ -103,7 +111,11 @@ contract DeployAutomataDao is DeploymentConfig, P256Configuration {
         AutomataDaoStorage(pccsStorageAddr).grantDao(address(pckDao));
     }
 
-    function deployEnclaveIdDao() public broadcastOwner {
+    function deployEnclaveIdDao() public multichain broadcastOwner {
+        address x509Crl = readContractAddress("X509CRLHelper", true);
+        address x509 = readContractAddress("PCKHelper", true);
+        address enclaveIdentityHelper = readContractAddress("EnclaveIdentityHelper", true);
+
         address pccsStorageAddr = readContractAddress("AutomataDaoStorage", true);
         address pcsDaoAddr = readContractAddress("AutomataPcsDao", true);
         AutomataEnclaveIdentityDao enclaveIdDao = new AutomataEnclaveIdentityDao{salt: ENCLAVE_ID_DAO_SALT}(
@@ -115,7 +127,11 @@ contract DeployAutomataDao is DeploymentConfig, P256Configuration {
         AutomataDaoStorage(pccsStorageAddr).grantDao(address(enclaveIdDao));
     }
 
-    function deployFmspcTcbDao() public broadcastOwner {
+    function deployFmspcTcbDao() public multichain broadcastOwner {
+        address x509Crl = readContractAddress("X509CRLHelper", true);
+        address x509 = readContractAddress("PCKHelper", true);
+        address fmspcTcbHelper = readContractAddress("FmspcTcbHelper", true);
+
         address pccsStorageAddr = readContractAddress("AutomataDaoStorage", true);
         address pcsDaoAddr = readContractAddress("AutomataPcsDao", true);
         AutomataFmspcTcbDao fmspcTcbDao = new AutomataFmspcTcbDao{salt: FMSPC_TCB_DAO_SALT}(

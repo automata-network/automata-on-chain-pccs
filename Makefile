@@ -178,6 +178,61 @@ verify-dao: check_env get_owner_env
 verify-all: verify-helpers verify-dao
 	@echo "Verification completed"
 
+# ─── Multichain targets ─────────────────────────────────────────────
+# These targets iterate over chains from rpc_map, calling the single-chain
+# targets for each chain. Use CHAIN_IDS=1,10,42161 to filter.
+
+# Reusable macro: run a single-chain Make target for each chain in rpc_map.
+# Usage: $(call run_multichain,<target>)
+define run_multichain
+	@if [ ! -f rpc_map ]; then echo "ERROR: rpc_map file not found"; exit 1; fi; \
+	if [ -n "$(CHAIN_IDS)" ]; then \
+		chain_ids=$$(echo "$(CHAIN_IDS)" | tr ',' ' '); \
+	else \
+		chain_ids=$$(jq -r 'keys[]' rpc_map); \
+	fi; \
+	for cid in $$chain_ids; do \
+		rpc=$$(jq -r --arg id "$$cid" '.[$id] // empty' rpc_map); \
+		if [ -z "$$rpc" ]; then \
+			echo "[WARN] No RPC URL for chain $$cid, skipping"; \
+			continue; \
+		fi; \
+		echo ""; \
+		echo "====== Chain $$cid ======"; \
+		$(MAKE) $(1) RPC_URL=$$rpc SKIP_ESTIMATE=true || echo "[WARN] Target $(1) failed on chain $$cid, continuing..."; \
+	done
+endef
+
+multichain-deploy-helpers: get_owner
+	@echo "Multichain deploy-helpers..."
+	$(call run_multichain,deploy-helpers)
+	@echo "Multichain deploy-helpers completed"
+
+multichain-deploy-dao: get_owner
+	@echo "Multichain deploy-dao..."
+	$(call run_multichain,deploy-dao)
+	@echo "Multichain deploy-dao completed"
+
+multichain-deploy-all: get_owner
+	@echo "Multichain deploy-all..."
+	$(call run_multichain,deploy-all)
+	@echo "Multichain deploy-all completed"
+
+multichain-verify-helpers:
+	@echo "Multichain verify-helpers..."
+	$(call run_multichain,verify-helpers)
+	@echo "Multichain verify-helpers completed"
+
+multichain-verify-dao: get_owner_env
+	@echo "Multichain verify-dao..."
+	$(call run_multichain,verify-dao)
+	@echo "Multichain verify-dao completed"
+
+multichain-verify-all: get_owner_env
+	@echo "Multichain verify-all..."
+	$(call run_multichain,verify-all)
+	@echo "Multichain verify-all completed"
+
 # Utility targets
 clean:
 	forge clean
@@ -185,12 +240,23 @@ clean:
 # Help target
 help:
 	@echo "Available targets:"
+	@echo ""
+	@echo "  Single-chain targets (require RPC_URL):"
 	@echo "  deploy-helpers      Deploy helper contracts"
 	@echo "  deploy-dao          Deploy DAO contracts"
 	@echo "  deploy-all          Deploy all contracts"
 	@echo "  verify-helpers      Verify helper contracts"
 	@echo "  verify-dao          Verify DAO contracts"
 	@echo "  verify-all          Verify all contracts"
+	@echo ""
+	@echo "  Multichain targets (use rpc_map file):"
+	@echo "  multichain-deploy-helpers   Deploy helpers across all chains"
+	@echo "  multichain-deploy-dao       Deploy DAOs across all chains"
+	@echo "  multichain-deploy-all       Deploy everything across all chains"
+	@echo "  multichain-verify-helpers   Verify helpers across all chains"
+	@echo "  multichain-verify-dao       Verify DAOs across all chains"
+	@echo "  multichain-verify-all       Verify everything across all chains"
+	@echo ""
 	@echo "  clean               Remove build artifacts"
 	@echo ""
 	@echo "Wallet environment variables: (you only need to set one)"
@@ -198,7 +264,7 @@ help:
 	@echo "  KEYSTORE_PATH       Path to keystore directory"
 	@echo ""
 	@echo "Required environment variables:"
-	@echo "  RPC_URL             RPC URL for the target network"
+	@echo "  RPC_URL             RPC URL for the target network (single-chain only)"
 	@echo ""
 	@echo "Optional environment variables:"
 	@echo "  VERIFIER            Contract verifier (default: etherscan)"
@@ -209,15 +275,22 @@ help:
 	@echo "  GAS_LIMIT           Manual gas limit override"
 	@echo "  GAS_BUFFER          Gas estimate buffer percentage (default: 20)"
 	@echo "  SKIP_ESTIMATE       Skip gas estimation, use GAS_LIMIT directly"
+	@echo "  CHAIN_IDS           Comma-separated chain IDs to filter (multichain only)"
 	@echo ""
 	@echo "Example usage:"
 	@echo "  make deploy-all RPC_URL=xxx"
 	@echo "  make verify-all RPC_URL=xxx ETHERSCAN_API_KEY=xxx"
 	@echo "  make deploy-dao PRIVATE_KEY=xxx RPC_URL=xxx SIMULATED=true"
 	@echo ""
+	@echo "Multichain examples:"
+	@echo "  make multichain-deploy-helpers                          # All chains"
+	@echo "  make multichain-deploy-helpers CHAIN_IDS=11155111       # Sepolia only"
+	@echo "  make multichain-deploy-all CHAIN_IDS=1,10,42161         # Specific chains"
+	@echo "  make multichain-deploy-helpers SIMULATED=true           # Dry run"
+	@echo ""
 	@echo "Gas estimation examples:"
 	@echo "  make deploy-helpers RPC_URL=xxx              # Auto-estimate gas from network"
 	@echo "  make deploy-helpers RPC_URL=xxx GAS_BUFFER=30  # Use 30% buffer instead of default 20%"
 	@echo "  make deploy-helpers RPC_URL=xxx GAS_LIMIT=5000000 SKIP_ESTIMATE=true  # Manual gas limit"
 
-.PHONY: check_env clean help deploy-% verify-%
+.PHONY: check_env clean help deploy-% verify-% multichain-%

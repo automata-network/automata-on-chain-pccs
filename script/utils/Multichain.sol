@@ -12,25 +12,59 @@ abstract contract Multichain {
 
     modifier multichain() {
         if (useMultichain) {
-            string[] memory chains = internalVm.envString("CHAINS", ",");
-            for (uint256 i = 0; i < chains.length; i++) {
-                string memory chain = chains[i];
-                string memory rpcUrl = internalVm.envString(string.concat(chain, "_RPC_URL"));
+            string[] memory emptyArr = new string[](0);
+            string[] memory legacyChains = internalVm.envOr("CHAINS", ",", emptyArr);
 
-                // run the fork
-                try internalVm.createSelectFork(rpcUrl) {
-                    // set RPC_URL for current chain execution
-                    internalVm.setEnv("RPC_URL", rpcUrl);
-                    
-                    // run the script
-                    console.log("Running on chain: ", chain);
-                    _;
-                    
-                    // unset RPC_URL to avoid pollution
-                    internalVm.setEnv("RPC_URL", "");
-                } catch Error(string memory reason) {
-                    // if the fork fails, skip it
-                    console.log("Skipping chain: ", chain, " Reason: ", reason);
+            if (legacyChains.length > 0) {
+                // Legacy mode: CHAINS + {NAME}_RPC_URL env vars
+                for (uint256 i = 0; i < legacyChains.length; i++) {
+                    string memory chain = legacyChains[i];
+                    string memory rpcUrl = internalVm.envString(string.concat(chain, "_RPC_URL"));
+
+                    try internalVm.createSelectFork(rpcUrl) {
+                        internalVm.setEnv("RPC_URL", rpcUrl);
+                        console.log("Running on chain: ", chain);
+                        _;
+                        internalVm.setEnv("RPC_URL", "");
+                    } catch Error(string memory reason) {
+                        console.log("Skipping chain: ", chain, " Reason: ", reason);
+                    }
+                }
+            } else {
+                // rpc_map mode: read chain IDs and RPC URLs from rpc_map file
+                string memory rpcMapPath = string.concat(internalVm.projectRoot(), "/rpc_map");
+                string memory rpcMapJson = internalVm.readFile(rpcMapPath);
+                string[] memory allChainIds = internalVm.parseJsonKeys(rpcMapJson, "$");
+
+                string[] memory chainIdsFilter = internalVm.envOr("CHAIN_IDS", ",", emptyArr);
+
+                string[] memory targetChainIds;
+                if (chainIdsFilter.length > 0) {
+                    // Filtered mode: only deploy to specified chain IDs
+                    targetChainIds = chainIdsFilter;
+                } else {
+                    // Safety guard: require ALL_CHAINS=true to deploy to all chains
+                    bool allChains = internalVm.envOr("ALL_CHAINS", false);
+                    require(
+                        allChains,
+                        "Set CHAIN_IDS=<ids> to select specific chains, or ALL_CHAINS=true to deploy to all chains in rpc_map"
+                    );
+                    targetChainIds = allChainIds;
+                }
+
+                for (uint256 i = 0; i < targetChainIds.length; i++) {
+                    string memory chainId = targetChainIds[i];
+                    string memory rpcUrl =
+                        internalVm.parseJsonString(rpcMapJson, string.concat(".", chainId));
+
+                    try internalVm.createSelectFork(rpcUrl) {
+                        internalVm.setEnv("RPC_URL", rpcUrl);
+                        console.log("Running on chain ID: ", chainId);
+                        _;
+                        internalVm.setEnv("RPC_URL", "");
+                    } catch Error(string memory reason) {
+                        console.log("Skipping chain ID: ", chainId, " Reason: ", reason);
+                    }
                 }
             }
         } else {
