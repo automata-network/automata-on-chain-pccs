@@ -18,3 +18,4 @@ deployment/33611633.json
 **/node_modules/
 **/keystore/
 **/.vscode
+**/rpc_map
