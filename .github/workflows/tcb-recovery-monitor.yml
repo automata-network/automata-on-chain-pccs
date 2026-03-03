@@ -6,7 +6,7 @@ on:
     - cron: "0 0 * * *"
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened]
+    types: [closed]
 
 permissions:
   contents: read
@@ -14,6 +14,7 @@ permissions:
 
 jobs:
   monitor:
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
 
     steps:
@@ -24,6 +25,7 @@ jobs:
         id: scan
         env:
           INTEL_API_URL: https://api.trustedservices.intel.com/tdx/certification/v4/tcbevaluationdatanumbers
+          MONITOR_COMMIT_SHA: ${{ github.sha }}
         run: |
           chmod +x .github/scripts/tcb_recovery_scan.sh
           .github/scripts/tcb_recovery_scan.sh scan-result.json

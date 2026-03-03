@@ -203,8 +203,15 @@ else
     target_text="early=${early}, standard=unavailable, targets=${targets_list}"
 fi
 
+commit_sha="${MONITOR_COMMIT_SHA:-}"
+if [ -z "$commit_sha" ]; then
+    commit_sha="$(git rev-parse HEAD)"
+fi
+
 issue_body=$'# Intel TCB Recovery Deployment Check\n\n'
+issue_body+="## Commit: ${commit_sha}"$'\n\n'
 issue_body+="Detected missing deployments for target TCB evaluation data numbers (${target_text})."$'\n'
+issue_body+="Deploy workflow will checkout and run against the commit listed above."$'\n'
 issue_body+="Check the boxes for contracts approved for deployment, then close this issue to trigger the deployment workflow."$'\n\n'
 issue_body+=$'> [!NOTE]\n'
 issue_body+=$'> Checking a **Select all** checkbox will override all subsection checkboxes within that section.\n'
