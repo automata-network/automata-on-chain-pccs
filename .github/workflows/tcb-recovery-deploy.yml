@@ -296,7 +296,7 @@ jobs:
           title: "Deployment updates from issue #${{ github.event.issue.number }}"
           body: |
             Automated deployment updates for checked contracts in issue #${{ github.event.issue.number }}.
-          base: main
+          base: ${{ steps.parse_commit.outputs.commit_ref }}
           labels: deployment
 
       - name: No checked contracts
