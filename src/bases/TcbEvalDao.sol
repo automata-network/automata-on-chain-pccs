@@ -88,7 +88,7 @@ abstract contract TcbEvalDao is DaoBase, SigVerifyBase {
     }
 
     /**
-     * @notice Quries the TCB Evaluation Data Numbers for the given TEE type
+     * @notice Queries the TCB Evaluation Data Numbers for the given TEE type
      * @param id TCB ID - "SGX" or "TDX"
      * @return tcbEvalDataNumbers An array of TCB Evaluation Data Numbers that are actively supported
      */
