@@ -356,9 +356,10 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
             // check issuer evocation status
             bytes memory rootCrl = _fetchDataFromResolver(Pcs.PCS_KEY(CA.ROOT, true), false);
             if (rootCrl.length > 0) {
-                bool issuerRevoked = crlLib.serialNumberIsRevoked(pck.serialNumber, rootCrl);
+                uint256 issuerSerialNumber = pckLib.getSerialNumber(issuerCert);
+                bool issuerRevoked = crlLib.serialNumberIsRevoked(issuerSerialNumber, rootCrl);
                 if (issuerRevoked) {
-                    revert Issuer_Revoked(ca, pck.serialNumber);
+                    revert Issuer_Revoked(ca, issuerSerialNumber);
                 }
             }
 
