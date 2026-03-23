@@ -204,20 +204,22 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
             bytes memory rootCrl = _fetchDataFromResolver(Pcs.PCS_KEY(CA.ROOT, true), false);
             if (rootCrl.length > 0) {
                 // check revocation
-                (, bytes memory serialNumberData) = x509.staticcall(
+                (bool snSuccess, bytes memory serialNumberData) = x509.staticcall(
                     abi.encodeWithSelector(
                         0xb29b51cb, // X509Helper.getSerialNumber(bytes)
                         signingDer
                     )
                 );
+                require(snSuccess, "Failed to get serial number");
                 uint256 serialNumber = abi.decode(serialNumberData, (uint256));
-                (, bytes memory serialNumberRevokedData) = crlLibAddr.staticcall(
+                (bool crlSuccess, bytes memory serialNumberRevokedData) = crlLibAddr.staticcall(
                     abi.encodeWithSelector(
                         0xcedb9781, // X508CRLHelper.serialNumberIsRevoked(uint256,bytes)
                         serialNumber,
                         rootCrl
                     )
                 );
+                require(crlSuccess, "Failed to check CRL revocation");
                 bool revoked = abi.decode(serialNumberRevokedData, (bool));
                 if (revoked) {
                     revert TCB_Cert_Revoked(serialNumber);
