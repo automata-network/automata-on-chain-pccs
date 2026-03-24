@@ -210,7 +210,7 @@ contract FmspcTcbHelper {
         // first slot: contains the first 32 bytes of mrsigner
         // second slot: contains the remaining 16 bytes, followed by 16 zero bytes
         bytes32 slot2 = bytes32(tdxModuleIdentity.mrsigner);
-        bytes32 slot3 = bytes32(abi.encodePacked(slot2, tdxModuleIdentity.mrsigner.substring(32, 16)));
+        bytes32 slot3 = bytes32(abi.encodePacked(tdxModuleIdentity.mrsigner.substring(32, 16), bytes16(0)));
 
         // Slot 4 is occupied by packing both the attributes and attributes mask
         // Slot 4 = (attributes, attributesMask)
