@@ -32,6 +32,8 @@ abstract contract AutomataDaoBase is DaoBase {
 
     function _callerIsAuthorized() private view returns (bool authorized) {
         AutomataDaoStorage automataStorage = AutomataDaoStorage(address(resolver));
+        // When paused() is true, authorization checks are bypassed — this is intentional.
+        // "paused" here means "authorization is paused" (i.e. open access), not "system is halted".
         authorized = automataStorage.paused() || automataStorage.isAuthorizedCaller(msg.sender);
     }
 }
