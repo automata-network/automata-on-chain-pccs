@@ -9,6 +9,7 @@ import {
 import {DaoBase} from "./DaoBase.sol";
 import {SigVerifyBase} from "./SigVerifyBase.sol";
 import {PcsDao} from "./PcsDao.sol";
+import {CollateralVersioningMixin} from "./CollateralVersioning.sol";
 
 /// @notice The on-chain schema for Identity.json is to store as ABI-encoded tuple of (EnclaveIdentityHelper.IdentityObj, EnclaveIdentityHelper.EnclaveIdentityJsonObj)
 /// @notice In other words, the tuple simply consists of the collateral in both parsed and string forms.
@@ -21,7 +22,7 @@ import {PcsDao} from "./PcsDao.sol";
  * @dev should extends this contract and use the provided read/write methods to interact with
  * Identity.json data published on-chain.
  */
-abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
+abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase, CollateralVersioningMixin {
     PcsDao public Pcs;
     EnclaveIdentityHelper public EnclaveIdentityLib;
     address public crlLibAddr;
@@ -127,6 +128,7 @@ abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
         attestationId = _attestEnclaveIdentity(req, hash, key);
 
         _storeIdentityContentHash(key, identityContentHash);
+        _bumpVersion(key);
 
         emit UpsertedEnclaveIdentity(id, version);
     }

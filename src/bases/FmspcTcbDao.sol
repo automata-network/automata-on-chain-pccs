@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {PcsDao} from "./PcsDao.sol";
 import {DaoBase} from "./DaoBase.sol";
 import {SigVerifyBase} from "./SigVerifyBase.sol";
+import {CollateralVersioningMixin} from "./CollateralVersioning.sol";
 
 import {CA} from "../Common.sol";
 import {
@@ -44,7 +45,7 @@ import {
  * @dev should extends this contract and use the provided read/write methods to interact with TCBInfo JSON
  * data published on-chain.
  */
-abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
+abstract contract FmspcTcbDao is DaoBase, SigVerifyBase, CollateralVersioningMixin {
     PcsDao public Pcs;
     FmspcTcbHelper public FmspcTcbLib;
     address public crlLibAddr;
@@ -156,6 +157,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
 
         _storeTcbInfoIssueEvaluation(key, tcbInfo.issueDate, tcbInfo.nextUpdate, tcbInfo.evaluationDataNumber);
         _storeFmspcTcbContentHash(key, contentHash);
+        _bumpVersion(key);
         emit UpsertedFmpscTcb(uint8(tcbInfo.id), tcbInfo.fmspc, tcbInfo.version);
     }
 

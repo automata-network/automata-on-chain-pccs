@@ -7,6 +7,7 @@ import {X509CRLHelper, X509CRLObj} from "../helpers/X509CRLHelper.sol";
 
 import {DaoBase} from "./DaoBase.sol";
 import {SigVerifyBase} from "./SigVerifyBase.sol";
+import {CollateralVersioningMixin} from "./CollateralVersioning.sol";
 
 import {LibString} from "solady/utils/LibString.sol";
 
@@ -21,7 +22,7 @@ import {LibString} from "solady/utils/LibString.sol";
  * @notice This contract is heavily inspired by Sections 4.2.5 and 4.2.6 in the Intel SGX PCCS Design Guideline
  * https://download.01.org/intel-sgx/sgx-dcap/1.19/linux/docs/SGX_DCAP_Caching_Service_Design_Guide.pdf
  */
-abstract contract PcsDao is DaoBase, SigVerifyBase {
+abstract contract PcsDao is DaoBase, SigVerifyBase, CollateralVersioningMixin {
     using LibString for string;
 
     X509CRLHelper public crlLib;
@@ -123,6 +124,7 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
         _storePcsValidity(key, uint64(parsedX509Cert.validityNotBefore), uint64(parsedX509Cert.validityNotAfter));
 
         attestationId = _attestPcs(cert, hash, key);
+        _bumpVersion(key);
 
         emit UpsertedPCSCollateral(ca, false);
     }
@@ -162,6 +164,7 @@ abstract contract PcsDao is DaoBase, SigVerifyBase {
         _storePcsValidity(key, uint64(currentCrl.validityNotBefore), uint64(currentCrl.validityNotAfter));
 
         attestationId = _attestPcs(crl, hash, key);
+        _bumpVersion(key);
 
         emit UpsertedPCSCollateral(ca, true);
     }

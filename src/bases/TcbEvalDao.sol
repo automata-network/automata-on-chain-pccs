@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {PcsDao} from "./PcsDao.sol";
 import {DaoBase} from "./DaoBase.sol";
 import {SigVerifyBase} from "./SigVerifyBase.sol";
+import {CollateralVersioningMixin} from "./CollateralVersioning.sol";
 
 import {CA} from "../Common.sol";
 import {TcbEvalHelper, TcbEvalJsonObj, TcbEvalDataBasic, TcbEvalNumber, TcbId} from "../helpers/TcbEvalHelper.sol";
@@ -21,7 +22,7 @@ import {TcbEvalHelper, TcbEvalJsonObj, TcbEvalDataBasic, TcbEvalNumber, TcbId} f
  * @dev should extends this contract and use the provided read/write methods to interact with TCB Evaluation Data Numbers JSON
  * data published on-chain.
  */
-abstract contract TcbEvalDao is DaoBase, SigVerifyBase {
+abstract contract TcbEvalDao is DaoBase, SigVerifyBase, CollateralVersioningMixin {
     PcsDao public Pcs;
     TcbEvalHelper public TcbEvalLib;
     address public crlLibAddr;
@@ -139,6 +140,7 @@ abstract contract TcbEvalDao is DaoBase, SigVerifyBase {
         attestationId = _attestTcbEval(req, hash, key);
 
         _storeTcbEvalIssueData(key, tcbEvalData.issueDate, tcbEvalData.nextUpdate);
+        _bumpVersion(key);
         emit UpsertedTcbEval(uint8(tcbEvalData.id));
     }
 
