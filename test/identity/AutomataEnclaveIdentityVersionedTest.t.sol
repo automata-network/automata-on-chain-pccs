@@ -78,6 +78,9 @@ contract AutomataEnclaveIdentityDaoVersionedTest is PCSSetupBase, IdentityConsta
         vm.prank(admin);
         EnclaveIdentityJsonObj memory retrievedEnclaveIdentityObjFromVersioned =
             enclaveIdDaoVersioned.getEnclaveIdentity(0, 3);
+        bytes32 key = enclaveIdDaoVersioned.ENCLAVE_ID_KEY(0, 3);
+        (bool changedFromZero, uint256 versionFromZero) = enclaveIdDaoVersioned.hasChanged(key, 0);
+        (bool changedFromCurrent, uint256 currentVersion) = enclaveIdDaoVersioned.hasChanged(key, 1);
         assertEq(
             retrievedEnclaveIdentityObjFromVersioned.identityStr,
             identity,
@@ -88,6 +91,11 @@ contract AutomataEnclaveIdentityDaoVersionedTest is PCSSetupBase, IdentityConsta
             sig,
             "Retrieved signature does not match the expected value"
         );
+        assertEq(enclaveIdDaoVersioned.collateralVersion(key), 1);
+        assertTrue(changedFromZero);
+        assertEq(versionFromZero, 1);
+        assertFalse(changedFromCurrent);
+        assertEq(currentVersion, 1);
 
         vm.prank(admin);
         // it should not override collaterals maintained by the community dao

@@ -66,9 +66,17 @@ contract AutomataFmspcTcbDaoVersionedTest is PCSSetupBase, TCBConstants {
 
         TcbInfoJsonObj memory fetchedTcbInfoObjFromVersioned =
             fmspcTcbDaoVersioned.getTcbInfo(0, "00A067110000", 2);
+        bytes32 key = fmspcTcbDaoVersioned.FMSPC_TCB_KEY(0, bytes6(uint48(0x00A067110000)), 2);
+        (bool changedFromZero, uint256 versionFromZero) = fmspcTcbDaoVersioned.hasChanged(key, 0);
+        (bool changedFromCurrent, uint256 currentVersion) = fmspcTcbDaoVersioned.hasChanged(key, 1);
 
         assertEq(fetchedTcbInfoObjFromVersioned.tcbInfoStr, tcbInfoStr);
         assertEq(fetchedTcbInfoObjFromVersioned.signature, sig);
+        assertEq(fmspcTcbDaoVersioned.collateralVersion(key), 1);
+        assertTrue(changedFromZero);
+        assertEq(versionFromZero, 1);
+        assertFalse(changedFromCurrent);
+        assertEq(currentVersion, 1);
 
         TcbInfoJsonObj memory fetchedTcbInfoObjFromCommunity =
             fmspcTcbDao.getTcbInfo(0, "00A067110000", 2);

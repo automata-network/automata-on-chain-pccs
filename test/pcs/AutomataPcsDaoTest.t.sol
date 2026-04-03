@@ -101,4 +101,26 @@ contract AutomataPcsDaoTest is PCSSetupBase {
         vm.expectRevert(abi.encodeWithSelector(DaoBase.Duplicate_Collateral.selector));
         pcs.upsertPcsCertificates(CA.PLATFORM, platformDer);
     }
+
+    function testCollateralVersions() public {
+        bytes32 rootCertKey = pcs.PCS_KEY(CA.ROOT, false);
+        bytes32 rootCrlKey = pcs.PCS_KEY(CA.ROOT, true);
+        bytes32 platformCertKey = pcs.PCS_KEY(CA.PLATFORM, false);
+        (bool rootCertChanged, uint256 rootCertVersion) = pcs.hasChanged(rootCertKey, 0);
+        (bool rootCrlChanged, uint256 rootCrlVersion) = pcs.hasChanged(rootCrlKey, 0);
+        (bool platformChanged, uint256 platformVersion) = pcs.hasChanged(platformCertKey, 0);
+        (bool rootCertChangedFromCurrent, uint256 rootCertCurrent) = pcs.hasChanged(rootCertKey, 1);
+
+        assertEq(pcs.collateralVersion(rootCertKey), 1);
+        assertEq(pcs.collateralVersion(rootCrlKey), 1);
+        assertEq(pcs.collateralVersion(platformCertKey), 1);
+        assertTrue(rootCertChanged);
+        assertEq(rootCertVersion, 1);
+        assertTrue(rootCrlChanged);
+        assertEq(rootCrlVersion, 1);
+        assertTrue(platformChanged);
+        assertEq(platformVersion, 1);
+        assertFalse(rootCertChangedFromCurrent);
+        assertEq(rootCertCurrent, 1);
+    }
 }

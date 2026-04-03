@@ -72,8 +72,16 @@ contract AutomataTcbEvalDaoTest is PCSSetupBase {
         vm.startPrank(admin);
         
         TcbEvalJsonObj memory fetched = tcbEvalDao.getTcbEvaluationObject(TcbId.SGX);
+        bytes32 key = tcbEvalDao.TCB_EVAL_KEY(TcbId.SGX);
+        (bool changedFromZero, uint256 versionFromZero) = tcbEvalDao.hasChanged(key, 0);
+        (bool changedFromCurrent, uint256 currentVersion) = tcbEvalDao.hasChanged(key, 1);
         assertEq(fetched.tcbEvaluationDataNumbers, tcbEvalJsonObj.tcbEvaluationDataNumbers);
         assertEq(fetched.signature, tcbEvalJsonObj.signature);
+        assertEq(tcbEvalDao.collateralVersion(key), 1);
+        assertTrue(changedFromZero);
+        assertEq(versionFromZero, 1);
+        assertFalse(changedFromCurrent);
+        assertEq(currentVersion, 1);
 
 
         // test loading all tcb evaluation numbers
