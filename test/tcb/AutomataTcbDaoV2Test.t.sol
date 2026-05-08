@@ -1,0 +1,67 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.0;
+
+import "../pcs/PCSSetupBase.t.sol";
+import {TCBConstants} from "./TCBConstants.t.sol";
+import {AutomataDaoStorageV2} from "../../src/automata_pccs/shared/AutomataDaoStorageV2.sol";
+import {AutomataFmspcTcbDaoVersionedV2} from
+    "../../src/automata_pccs/versioned/AutomataFmspcTcbDaoVersionedV2.sol";
+
+contract AutomataFmspcTcbDaoV2Test is PCSSetupBase, TCBConstants {
+    AutomataDaoStorageV2 storageV2;
+    AutomataFmspcTcbDaoVersionedV2 fmspcTcbDaoV2;
+    address attester = address(0x1234);
+
+    function setUp() public override {
+        super.setUp();
+
+        vm.startPrank(admin);
+        storageV2 = new AutomataDaoStorageV2(admin, address(pccsStorage));
+        fmspcTcbDaoV2 = new AutomataFmspcTcbDaoVersionedV2(
+            address(storageV2),
+            P256_VERIFIER,
+            address(pcs),
+            address(fmspcTcbLib),
+            address(x509Lib),
+            address(x509CrlLib),
+            admin,
+            16
+        );
+
+        pccsStorage.grantDao(address(storageV2));
+        storageV2.grantDao(address(fmspcTcbDaoV2));
+        storageV2.setCallerAuthorization(admin, true);
+        fmspcTcbDaoV2.grantRoles(attester, fmspcTcbDaoV2.ATTESTER_ROLE());
+        vm.stopPrank();
+    }
+
+    function testAsyncUpsertSgxV2() public {
+        bytes32 refId = keccak256("sgx-v2-async");
+        uint8 tcbType = 0;
+        bytes6 fmspcBytes = hex"00606a000000";
+        uint32 version = 2;
+
+        vm.startPrank(attester);
+        fmspcTcbDaoV2.startAsyncUpsert(refId, sgx_v2_signature);
+        fmspcTcbDaoV2.uploadChunckData(refId, sgx_v2_tcbStr);
+
+        (uint256 parsed, uint256 total, bool complete) = fmspcTcbDaoV2.parseTCBInfo(refId, 0, 3);
+        uint256 next = parsed;
+        while (!complete) {
+            (parsed, total, complete) = fmspcTcbDaoV2.parseTCBInfo(refId, next, 3);
+            next += parsed;
+        }
+
+        bytes32 key = fmspcTcbDaoV2.FMSPC_TCB_KEY(tcbType, fmspcBytes, version);
+        bytes32 attestationId = storageV2.collateralPointer(key);
+        fmspcTcbDaoV2.finalizeAsyncUpsert(attestationId, refId);
+        vm.stopPrank();
+
+        vm.startPrank(admin);
+        TcbInfoJsonObj memory fetched = fmspcTcbDaoV2.getTcbInfo(tcbType, "00606a000000", version);
+        assertEq(bytes(fetched.tcbInfoStr), sgx_v2_tcbStr);
+        assertEq(fetched.signature, sgx_v2_signature);
+        assertEq(fmspcTcbDaoV2.getCollateralHash(key), sha256(sgx_v2_tcbStr));
+        vm.stopPrank();
+    }
+}

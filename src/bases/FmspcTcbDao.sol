@@ -132,7 +132,7 @@ abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
      * @notice Section 4.2.9 (upsertEnclaveIdentity)
      * @param tcbInfoObj See {FmspcTcbHelper.sol} to learn more about the structure definition
      */
-    function upsertFmspcTcb(TcbInfoJsonObj calldata tcbInfoObj) external returns (bytes32 attestationId) {
+    function upsertFmspcTcb(TcbInfoJsonObj calldata tcbInfoObj) external virtual returns (bytes32 attestationId) {
         bytes32 hash = sha256(bytes(tcbInfoObj.tcbInfoStr));
 
         // parse tcb info basic here so we can compute the key

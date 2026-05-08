@@ -133,6 +133,10 @@ contract FmspcTcbHelper {
     }
 
     function tcbLevelsObjToBytes(TCBLevelsObj calldata obj) external pure returns (bytes memory serialized) {
+        serialized = _tcbLevelsObjToBytes(obj);
+    }
+
+    function _tcbLevelsObjToBytes(TCBLevelsObj memory obj) private pure returns (bytes memory serialized) {
         // first slot = (uint64, uint64, uint64)
         uint256 firstSlot = uint256(obj.pcesvn) << (2 * 64) | uint256(obj.tcbDateTimestamp) << 64 | uint8(obj.status);
 
@@ -201,6 +205,14 @@ contract FmspcTcbHelper {
 
     function tdxModuleIdentityToBytes(TDXModuleIdentity calldata tdxModuleIdentity)
         external
+        pure
+        returns (bytes memory packedTdxModuleIdentity)
+    {
+        packedTdxModuleIdentity = _tdxModuleIdentityToBytes(tdxModuleIdentity);
+    }
+
+    function _tdxModuleIdentityToBytes(TDXModuleIdentity memory tdxModuleIdentity)
+        private
         pure
         returns (bytes memory packedTdxModuleIdentity)
     {
@@ -417,6 +429,32 @@ contract FmspcTcbHelper {
         }
     }
 
+    function parseTcbLevelsRange(uint256 version, string calldata tcbLevelsString, uint256 start, uint256 count)
+        external
+        pure
+        returns (bytes memory packedTcbLevels, uint256 total, uint256 parsed)
+    {
+        JSONParserLib.Item memory root = JSONParserLib.parse(tcbLevelsString);
+        JSONParserLib.Item[] memory tcbLevelsObj = root.children();
+        total = tcbLevelsObj.length;
+
+        if (start >= total || count == 0) {
+            return (packedTcbLevels, total, 0);
+        }
+
+        uint256 end = start + count;
+        if (end > total) {
+            end = total;
+        }
+
+        for (uint256 i = start; i < end; i++) {
+            TCBLevelsObj memory level = _parseTcbLevelObject(version, tcbLevelsObj[i]);
+            bytes memory encoded = _tcbLevelsObjToBytes(level);
+            packedTcbLevels = bytes.concat(packedTcbLevels, abi.encodePacked(uint32(encoded.length), encoded));
+            parsed++;
+        }
+    }
+
     function parseTcbTdxModules(string calldata tdxModuleString, string calldata tdxModuleIdentitiesString)
         external
         pure
@@ -432,7 +470,75 @@ contract FmspcTcbHelper {
         moduleIdentities = _parseTdxModuleIdentities(tdxModuleIdentitiesItems);
     }
 
+    function parseTdxModule(string calldata tdxModuleString) external pure returns (TDXModule memory module) {
+        JSONParserLib.Item memory tdxModuleRoot = JSONParserLib.parse(tdxModuleString);
+        module = _parseTdxModule(tdxModuleRoot.children());
+    }
+
+    function parseTdxModuleIdentitiesRange(
+        string calldata tdxModuleIdentitiesString,
+        uint256 start,
+        uint256 count
+    ) external pure returns (bytes memory packedTdxModuleIdentities, uint256 total, uint256 parsed) {
+        JSONParserLib.Item memory tdxModuleIdentitiesRoot = JSONParserLib.parse(tdxModuleIdentitiesString);
+        JSONParserLib.Item[] memory tdxModuleIdentitiesArr = tdxModuleIdentitiesRoot.children();
+        total = tdxModuleIdentitiesArr.length;
+
+        if (start >= total || count == 0) {
+            return (packedTdxModuleIdentities, total, 0);
+        }
+
+        uint256 end = start + count;
+        if (end > total) {
+            end = total;
+        }
+
+        for (uint256 i = start; i < end; i++) {
+            TDXModuleIdentity memory identity = _parseTdxModuleIdentityObject(tdxModuleIdentitiesArr[i]);
+            bytes memory encoded = _tdxModuleIdentityToBytes(identity);
+            packedTdxModuleIdentities =
+                bytes.concat(packedTdxModuleIdentities, abi.encodePacked(uint32(encoded.length), encoded));
+            parsed++;
+        }
+    }
+
     /// ====== INTERNAL METHODS BELOW ======
+
+    function _parseTcbLevelObject(uint256 version, JSONParserLib.Item memory tcbLevelItem)
+        private
+        pure
+        returns (TCBLevelsObj memory level)
+    {
+        JSONParserLib.Item[] memory tcbObj = tcbLevelItem.children();
+        for (uint256 j = 0; j < tcbLevelItem.size(); j++) {
+            string memory tcbKey = JSONParserLib.decodeString(tcbObj[j].key());
+            if (tcbKey.eq("tcb")) {
+                string memory tcbStr = tcbObj[j].value();
+                JSONParserLib.Item memory tcbParent = JSONParserLib.parse(tcbStr);
+                JSONParserLib.Item[] memory tcbComponents = tcbParent.children();
+                if (version == 2) {
+                    (level.sgxComponentCpuSvns, level.pcesvn) = _parseV2Tcb(tcbComponents);
+                } else if (version == 3) {
+                    (level.sgxComponentCpuSvns, level.tdxComponentCpuSvns, level.pcesvn) =
+                        _parseV3Tcb(tcbComponents);
+                } else {
+                    revert TCBInfo_Invalid();
+                }
+            } else if (tcbKey.eq("tcbDate")) {
+                level.tcbDateTimestamp =
+                    uint64(DateTimeUtils.fromISOToTimestamp(JSONParserLib.decodeString(tcbObj[j].value())));
+            } else if (tcbKey.eq("tcbStatus")) {
+                level.status = _getTcbStatus(JSONParserLib.decodeString(tcbObj[j].value()));
+            } else if (tcbKey.eq("advisoryIDs")) {
+                JSONParserLib.Item[] memory advisoryArr = tcbObj[j].children();
+                uint256 n = tcbObj[j].size();
+                level.advisoryIDs = new string[](n);
+                for (uint256 k = 0; k < n; k++) {
+                    level.advisoryIDs[k] = JSONParserLib.decodeString(advisoryArr[k].value());
+                }
+            }
+        }
+    }
 
     function _tdxModuleTcbLevelsObjToSlot(TDXModuleTCBLevelsObj memory tdxModuleTcbLevelsObj)
         private
@@ -560,51 +666,57 @@ contract FmspcTcbHelper {
         uint256 n = tdxModuleIdentitiesArr.length;
         identities = new TDXModuleIdentity[](n);
         for (uint256 i = 0; i < n; i++) {
-            JSONParserLib.Item[] memory currIdentity = tdxModuleIdentitiesArr[i].children();
-            for (uint256 j = 0; j < tdxModuleIdentitiesArr[i].size(); j++) {
-                string memory key = JSONParserLib.decodeString(currIdentity[j].key());
-                if (key.eq("id")) {
-                    string memory val = JSONParserLib.decodeString(currIdentity[j].value());
-                    identities[i].id = val;
-                }
-                if (key.eq("mrsigner")) {
-                    string memory val = JSONParserLib.decodeString(currIdentity[j].value());
-                    identities[i].mrsigner = _getMrSignerHex(val);
-                }
-                if (key.eq("attributes")) {
-                    string memory val = JSONParserLib.decodeString(currIdentity[j].value());
-                    identities[i].attributes = bytes8(uint64(JSONParserLib.parseUintFromHex(val)));
-                }
-                if (key.eq("attributesMask")) {
-                    string memory val = JSONParserLib.decodeString(currIdentity[j].value());
-                    identities[i].attributesMask = bytes8(uint64(JSONParserLib.parseUintFromHex(val)));
-                }
-                if (key.eq("tcbLevels")) {
-                    JSONParserLib.Item[] memory tcbLevelsArr = currIdentity[j].children();
-                    uint256 x = tcbLevelsArr.length;
-                    identities[i].tcbLevels = new TDXModuleTCBLevelsObj[](x);
-                    for (uint256 k = 0; k < x; k++) {
-                        JSONParserLib.Item[] memory tcb = tcbLevelsArr[k].children();
-                        for (uint256 l = 0; l < tcb.length; l++) {
-                            key = JSONParserLib.decodeString(tcb[l].key());
-                            if (key.eq("tcb")) {
-                                JSONParserLib.Item[] memory isvsvnObj = tcb[l].children();
-                                key = JSONParserLib.decodeString(isvsvnObj[0].key());
-                                if (key.eq("isvsvn")) {
-                                    identities[i].tcbLevels[k].isvsvn =
-                                        uint8(JSONParserLib.parseUint(isvsvnObj[0].value()));
-                                } else {
-                                    revert TCBInfo_Invalid();
-                                }
+            identities[i] = _parseTdxModuleIdentityObject(tdxModuleIdentitiesArr[i]);
+        }
+    }
+
+    function _parseTdxModuleIdentityObject(JSONParserLib.Item memory identityItem)
+        private
+        pure
+        returns (TDXModuleIdentity memory identity)
+    {
+        JSONParserLib.Item[] memory currIdentity = identityItem.children();
+        for (uint256 j = 0; j < identityItem.size(); j++) {
+            string memory key = JSONParserLib.decodeString(currIdentity[j].key());
+            if (key.eq("id")) {
+                string memory val = JSONParserLib.decodeString(currIdentity[j].value());
+                identity.id = val;
+            }
+            if (key.eq("mrsigner")) {
+                string memory val = JSONParserLib.decodeString(currIdentity[j].value());
+                identity.mrsigner = _getMrSignerHex(val);
+            }
+            if (key.eq("attributes")) {
+                string memory val = JSONParserLib.decodeString(currIdentity[j].value());
+                identity.attributes = bytes8(uint64(JSONParserLib.parseUintFromHex(val)));
+            }
+            if (key.eq("attributesMask")) {
+                string memory val = JSONParserLib.decodeString(currIdentity[j].value());
+                identity.attributesMask = bytes8(uint64(JSONParserLib.parseUintFromHex(val)));
+            }
+            if (key.eq("tcbLevels")) {
+                JSONParserLib.Item[] memory tcbLevelsArr = currIdentity[j].children();
+                uint256 x = tcbLevelsArr.length;
+                identity.tcbLevels = new TDXModuleTCBLevelsObj[](x);
+                for (uint256 k = 0; k < x; k++) {
+                    JSONParserLib.Item[] memory tcb = tcbLevelsArr[k].children();
+                    for (uint256 l = 0; l < tcb.length; l++) {
+                        key = JSONParserLib.decodeString(tcb[l].key());
+                        if (key.eq("tcb")) {
+                            JSONParserLib.Item[] memory isvsvnObj = tcb[l].children();
+                            key = JSONParserLib.decodeString(isvsvnObj[0].key());
+                            if (key.eq("isvsvn")) {
+                                identity.tcbLevels[k].isvsvn = uint8(JSONParserLib.parseUint(isvsvnObj[0].value()));
+                            } else {
+                                revert TCBInfo_Invalid();
                             }
-                            if (key.eq("tcbDate")) {
-                                identities[i].tcbLevels[k].tcbDateTimestamp =
-                                    uint64(DateTimeUtils.fromISOToTimestamp(JSONParserLib.decodeString(tcb[l].value())));
-                            }
-                            if (key.eq("tcbStatus")) {
-                                identities[i].tcbLevels[k].status =
-                                    _getTcbStatus(JSONParserLib.decodeString(tcb[l].value()));
-                            }
+                        }
+                        if (key.eq("tcbDate")) {
+                            identity.tcbLevels[k].tcbDateTimestamp =
+                                uint64(DateTimeUtils.fromISOToTimestamp(JSONParserLib.decodeString(tcb[l].value())));
+                        }
+                        if (key.eq("tcbStatus")) {
+                            identity.tcbLevels[k].status = _getTcbStatus(JSONParserLib.decodeString(tcb[l].value()));
                         }
                     }
                 }
