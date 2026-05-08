@@ -17,9 +17,6 @@ import {
  * @notice Splits FMSPC TCBInfo upserts into async upload, parse, and finalize stages.
  */
 abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
-    bytes4 private constant V2_PAYLOAD_MARKER = 0x54434232; // "TCB2"
-
-    bytes32 private constant ROOT_REF_TAG = keccak256("fmspcTcb.root");
     bytes32 private constant RAW_REF_TAG = keccak256("fmspcTcb.raw");
     bytes32 private constant LEVELS_JSON_REF_TAG = keccak256("fmspcTcb.levelsJson");
     bytes32 private constant TDX_MODULE_JSON_REF_TAG = keccak256("fmspcTcb.tdxModuleJson");
@@ -70,7 +67,6 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
     }
 
     mapping(bytes32 rootRefId => AsyncUpsertState state) internal _asyncUpserts;
-    mapping(bytes32 tcbKey => bytes32 rootRefId) internal _activeRootForKey;
 
     event StartedAsyncFmspcTcbUpsert(bytes32 indexed refId);
     event UploadedAsyncFmspcTcbChunk(bytes32 indexed refId, uint256 chunkLength);
@@ -197,7 +193,6 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         _finalizeExternalRefs(refId, state);
 
         state.finalized = true;
-        _activeRootForKey[state.tcbKey] = refId;
 
         emit UpsertedFmpscTcb(uint8(state.basic.id), state.basic.fmspc, state.basic.version);
         emit FinalizedAsyncFmspcTcbUpsert(refId, attestationId);
@@ -238,12 +233,6 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         override
         returns (bytes memory data)
     {
-        if (!hash) {
-            bytes32 rootRefId = _activeRootForKey[key];
-            if (rootRefId != bytes32(0)) {
-                return _rebuildTcbAttestation(rootRefId);
-            }
-        }
         return _fetchDataFromResolver(key, hash);
     }
 
@@ -256,12 +245,6 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         override
         returns (uint64 issueDateTimestamp, uint64 nextUpdateTimestamp, uint32 evaluationDataNumber)
     {
-        bytes32 activeRoot = _activeRootForKey[tcbKey];
-        if (activeRoot != bytes32(0)) {
-            TcbInfoBasic storage basic = _asyncUpserts[activeRoot].basic;
-            return (basic.issueDate, basic.nextUpdate, basic.evaluationDataNumber);
-        }
-
         bytes memory data = _fetchDataFromResolver(_computeTcbIssueEvaluationKey(tcbKey), false);
         if (data.length > 0) {
             (uint256 slot) = abi.decode(data, (uint256));
@@ -280,11 +263,6 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         override
         returns (bytes32 contentHash)
     {
-        bytes32 activeRoot = _activeRootForKey[tcbKey];
-        if (activeRoot != bytes32(0)) {
-            return _asyncUpserts[activeRoot].contentHash;
-        }
-
         bytes memory data = _fetchDataFromResolver(_computeContentHashKey(tcbKey), false);
         if (data.length > 0) {
             contentHash = bytes32(data);
@@ -312,7 +290,6 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         });
 
         AutomataDaoStorageV2 storageV2 = _storageV2();
-        storageV2.startAsync(_deriveRefId(refId, ROOT_REF_TAG));
         storageV2.startAsync(state.refs.raw);
         storageV2.startAsync(state.refs.levelsJson);
         storageV2.startAsync(state.refs.tdxModuleJson);
@@ -369,7 +346,7 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         uint256 issueSlot = (uint256(state.basic.issueDate) << 192) | (uint256(state.basic.nextUpdate) << 128)
             | state.basic.evaluationDataNumber;
 
-        _storageV2().appendAttestation(state.refs.payload, abi.encodePacked(V2_PAYLOAD_MARKER));
+        _storageV2().appendAttestation(state.refs.payload, _buildFinalPayload(state));
         _storageV2().appendAttestation(state.refs.hash, abi.encodePacked(state.rawHash));
         _storageV2().appendAttestation(state.refs.issueEvaluation, abi.encode(issueSlot));
         _storageV2().appendAttestation(state.refs.contentHash, abi.encodePacked(state.contentHash));
@@ -438,8 +415,7 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         }
     }
 
-    function _rebuildTcbAttestation(bytes32 rootRefId) internal view returns (bytes memory reqData) {
-        AsyncUpsertState storage state = _asyncUpserts[rootRefId];
+    function _buildFinalPayload(AsyncUpsertState storage state) internal view returns (bytes memory reqData) {
         bytes memory raw = _storageV2().readRef(state.refs.raw);
         bytes memory encodedTcbLevels = _encodeLengthPrefixedStream(
             _storageV2().readRef(state.refs.parsedLevels), state.totalLevels

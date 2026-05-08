@@ -6,6 +6,7 @@ import {TCBConstants} from "./TCBConstants.t.sol";
 import {AutomataDaoStorageV2} from "../../src/automata_pccs/shared/AutomataDaoStorageV2.sol";
 import {AutomataFmspcTcbDaoVersionedV2} from
     "../../src/automata_pccs/versioned/AutomataFmspcTcbDaoVersionedV2.sol";
+import {TcbInfoBasic, TcbInfoJsonObj} from "../../src/helpers/FmspcTcbHelper.sol";
 
 contract AutomataFmspcTcbDaoV2Test is PCSSetupBase, TCBConstants {
     AutomataDaoStorageV2 storageV2;
@@ -74,6 +75,20 @@ contract AutomataFmspcTcbDaoV2Test is PCSSetupBase, TCBConstants {
         vm.stopPrank();
 
         vm.startPrank(admin);
+        bytes memory payload = storageV2.readAttestation(attestationId);
+        assertGt(payload.length, 4);
+        assertEq(storageV2.refForAttestation(attestationId), keccak256(abi.encodePacked(refId, keccak256("fmspcTcb.payload"))));
+        assertEq(fmspcTcbDaoV2.getAttestedData(key), payload);
+
+        (TcbInfoBasic memory basic, bytes memory encodedLevels, TcbInfoJsonObj memory attestedObj) =
+            abi.decode(payload, (TcbInfoBasic, bytes, TcbInfoJsonObj));
+        assertEq(uint8(basic.id), tcbType);
+        assertEq(basic.fmspc, fmspcBytes);
+        assertEq(basic.version, version);
+        assertGt(encodedLevels.length, 0);
+        assertEq(bytes(attestedObj.tcbInfoStr), sgx_v2_tcbStr);
+        assertEq(attestedObj.signature, sgx_v2_signature);
+
         TcbInfoJsonObj memory fetched = fmspcTcbDaoV2.getTcbInfo(tcbType, "00606a000000", version);
         assertEq(bytes(fetched.tcbInfoStr), sgx_v2_tcbStr);
         assertEq(fetched.signature, sgx_v2_signature);
