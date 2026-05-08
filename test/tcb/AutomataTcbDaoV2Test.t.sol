@@ -29,9 +29,25 @@ contract AutomataFmspcTcbDaoV2Test is PCSSetupBase, TCBConstants {
         );
 
         pccsStorage.grantDao(address(storageV2));
+        storageV2.grantDao(admin);
         storageV2.grantDao(address(fmspcTcbDaoV2));
         storageV2.setCallerAuthorization(admin, true);
         fmspcTcbDaoV2.grantRoles(attester, fmspcTcbDaoV2.ATTESTER_ROLE());
+        vm.stopPrank();
+    }
+
+    function testLegacyAttestFallsBackToStorageV1() public {
+        bytes32 key = keccak256("legacy-sync-key");
+        bytes memory data = abi.encodePacked("legacy-sync-data");
+        bytes32 dataHash = sha256(data);
+
+        vm.prank(admin);
+        (bytes32 attestationId, bytes32 hashAttestationId) = storageV2.attest(key, data, dataHash);
+
+        vm.startPrank(admin);
+        assertEq(storageV2.refForAttestation(attestationId), bytes32(0));
+        assertEq(storageV2.readAttestation(attestationId), data);
+        assertEq(storageV2.readAttestation(hashAttestationId), abi.encodePacked(dataHash));
         vm.stopPrank();
     }
 

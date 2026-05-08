@@ -101,16 +101,17 @@ contract AutomataDaoStorageV2 is AutomataTCBManager, IDaoAttestationResolver, Pa
     }
 
     /**
-     * @notice Legacy attest API is intentionally disabled for V2 writes because
-     * V2 storage keys must be internal refIds. Use start/append/finalize instead.
+     * @notice Legacy attest API is forwarded to the fallback resolver so
+     * synchronous DAO writes continue to use the original storage layout.
      */
-    function attest(bytes32, bytes calldata, bytes32)
+    function attest(bytes32 key, bytes calldata attData, bytes32 attDataHash)
         external
-        pure
         override
-        returns (bytes32, bytes32)
+        onlyDao(msg.sender)
+        returns (bytes32 attestationId, bytes32 hashAttestationid)
     {
-        revert("USE_ASYNC");
+        require(address(fallbackResolver) != address(0), "MISSING_FALLBACK");
+        return fallbackResolver.attest(key, attData, attDataHash);
     }
 
     function startAsync(bytes32 refId) external onlyDao(msg.sender) {
