@@ -129,7 +129,6 @@ contract AutomataDaoStorageV2 is AutomataTCBManager, IDaoAttestationResolver, Pa
     }
 
     function finalizeAsync(bytes32 attestationId, bytes32 refId) external onlyDao(msg.sender) {
-        require(refMap[attestationId] == bytes32(0), "ATTESTATION_MAPPED");
         require(occupiedRefIds[refId], "UNKNOWN_REF");
         require(_db[refId].length > 0, "EMPTY_REF");
         finalizedRefIds[refId] = true;
