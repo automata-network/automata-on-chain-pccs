@@ -60,7 +60,7 @@ contract AutomataFmspcTcbDaoV2Test is PCSSetupBase, TCBConstants {
 
         vm.startPrank(attester);
         fmspcTcbDaoV2.startAsyncUpsert(refId, sgx_v2_signature);
-        fmspcTcbDaoV2.uploadChunckData(refId, sgx_v2_tcbStr);
+        fmspcTcbDaoV2.uploadChunkData(refId, sgx_v2_tcbStr);
 
         (uint256 parsed, uint256 total, bool complete) = fmspcTcbDaoV2.parseTCBInfo(refId, 0, 3);
         uint256 next = parsed;

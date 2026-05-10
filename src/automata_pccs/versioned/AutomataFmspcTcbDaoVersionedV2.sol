@@ -55,7 +55,12 @@ contract AutomataFmspcTcbDaoVersionedV2 is FmspcTcbDaoV2, OwnableRoles {
         returns (bytes memory data)
     {
         if (_callerIsAuthorized()) {
-            data = super._onFetchDataFromResolver(key, hash);
+            if (!hash) {
+                data = _loadAsyncFinalPayload(key);
+            }
+            if (data.length == 0) {
+                data = super._onFetchDataFromResolver(key, hash);
+            }
         } else {
             revert Unauthorized_Caller(msg.sender);
         }

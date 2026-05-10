@@ -222,16 +222,17 @@ contract AutomataFmspcTcbDaoABTest is PCSSetupBase, TCBConstants {
             if (cursor + length > raw.length) {
                 length = raw.length - cursor;
             }
-            daoV2.uploadChunckData(refId, _slice(raw, cursor, length));
+            daoV2.uploadChunkData(refId, _slice(raw, cursor, length));
         }
 
         bool complete;
+        uint256 start;
         while (!complete) {
-            (,,,, uint256 parsedLevels, uint256 totalLevels, uint256 parsedModuleIdentities,) =
-                daoV2.asyncUpsertProgress(refId);
-            uint256 start = parsedLevels < totalLevels ? parsedLevels : parsedModuleIdentities;
-            (, , bool done) = daoV2.parseTCBInfo(refId, start, parseCount);
+            (uint256 parsed, uint256 total, bool done) = daoV2.parseTCBInfo(refId, start, parseCount);
             complete = done;
+            if (!complete) {
+                start = start + parsed < total ? start + parsed : 0;
+            }
         }
 
         bytes32 key = daoV2.FMSPC_TCB_KEY(tcbType, fmspc, TEST_VERSION);

@@ -12,9 +12,14 @@ import "../utils/DeploymentConfig.sol";
 contract DeployHelpers is DeploymentConfig {
     address owner = vm.envAddress("OWNER");
 
+    function _useCreate2Deploy() internal returns (bool) {
+        return vm.envOr("USE_CREATE2", true);
+    }
+
     function run() public {
         deployEnclaveIdentityHelper();
         deployFmspcTcbHelper();
+        deployFmspcTcbHelperV2();
         deployPckHelper();
         deployX509CrlHelper();
         deployTcbEvalHelper();
@@ -36,6 +41,16 @@ contract DeployHelpers is DeploymentConfig {
         vm.stopBroadcast();
 
         writeToJson("FmspcTcbHelper", address(fmspcTcbHelper));
+    }
+
+    function deployFmspcTcbHelperV2() public {
+        vm.startBroadcast(owner);
+        FmspcTcbHelper fmspcTcbHelper =
+            _useCreate2Deploy() ? new FmspcTcbHelper{salt: FMSPC_TCB_HELPER_V2_SALT}() : new FmspcTcbHelper();
+        console.log("[LOG] FmspcTcbHelperV2: ", address(fmspcTcbHelper));
+        vm.stopBroadcast();
+
+        writeToJson("FmspcTcbHelperV2", address(fmspcTcbHelper));
     }
 
     function deployPckHelper() public {

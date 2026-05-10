@@ -222,6 +222,7 @@ verify_helper() {
 # Verify each helper contract
 verify_helper "EnclaveIdentityHelper" "src/helpers/EnclaveIdentityHelper.sol:EnclaveIdentityHelper"
 verify_helper "FmspcTcbHelper" "src/helpers/FmspcTcbHelper.sol:FmspcTcbHelper"
+verify_helper "FmspcTcbHelperV2" "src/helpers/FmspcTcbHelper.sol:FmspcTcbHelper"
 verify_helper "PCKHelper" "src/helpers/PCKHelper.sol:PCKHelper"
 verify_helper "X509CRLHelper" "src/helpers/X509CRLHelper.sol:X509CRLHelper"
 verify_helper "TcbEvalHelper" "src/helpers/TcbEvalHelper.sol:TcbEvalHelper"
@@ -233,12 +234,18 @@ print_section "Verifying Core DAO Contracts"
 
 # Read required addresses for constructors
 STORAGE_ADDR=$(read_contract_address "AutomataDaoStorage" true)
+STORAGE_V2_ADDR=$(read_contract_address "AutomataDaoStorageV2" false)
 X509_HELPER_ADDR=$(read_contract_address "PCKHelper" true)
 CRL_HELPER_ADDR=$(read_contract_address "X509CRLHelper" true)
 PCS_DAO_ADDR=$(read_contract_address "AutomataPcsDao" true)
 ENCLAVE_IDENTITY_HELPER_ADDR=$(read_contract_address "EnclaveIdentityHelper" true)
 FMSPC_TCB_HELPER_ADDR=$(read_contract_address "FmspcTcbHelper" true)
+FMSPC_TCB_HELPER_V2_ADDR=$(read_contract_address "FmspcTcbHelperV2" false)
 TCB_EVAL_HELPER_ADDR=$(read_contract_address "TcbEvalHelper" true)
+
+if [ -z "$FMSPC_TCB_HELPER_V2_ADDR" ]; then
+    FMSPC_TCB_HELPER_V2_ADDR="$FMSPC_TCB_HELPER_ADDR"
+fi
 
 # Verify AutomataDaoStorage
 if [ -n "$STORAGE_ADDR" ]; then
@@ -251,6 +258,19 @@ if [ -n "$STORAGE_ADDR" ]; then
     fi
 else
     print_warn "Skipping AutomataDaoStorage (not deployed)"
+    TOTAL_SKIPPED=$((TOTAL_SKIPPED + 1))
+fi
+
+if [ -n "$STORAGE_V2_ADDR" ]; then
+    print_info "Verifying AutomataDaoStorageV2..."
+    STORAGE_V2_ARGS=$(cast abi-encode "constructor(address,address)" "$OWNER" "$STORAGE_ADDR")
+    if verify_contract "$STORAGE_V2_ADDR" "src/automata_pccs/shared/AutomataDaoStorageV2.sol:AutomataDaoStorageV2" "$STORAGE_V2_ARGS"; then
+        TOTAL_VERIFIED=$((TOTAL_VERIFIED + 1))
+    else
+        TOTAL_FAILED=$((TOTAL_FAILED + 1))
+    fi
+else
+    print_warn "Skipping AutomataDaoStorageV2 (not deployed)"
     TOTAL_SKIPPED=$((TOTAL_SKIPPED + 1))
 fi
 

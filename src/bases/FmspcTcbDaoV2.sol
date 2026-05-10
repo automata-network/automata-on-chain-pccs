@@ -18,12 +18,8 @@ import {
  */
 abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
     bytes32 private constant RAW_REF_TAG = keccak256("fmspcTcb.raw");
-    bytes32 private constant LEVELS_JSON_REF_TAG = keccak256("fmspcTcb.levelsJson");
-    bytes32 private constant TDX_MODULE_JSON_REF_TAG = keccak256("fmspcTcb.tdxModuleJson");
-    bytes32 private constant TDX_MODULE_IDENTITIES_JSON_REF_TAG = keccak256("fmspcTcb.tdxModuleIdentitiesJson");
     bytes32 private constant PARSED_LEVELS_REF_TAG = keccak256("fmspcTcb.parsedLevels");
     bytes32 private constant PARSED_MODULE_IDENTITIES_REF_TAG = keccak256("fmspcTcb.parsedModuleIdentities");
-    bytes32 private constant PAYLOAD_REF_TAG = keccak256("fmspcTcb.payload");
     bytes32 private constant HASH_REF_TAG = keccak256("fmspcTcb.hash");
     bytes32 private constant ISSUE_EVAL_REF_TAG = keccak256("fmspcTcb.issueEvaluation");
     bytes32 private constant CONTENT_HASH_REF_TAG = keccak256("fmspcTcb.contentHash");
@@ -38,12 +34,8 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
 
     struct AsyncRefs {
         bytes32 raw;
-        bytes32 levelsJson;
-        bytes32 tdxModuleJson;
-        bytes32 tdxModuleIdentitiesJson;
         bytes32 parsedLevels;
         bytes32 parsedModuleIdentities;
-        bytes32 payload;
         bytes32 hash;
         bytes32 issueEvaluation;
         bytes32 contentHash;
@@ -67,11 +59,7 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
     }
 
     mapping(bytes32 rootRefId => AsyncUpsertState state) internal _asyncUpserts;
-
-    event StartedAsyncFmspcTcbUpsert(bytes32 indexed refId);
-    event UploadedAsyncFmspcTcbChunk(bytes32 indexed refId, uint256 chunkLength);
-    event ParsedAsyncFmspcTcbInfo(bytes32 indexed refId, uint256 parsed, uint256 total, bool complete);
-    event FinalizedAsyncFmspcTcbUpsert(bytes32 indexed refId, bytes32 indexed attestationId);
+    mapping(bytes32 tcbKey => bytes32 rootRefId) internal _finalizedAsyncRoots;
 
     constructor(
         address _resolver,
@@ -86,38 +74,15 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         revert Use_Async_Upsert();
     }
 
-    function startAsyncUpsert(bytes32 refId) external virtual {
-        _authorizeAsyncUpsert();
-        _startAsyncUpsert(refId);
-    }
-
     function startAsyncUpsert(bytes32 refId, bytes calldata signature) external virtual {
         _authorizeAsyncUpsert();
         _startAsyncUpsert(refId);
         _asyncUpserts[refId].signature = signature;
     }
 
-    function setAsyncUpsertSignature(bytes32 refId, bytes calldata signature) external virtual {
-        _authorizeAsyncUpsert();
-        AsyncUpsertState storage state = _requireAsyncUpsert(refId);
-        if (state.finalized) revert Async_Upsert_Finalized();
-        state.signature = signature;
-    }
-
-    function uploadChunckData(bytes32 refId, bytes calldata chunkData) external virtual {
-        _authorizeAsyncUpsert();
-        AsyncUpsertState storage state = _requireAsyncUpsert(refId);
-        if (state.finalized) revert Async_Upsert_Finalized();
-        _storageV2().appendAttestation(state.refs.raw, chunkData);
-        emit UploadedAsyncFmspcTcbChunk(refId, chunkData.length);
-    }
-
     function uploadChunkData(bytes32 refId, bytes calldata chunkData) external virtual {
         _authorizeAsyncUpsert();
-        AsyncUpsertState storage state = _requireAsyncUpsert(refId);
-        if (state.finalized) revert Async_Upsert_Finalized();
-        _storageV2().appendAttestation(state.refs.raw, chunkData);
-        emit UploadedAsyncFmspcTcbChunk(refId, chunkData.length);
+        _uploadChunkData(refId, chunkData);
     }
 
     function parseTCBInfo(bytes32 refId, uint256 start, uint256 offset)
@@ -130,30 +95,28 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         if (state.finalized) revert Async_Upsert_Finalized();
         _ensureBasicParsed(refId, state);
 
+        (, string memory tcbLevelsString,, string memory tdxModuleIdentitiesString) = _loadParseInputs(state);
+
         if (state.parsedLevels < state.totalLevels) {
             if (start != state.parsedLevels) revert Async_Upsert_Invalid_Range();
-            bytes memory levelsJson = _storageV2().readRef(state.refs.levelsJson);
             bytes memory packed;
             (packed, total, parsed) =
-                FmspcTcbLib.parseTcbLevelsRange(state.basic.version, string(levelsJson), start, offset);
+                FmspcTcbLib.parseTcbLevelsRange(state.basic.version, tcbLevelsString, start, offset);
             if (total != state.totalLevels || parsed == 0) revert Async_Upsert_Invalid_Range();
             _storageV2().appendAttestation(state.refs.parsedLevels, packed);
             state.parsedLevels += parsed;
             complete = _parseComplete(state);
-            emit ParsedAsyncFmspcTcbInfo(refId, state.parsedLevels, state.totalLevels, complete);
             return (parsed, total, complete);
         }
 
         if (state.basic.id == TcbId.TDX && state.parsedModuleIdentities < state.totalModuleIdentities) {
             if (start != state.parsedModuleIdentities) revert Async_Upsert_Invalid_Range();
-            bytes memory identitiesJson = _storageV2().readRef(state.refs.tdxModuleIdentitiesJson);
             bytes memory packed;
-            (packed, total, parsed) = FmspcTcbLib.parseTdxModuleIdentitiesRange(string(identitiesJson), start, offset);
+            (packed, total, parsed) = FmspcTcbLib.parseTdxModuleIdentitiesRange(tdxModuleIdentitiesString, start, offset);
             if (total != state.totalModuleIdentities || parsed == 0) revert Async_Upsert_Invalid_Range();
             _storageV2().appendAttestation(state.refs.parsedModuleIdentities, packed);
             state.parsedModuleIdentities += parsed;
             complete = _parseComplete(state);
-            emit ParsedAsyncFmspcTcbInfo(refId, state.parsedModuleIdentities, state.totalModuleIdentities, complete);
             return (parsed, total, complete);
         }
 
@@ -182,48 +145,19 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         }
         _checkTcbEvaluationData(state.tcbKey, state.basic);
 
-        bytes memory levelsJson = _storageV2().readRef(state.refs.levelsJson);
-        bytes memory moduleJson = _storageV2().readRef(state.refs.tdxModuleJson);
-        bytes memory moduleIdentitiesJson = _storageV2().readRef(state.refs.tdxModuleIdentitiesJson);
+        (, string memory levelsJson, string memory moduleJson, string memory moduleIdentitiesJson) = _loadParseInputs(state);
         state.contentHash = FmspcTcbLib.generateFmspcTcbContentHash(
-            state.basic, string(levelsJson), string(moduleJson), string(moduleIdentitiesJson)
+            state.basic, levelsJson, moduleJson, moduleIdentitiesJson
         );
 
         _appendFinalRefs(state);
         _finalizeExternalRefs(refId, state);
 
         state.finalized = true;
+        _finalizedAsyncRoots[state.tcbKey] = refId;
 
         emit UpsertedFmpscTcb(uint8(state.basic.id), state.basic.fmspc, state.basic.version);
-        emit FinalizedAsyncFmspcTcbUpsert(refId, attestationId);
         return attestationId;
-    }
-
-    function asyncUpsertProgress(bytes32 refId)
-        external
-        view
-        returns (
-            bool started,
-            bool basicParsed,
-            bool finalized,
-            bytes32 tcbKey,
-            uint256 parsedLevels,
-            uint256 totalLevels,
-            uint256 parsedModuleIdentities,
-            uint256 totalModuleIdentities
-        )
-    {
-        AsyncUpsertState storage state = _asyncUpserts[refId];
-        return (
-            state.started,
-            state.basicParsed,
-            state.finalized,
-            state.tcbKey,
-            state.parsedLevels,
-            state.totalLevels,
-            state.parsedModuleIdentities,
-            state.totalModuleIdentities
-        );
     }
 
     function _onFetchDataFromResolver(bytes32 key, bool hash)
@@ -278,12 +212,8 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         state.started = true;
         state.refs = AsyncRefs({
             raw: _deriveRefId(refId, RAW_REF_TAG),
-            levelsJson: _deriveRefId(refId, LEVELS_JSON_REF_TAG),
-            tdxModuleJson: _deriveRefId(refId, TDX_MODULE_JSON_REF_TAG),
-            tdxModuleIdentitiesJson: _deriveRefId(refId, TDX_MODULE_IDENTITIES_JSON_REF_TAG),
             parsedLevels: _deriveRefId(refId, PARSED_LEVELS_REF_TAG),
             parsedModuleIdentities: _deriveRefId(refId, PARSED_MODULE_IDENTITIES_REF_TAG),
-            payload: _deriveRefId(refId, PAYLOAD_REF_TAG),
             hash: _deriveRefId(refId, HASH_REF_TAG),
             issueEvaluation: _deriveRefId(refId, ISSUE_EVAL_REF_TAG),
             contentHash: _deriveRefId(refId, CONTENT_HASH_REF_TAG)
@@ -291,17 +221,12 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
 
         AutomataDaoStorageV2 storageV2 = _storageV2();
         storageV2.startAsync(state.refs.raw);
-        storageV2.startAsync(state.refs.levelsJson);
-        storageV2.startAsync(state.refs.tdxModuleJson);
-        storageV2.startAsync(state.refs.tdxModuleIdentitiesJson);
         storageV2.startAsync(state.refs.parsedLevels);
         storageV2.startAsync(state.refs.parsedModuleIdentities);
-        storageV2.startAsync(state.refs.payload);
         storageV2.startAsync(state.refs.hash);
         storageV2.startAsync(state.refs.issueEvaluation);
         storageV2.startAsync(state.refs.contentHash);
 
-        emit StartedAsyncFmspcTcbUpsert(refId);
     }
 
     function _ensureBasicParsed(bytes32 refId, AsyncUpsertState storage state) internal {
@@ -323,13 +248,8 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         state.tcbKey = FMSPC_TCB_KEY(uint8(basic.id), basic.fmspc, basic.version);
         state.rawHash = sha256(raw);
 
-        _storageV2().appendAttestation(state.refs.levelsJson, bytes(tcbLevelsString));
         if (bytes(tdxModuleString).length > 0) {
-            _storageV2().appendAttestation(state.refs.tdxModuleJson, bytes(tdxModuleString));
             state.module = FmspcTcbLib.parseTdxModule(tdxModuleString);
-        }
-        if (bytes(tdxModuleIdentitiesString).length > 0) {
-            _storageV2().appendAttestation(state.refs.tdxModuleIdentitiesJson, bytes(tdxModuleIdentitiesString));
         }
 
         (, state.totalLevels,) = FmspcTcbLib.parseTcbLevelsRange(basic.version, tcbLevelsString, 0, 0);
@@ -339,14 +259,18 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         }
 
         state.basicParsed = true;
-        emit ParsedAsyncFmspcTcbInfo(refId, 0, state.totalLevels, _parseComplete(state));
+    }
+
+    function _uploadChunkData(bytes32 refId, bytes calldata chunkData) internal {
+        AsyncUpsertState storage state = _requireAsyncUpsert(refId);
+        if (state.finalized) revert Async_Upsert_Finalized();
+        _storageV2().appendAttestation(state.refs.raw, chunkData);
     }
 
     function _appendFinalRefs(AsyncUpsertState storage state) internal {
         uint256 issueSlot = (uint256(state.basic.issueDate) << 192) | (uint256(state.basic.nextUpdate) << 128)
             | state.basic.evaluationDataNumber;
 
-        _storageV2().appendAttestation(state.refs.payload, _buildFinalPayload(state));
         _storageV2().appendAttestation(state.refs.hash, abi.encodePacked(state.rawHash));
         _storageV2().appendAttestation(state.refs.issueEvaluation, abi.encode(issueSlot));
         _storageV2().appendAttestation(state.refs.contentHash, abi.encodePacked(state.contentHash));
@@ -356,28 +280,45 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         AutomataDaoStorageV2 storageV2 = _storageV2();
         bytes32 key = state.tcbKey;
 
-        storageV2.finalizeAsync(resolver.collateralPointer(key), state.refs.payload);
         storageV2.finalizeAsync(resolver.collateralHashPointer(key), state.refs.hash);
         storageV2.finalizeAsync(resolver.collateralPointer(_computeTcbIssueEvaluationKey(key)), state.refs.issueEvaluation);
         storageV2.finalizeAsync(resolver.collateralPointer(_computeContentHashKey(key)), state.refs.contentHash);
 
         storageV2.finalizeAsync(_deriveRefId(refId, RAW_REF_TAG), state.refs.raw);
-        storageV2.finalizeAsync(_deriveRefId(refId, LEVELS_JSON_REF_TAG), state.refs.levelsJson);
         storageV2.finalizeAsync(_deriveRefId(refId, PARSED_LEVELS_REF_TAG), state.refs.parsedLevels);
-
-        if (_storageV2().readRef(state.refs.tdxModuleJson).length > 0) {
-            storageV2.finalizeAsync(_deriveRefId(refId, TDX_MODULE_JSON_REF_TAG), state.refs.tdxModuleJson);
-        }
-        if (_storageV2().readRef(state.refs.tdxModuleIdentitiesJson).length > 0) {
-            storageV2.finalizeAsync(
-                _deriveRefId(refId, TDX_MODULE_IDENTITIES_JSON_REF_TAG), state.refs.tdxModuleIdentitiesJson
-            );
-        }
         if (_storageV2().readRef(state.refs.parsedModuleIdentities).length > 0) {
             storageV2.finalizeAsync(
                 _deriveRefId(refId, PARSED_MODULE_IDENTITIES_REF_TAG), state.refs.parsedModuleIdentities
             );
         }
+    }
+
+    function _loadAsyncFinalPayload(bytes32 key) internal view returns (bytes memory payload) {
+        bytes32 refId = _finalizedAsyncRoots[key];
+        if (refId == bytes32(0)) {
+            return payload;
+        }
+
+        AsyncUpsertState storage state = _asyncUpserts[refId];
+        if (!state.finalized) {
+            return payload;
+        }
+
+        payload = _buildFinalPayload(state);
+    }
+
+    function _loadParseInputs(AsyncUpsertState storage state)
+        internal
+        view
+        returns (
+            TcbInfoBasic memory basic,
+            string memory tcbLevelsString,
+            string memory tdxModuleString,
+            string memory tdxModuleIdentitiesString
+        )
+    {
+        bytes memory raw = _storageV2().readRef(state.refs.raw);
+        (basic, tcbLevelsString, tdxModuleString, tdxModuleIdentitiesString) = FmspcTcbLib.parseTcbString(string(raw));
     }
 
     function _validateTcbInfoV2(string memory tcbInfoStr, bytes memory signature) internal view {

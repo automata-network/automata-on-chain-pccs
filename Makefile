@@ -5,6 +5,7 @@ WITH_STORAGE ?= true
 SIMULATED ?=
 KEYSTORE_PATH ?= keystore/dcap_prod
 PRIVATE_KEY ?=
+UNLOCKED ?=
 GAS_LIMIT ?=
 GAS_BUFFER ?= 10
 SKIP_ESTIMATE ?=
@@ -38,12 +39,18 @@ endif
 
 # Get the Owner's Wallet Address from private key or keystore
 get_owner:
+ifdef UNLOCKED
+ifndef OWNER
+	$(error OWNER is not set. Please set OWNER when UNLOCKED=true)
+endif
+else
 ifdef PRIVATE_KEY
 	$(eval OWNER := $(shell cast wallet address --private-key $(PRIVATE_KEY)))
 else
 	$(eval KEYSTORE_PASSWORD := $(shell read -s -p "Enter keystore password: " pwd; echo $$pwd))
 	$(eval OWNER := $(shell cast wallet address --keystore $(KEYSTORE_PATH) --password $(KEYSTORE_PASSWORD) \
 		|| (echo "Improper wallet configuration"; exit 1)))
+endif
 endif
 	@echo "\nWallet Owner: $(OWNER)"
 
@@ -63,15 +70,16 @@ ifndef GAS_LIMIT
 	@echo "Estimating gas from network..."
 	@forge build > /dev/null 2>&1
 	$(eval GAS_LIMIT := $(shell ./script/estimate-gas-deploy.sh $(RPC_URL) $(GAS_BUFFER) \
-		EnclaveIdentityHelper FmspcTcbHelper PCKHelper X509CRLHelper TcbEvalHelper))
+		EnclaveIdentityHelper FmspcTcbHelper FmspcTcbHelper PCKHelper X509CRLHelper TcbEvalHelper))
 	@echo "Estimated gas limit: $(GAS_LIMIT)"
 endif
 endif
 	@OWNER=$(OWNER) \
 		forge script script/helper/DeployHelpers.s.sol:DeployHelpers \
 		--rpc-url $(RPC_URL) \
+		$(if $(UNLOCKED), --unlocked --sender $(OWNER), \
 		$(if $(PRIVATE_KEY), --private-key $(PRIVATE_KEY), \
-		--keystore $(KEYSTORE_PATH) --password $(KEYSTORE_PASSWORD)) \
+		--keystore $(KEYSTORE_PATH) --password $(KEYSTORE_PASSWORD))) \
 		$(if $(SIMULATED),, --broadcast --skip-simulation) \
 		$(if $(LEGACY), --legacy) \
 		-vv
@@ -96,8 +104,9 @@ endif
 	@OWNER=$(OWNER) \
 		forge script script/automata/DeployAutomataDao.s.sol:DeployAutomataDao \
 		--rpc-url $(RPC_URL) \
+		$(if $(UNLOCKED), --unlocked --sender $(OWNER), \
 		$(if $(PRIVATE_KEY), --private-key $(PRIVATE_KEY), \
-		--keystore $(KEYSTORE_PATH) --password $(KEYSTORE_PASSWORD)) \
+		--keystore $(KEYSTORE_PATH) --password $(KEYSTORE_PASSWORD))) \
 		$(if $(SIMULATED),, --broadcast --skip-simulation) \
 		$(if $(LEGACY), --legacy) \
 		-vv
@@ -113,16 +122,21 @@ verify-helpers: check_env
 		echo "Helper addresses not found. Deploy helpers first."; \
 		exit 1; \
 	fi
-	@for contract in EnclaveIdentityHelper FmspcTcbHelper PCKHelper X509CRLHelper TcbEvalHelper; do \
+	@for contract in EnclaveIdentityHelper FmspcTcbHelper FmspcTcbHelperV2 PCKHelper X509CRLHelper TcbEvalHelper; do \
 		addr=$$(jq -r ".$$contract" deployment/$(CHAIN_ID).json); \
 		if [ "$$addr" != "null" ]; then \
+			if [ "$$contract" = "FmspcTcbHelperV2" ]; then \
+				contract_path="src/helpers/FmspcTcbHelper.sol:FmspcTcbHelper"; \
+			else \
+				contract_path="src/helpers/$$contract.sol:$$contract"; \
+			fi; \
 			forge verify-contract \
 				--rpc-url $(RPC_URL) \
 				--verifier $(VERIFIER) \
 				--watch \
 				$(if $(VERIFIER_URL),--verifier-url $(VERIFIER_URL)) \
 				$$addr \
-				src/helpers/$$contract.sol:$$contract || true; \
+				$$contract_path || true; \
 		fi \
 	done
 
