@@ -429,32 +429,6 @@ contract FmspcTcbHelper {
         }
     }
 
-    function parseTcbLevelsRange(uint256 version, string calldata tcbLevelsString, uint256 start, uint256 count)
-        external
-        pure
-        returns (bytes memory packedTcbLevels, uint256 total, uint256 parsed)
-    {
-        JSONParserLib.Item memory root = JSONParserLib.parse(tcbLevelsString);
-        JSONParserLib.Item[] memory tcbLevelsObj = root.children();
-        total = tcbLevelsObj.length;
-
-        if (start >= total || count == 0) {
-            return (packedTcbLevels, total, 0);
-        }
-
-        uint256 end = start + count;
-        if (end > total) {
-            end = total;
-        }
-
-        for (uint256 i = start; i < end; i++) {
-            TCBLevelsObj memory level = _parseTcbLevelObject(version, tcbLevelsObj[i]);
-            bytes memory encoded = _tcbLevelsObjToBytes(level);
-            packedTcbLevels = bytes.concat(packedTcbLevels, abi.encodePacked(uint32(encoded.length), encoded));
-            parsed++;
-        }
-    }
-
     function parseTcbTdxModules(string calldata tdxModuleString, string calldata tdxModuleIdentitiesString)
         external
         pure
@@ -504,42 +478,6 @@ contract FmspcTcbHelper {
 
     /// ====== INTERNAL METHODS BELOW ======
 
-    function _parseTcbLevelObject(uint256 version, JSONParserLib.Item memory tcbLevelItem)
-        private
-        pure
-        returns (TCBLevelsObj memory level)
-    {
-        JSONParserLib.Item[] memory tcbObj = tcbLevelItem.children();
-        for (uint256 j = 0; j < tcbLevelItem.size(); j++) {
-            string memory tcbKey = JSONParserLib.decodeString(tcbObj[j].key());
-            if (tcbKey.eq("tcb")) {
-                string memory tcbStr = tcbObj[j].value();
-                JSONParserLib.Item memory tcbParent = JSONParserLib.parse(tcbStr);
-                JSONParserLib.Item[] memory tcbComponents = tcbParent.children();
-                if (version == 2) {
-                    (level.sgxComponentCpuSvns, level.pcesvn) = _parseV2Tcb(tcbComponents);
-                } else if (version == 3) {
-                    (level.sgxComponentCpuSvns, level.tdxComponentCpuSvns, level.pcesvn) =
-                        _parseV3Tcb(tcbComponents);
-                } else {
-                    revert TCBInfo_Invalid();
-                }
-            } else if (tcbKey.eq("tcbDate")) {
-                level.tcbDateTimestamp =
-                    uint64(DateTimeUtils.fromISOToTimestamp(JSONParserLib.decodeString(tcbObj[j].value())));
-            } else if (tcbKey.eq("tcbStatus")) {
-                level.status = _getTcbStatus(JSONParserLib.decodeString(tcbObj[j].value()));
-            } else if (tcbKey.eq("advisoryIDs")) {
-                JSONParserLib.Item[] memory advisoryArr = tcbObj[j].children();
-                uint256 n = tcbObj[j].size();
-                level.advisoryIDs = new string[](n);
-                for (uint256 k = 0; k < n; k++) {
-                    level.advisoryIDs[k] = JSONParserLib.decodeString(advisoryArr[k].value());
-                }
-            }
-        }
-    }
-
     function _tdxModuleTcbLevelsObjToSlot(TDXModuleTCBLevelsObj memory tdxModuleTcbLevelsObj)
         private
         pure
@@ -564,25 +502,6 @@ contract FmspcTcbHelper {
         tdxModuleTcbLevelsObj.isvsvn = uint8(uint64((tdxTcbPacked >> 128) & mask));
     }
 
-    function _getTcbStatus(string memory statusStr) private pure returns (TCBStatus status) {
-        if (statusStr.eq("UpToDate")) {
-            status = TCBStatus.OK;
-        } else if (statusStr.eq("OutOfDate")) {
-            status = TCBStatus.TCB_OUT_OF_DATE;
-        } else if (statusStr.eq("OutOfDateConfigurationNeeded")) {
-            status = TCBStatus.TCB_OUT_OF_DATE_CONFIGURATION_NEEDED;
-        } else if (statusStr.eq("ConfigurationNeeded")) {
-            status = TCBStatus.TCB_CONFIGURATION_NEEDED;
-        } else if (statusStr.eq("ConfigurationAndSWHardeningNeeded")) {
-            status = TCBStatus.TCB_CONFIGURATION_AND_SW_HARDENING_NEEDED;
-        } else if (statusStr.eq("SWHardeningNeeded")) {
-            status = TCBStatus.TCB_SW_HARDENING_NEEDED;
-        } else if (statusStr.eq("Revoked")) {
-            status = TCBStatus.TCB_REVOKED;
-        } else {
-            status = TCBStatus.TCB_UNRECOGNIZED;
-        }
-    }
 
     function _parseV2Tcb(JSONParserLib.Item[] memory tcbComponents)
         private
@@ -721,6 +640,26 @@ contract FmspcTcbHelper {
                     }
                 }
             }
+        }
+    }
+
+    function _getTcbStatus(string memory statusStr) private pure returns (TCBStatus status) {
+        if (statusStr.eq("UpToDate")) {
+            status = TCBStatus.OK;
+        } else if (statusStr.eq("OutOfDate")) {
+            status = TCBStatus.TCB_OUT_OF_DATE;
+        } else if (statusStr.eq("OutOfDateConfigurationNeeded")) {
+            status = TCBStatus.TCB_OUT_OF_DATE_CONFIGURATION_NEEDED;
+        } else if (statusStr.eq("ConfigurationNeeded")) {
+            status = TCBStatus.TCB_CONFIGURATION_NEEDED;
+        } else if (statusStr.eq("ConfigurationAndSWHardeningNeeded")) {
+            status = TCBStatus.TCB_CONFIGURATION_AND_SW_HARDENING_NEEDED;
+        } else if (statusStr.eq("SWHardeningNeeded")) {
+            status = TCBStatus.TCB_SW_HARDENING_NEEDED;
+        } else if (statusStr.eq("Revoked")) {
+            status = TCBStatus.TCB_REVOKED;
+        } else {
+            status = TCBStatus.TCB_UNRECOGNIZED;
         }
     }
 

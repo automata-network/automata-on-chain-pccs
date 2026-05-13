@@ -20,6 +20,7 @@ contract DeployAutomataVersioned is DeploymentConfig, P256Configuration, Multich
     address x509 = readContractAddress("PCKHelper", true);
     address enclaveIdentityHelper = readContractAddress("EnclaveIdentityHelper", true);
     address fmspcTcbHelper = readContractAddress("FmspcTcbHelper", true);
+    address fmspcTcbHelperV2 = readContractAddress("FmspcTcbHelperV2", false);
 
     function _useCreate2Deploy() internal returns (bool) {
         return vm.envOr("USE_CREATE2", true);
@@ -27,13 +28,6 @@ contract DeployAutomataVersioned is DeploymentConfig, P256Configuration, Multich
 
     function _skipPostDeployGrants() internal returns (bool) {
         return vm.envOr("SKIP_POST_DEPLOY_GRANTS", false);
-    }
-
-    function _resolveFmspcTcbHelperForV2() internal returns (address helper) {
-        helper = readContractAddress("FmspcTcbHelperV2", false);
-        if (helper == address(0)) {
-            helper = fmspcTcbHelper;
-        }
     }
 
     function deployTcbEvalDao() public multichain {
@@ -122,7 +116,8 @@ contract DeployAutomataVersioned is DeploymentConfig, P256Configuration, Multich
                 pccsStorageV2Addr,
                 simulateVerify(),
                 pcsDaoAddr,
-                _resolveFmspcTcbHelperForV2(),
+                fmspcTcbHelper,
+                fmspcTcbHelperV2,
                 x509,
                 x509Crl,
                 owner,
@@ -132,7 +127,8 @@ contract DeployAutomataVersioned is DeploymentConfig, P256Configuration, Multich
                 pccsStorageV2Addr,
                 simulateVerify(),
                 pcsDaoAddr,
-                _resolveFmspcTcbHelperForV2(),
+                fmspcTcbHelper,
+                fmspcTcbHelperV2,
                 x509,
                 x509Crl,
                 owner,

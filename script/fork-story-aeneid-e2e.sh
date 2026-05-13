@@ -14,6 +14,7 @@ CHAIN_ID="${CHAIN_ID:-1315}"
 QPL_GAS_PRICE="${QPL_GAS_PRICE:-50000000000}"
 QPL_FALLBACK_GAS_LIMIT="${QPL_FALLBACK_GAS_LIMIT:-30000000}"
 REFRESH_PLATFORM_CRL_WITH_TEST_FIXTURE="${REFRESH_PLATFORM_CRL_WITH_TEST_FIXTURE:-false}"
+VERIFY_SEND="${VERIFY_SEND:-false}"
 QUOTE_FILE="${QUOTE_FILE:-}"
 QUOTE_TX_HASH="${QUOTE_TX_HASH:-0xa7b1120210ccb7dc8ef0ce05f9b3db9fe90e611418b5ff7174efba89b2eb22a0}"
 extract_quote_from_tx() {
@@ -55,11 +56,21 @@ cleanup() {
     kill "$ANVIL_PID" >/dev/null 2>&1 || true
     wait "$ANVIL_PID" >/dev/null 2>&1 || true
   fi
+  pkill -f '^anvil ' >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
 echo "[1/8] Start Story Aeneid fork"
-anvil --fork-url "$STORY_RPC_URL" --chain-id "$CHAIN_ID" --port "$ANVIL_PORT" --auto-impersonate --disable-code-size-limit >"$ANVIL_LOG" 2>&1 &
+anvil \
+  --fork-url "$STORY_RPC_URL" \
+  --chain-id "$CHAIN_ID" \
+  --port "$ANVIL_PORT" \
+  --auto-impersonate \
+  --disable-code-size-limit \
+  --retries 10 \
+  --timeout 120000 \
+  --fork-retry-backoff 2000 \
+  --no-rate-limit >"$ANVIL_LOG" 2>&1 &
 ANVIL_PID=$!
 
 for _ in $(seq 1 30); do
@@ -143,13 +154,23 @@ if [[ "$REFRESH_PLATFORM_CRL_WITH_TEST_FIXTURE" == "true" ]]; then
 fi
 
 echo "[7/8] Verify quote through attestation entrypoint"
-VERIFY_RESULT=$(cast call 0xB8621Da79b42A62E576408995155D48E9f856489 \
-  "verifyAndAttestOnChain(bytes,uint32)(bool,bytes)" \
-  "$QUOTE_HEX" "$TCB_EVAL" \
-  --rpc-url "$LOCAL_RPC_URL" \
-  --from "$ATTESTER_ADDR")
-echo "$VERIFY_RESULT"
-echo "$VERIFY_RESULT" | rg "true" >/dev/null
+if [[ "$VERIFY_SEND" == "true" ]]; then
+  VERIFY_TX_HASH=$(cast send 0xB8621Da79b42A62E576408995155D48E9f856489 \
+    "verifyAndAttestOnChain(bytes,uint32)(bool,bytes)" \
+    "$QUOTE_HEX" "$TCB_EVAL" \
+    --rpc-url "$LOCAL_RPC_URL" \
+    --private-key "$ATTESTER_PRIVATE_KEY" \
+    --json | jq -r '.transactionHash // .hash')
+  cast receipt "$VERIFY_TX_HASH" --rpc-url "$LOCAL_RPC_URL"
+else
+  VERIFY_RESULT=$(cast call 0xB8621Da79b42A62E576408995155D48E9f856489 \
+    "verifyAndAttestOnChain(bytes,uint32)(bool,bytes)" \
+    "$QUOTE_HEX" "$TCB_EVAL" \
+    --rpc-url "$LOCAL_RPC_URL" \
+    --from "$ATTESTER_ADDR")
+  echo "$VERIFY_RESULT"
+  echo "$VERIFY_RESULT" | rg "true" >/dev/null
+fi
 
 echo "[8/8] Complete"
 echo "Fork delta update, async upsert, and entrypoint verification all succeeded."

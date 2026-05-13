@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "../pcs/PCSSetupBase.t.sol";
 import {TCBConstants} from "./TCBConstants.t.sol";
+import {JSONParserLib} from "solady/utils/JSONParserLib.sol";
 import {CA} from "../../src/Common.sol";
 import {AutomataDaoStorage} from "../../src/automata_pccs/shared/AutomataDaoStorage.sol";
 import {AutomataDaoStorageV2} from "../../src/automata_pccs/shared/AutomataDaoStorageV2.sol";
@@ -11,9 +12,12 @@ import {AutomataFmspcTcbDaoVersioned} from "../../src/automata_pccs/versioned/Au
 import {AutomataFmspcTcbDaoVersionedV2} from
     "../../src/automata_pccs/versioned/AutomataFmspcTcbDaoVersionedV2.sol";
 import {TcbInfoJsonObj} from "../../src/helpers/FmspcTcbHelper.sol";
+import {FmspcTcbHelperV2} from "../../src/helpers/FmspcTcbHelperV2.sol";
 import {AlwaysTrueP256Verifier} from "../mock/AlwaysTrueP256Verifier.sol";
 
 contract AutomataFmspcTcbDaoABTest is PCSSetupBase, TCBConstants {
+    using JSONParserLib for JSONParserLib.Item;
+
     bytes6 internal constant CASE1_FMSPC = hex"00806f050000";
     bytes6 internal constant CASE23_FMSPC = hex"00606a000000";
     uint8 internal constant SGX_TCB_TYPE = 0;
@@ -29,6 +33,7 @@ contract AutomataFmspcTcbDaoABTest is PCSSetupBase, TCBConstants {
     AutomataPcsDao pcsAsync;
     AutomataFmspcTcbDaoVersioned daoV1;
     AutomataFmspcTcbDaoVersionedV2 daoV2;
+    FmspcTcbHelperV2 fmspcTcbLibV2;
     AlwaysTrueP256Verifier verifierStub;
     address attester = address(0xBEEF);
 
@@ -37,6 +42,7 @@ contract AutomataFmspcTcbDaoABTest is PCSSetupBase, TCBConstants {
 
         vm.startPrank(admin);
         verifierStub = new AlwaysTrueP256Verifier();
+        fmspcTcbLibV2 = new FmspcTcbHelperV2();
         storageSync = new AutomataDaoStorage(admin);
         storageAsyncFallback = new AutomataDaoStorage(admin);
 
@@ -61,6 +67,7 @@ contract AutomataFmspcTcbDaoABTest is PCSSetupBase, TCBConstants {
             address(verifierStub),
             address(pcsAsync),
             address(fmspcTcbLib),
+            address(fmspcTcbLibV2),
             address(x509Lib),
             address(x509CrlLib),
             admin,
@@ -213,6 +220,8 @@ contract AutomataFmspcTcbDaoABTest is PCSSetupBase, TCBConstants {
         uint256 parseCount
     ) internal {
         bytes memory raw = bytes(tcbInfo.tcbInfoStr);
+        string[] memory levelObjects = _extractObjectArray(tcbInfo.tcbInfoStr, "tcbLevels");
+        string[] memory moduleIdentityObjects = _extractObjectArray(tcbInfo.tcbInfoStr, "tdxModuleIdentities");
 
         vm.startPrank(attester);
         daoV2.startAsyncUpsert(refId, tcbInfo.signature);
@@ -225,14 +234,18 @@ contract AutomataFmspcTcbDaoABTest is PCSSetupBase, TCBConstants {
             daoV2.uploadChunkData(refId, _slice(raw, cursor, length));
         }
 
-        bool complete;
         uint256 start;
-        while (!complete) {
-            (uint256 parsed, uint256 total, bool done) = daoV2.parseTCBInfo(refId, start, parseCount);
-            complete = done;
-            if (!complete) {
-                start = start + parsed < total ? start + parsed : 0;
-            }
+        while (start < levelObjects.length) {
+            string[] memory batch = _sliceStrings(levelObjects, start, parseCount);
+            (uint256 parsed,,) = daoV2.uploadParsedTcbLevelsBatch(refId, start, batch);
+            start += parsed;
+        }
+
+        start = 0;
+        while (start < moduleIdentityObjects.length) {
+            string[] memory batch = _sliceStrings(moduleIdentityObjects, start, parseCount);
+            (uint256 parsed,,) = daoV2.uploadParsedTdxModuleIdentitiesBatch(refId, start, batch);
+            start += parsed;
         }
 
         bytes32 key = daoV2.FMSPC_TCB_KEY(tcbType, fmspc, TEST_VERSION);
@@ -282,5 +295,40 @@ contract AutomataFmspcTcbDaoABTest is PCSSetupBase, TCBConstants {
             out[i] = data[i];
         }
         return string(out);
+    }
+
+    function _extractObjectArray(string memory json, string memory fieldName)
+        internal
+        pure
+        returns (string[] memory objects)
+    {
+        JSONParserLib.Item memory root = JSONParserLib.parse(json);
+        JSONParserLib.Item[] memory fields = root.children();
+        for (uint256 i = 0; i < fields.length; i++) {
+            if (keccak256(bytes(JSONParserLib.decodeString(fields[i].key()))) == keccak256(bytes(fieldName))) {
+                JSONParserLib.Item[] memory items = fields[i].children();
+                objects = new string[](items.length);
+                for (uint256 j = 0; j < items.length; j++) {
+                    objects[j] = items[j].value();
+                }
+                return objects;
+            }
+        }
+        return new string[](0);
+    }
+
+    function _sliceStrings(string[] memory items, uint256 start, uint256 maxLength)
+        internal
+        pure
+        returns (string[] memory batch)
+    {
+        uint256 length = maxLength;
+        if (start + length > items.length) {
+            length = items.length - start;
+        }
+        batch = new string[](length);
+        for (uint256 i = 0; i < length; i++) {
+            batch[i] = items[start + i];
+        }
     }
 }

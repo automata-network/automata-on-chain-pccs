@@ -18,11 +18,12 @@ contract AutomataFmspcTcbDaoVersionedV2 is FmspcTcbDaoV2, OwnableRoles {
         address _p256,
         address _pcs,
         address _fmspcHelper,
+        address _fmspcHelperV2,
         address _x509Helper,
         address _crl,
         address _owner,
         uint32 _tcbEvaluationNumber
-    ) FmspcTcbDaoV2(_storage, _p256, _pcs, _fmspcHelper, _x509Helper, _crl) {
+    ) FmspcTcbDaoV2(_storage, _p256, _pcs, _fmspcHelper, _fmspcHelperV2, _x509Helper, _crl) {
         _initializeOwner(_owner);
         TCB_EVALUATION_NUMBER = _tcbEvaluationNumber;
     }

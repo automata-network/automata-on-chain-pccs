@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "../../src/helpers/EnclaveIdentityHelper.sol";
 import "../../src/helpers/FmspcTcbHelper.sol";
+import "../../src/helpers/FmspcTcbHelperV2.sol";
 import "../../src/helpers/PCKHelper.sol";
 import "../../src/helpers/X509CRLHelper.sol";
 import "../../src/helpers/TcbEvalHelper.sol";
@@ -45,8 +46,8 @@ contract DeployHelpers is DeploymentConfig {
 
     function deployFmspcTcbHelperV2() public {
         vm.startBroadcast(owner);
-        FmspcTcbHelper fmspcTcbHelper =
-            _useCreate2Deploy() ? new FmspcTcbHelper{salt: FMSPC_TCB_HELPER_V2_SALT}() : new FmspcTcbHelper();
+        FmspcTcbHelperV2 fmspcTcbHelper =
+            _useCreate2Deploy() ? new FmspcTcbHelperV2{salt: FMSPC_TCB_HELPER_V2_SALT}() : new FmspcTcbHelperV2();
         console.log("[LOG] FmspcTcbHelperV2: ", address(fmspcTcbHelper));
         vm.stopBroadcast();
 
