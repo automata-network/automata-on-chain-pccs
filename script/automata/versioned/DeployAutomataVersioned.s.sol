@@ -11,6 +11,7 @@ import {AutomataDaoStorageV2} from "../../../src/automata_pccs/shared/AutomataDa
 import {AutomataTcbEvalDao} from "../../../src/automata_pccs/AutomataTcbEvalDao.sol";
 import {AutomataFmspcTcbDaoVersioned} from "../../../src/automata_pccs/versioned/AutomataFmspcTcbDaoVersioned.sol";
 import {AutomataFmspcTcbDaoVersionedV2} from "../../../src/automata_pccs/versioned/AutomataFmspcTcbDaoVersionedV2.sol";
+import {AutomataFmspcTcbDaoVersionedV3} from "../../../src/automata_pccs/versioned/AutomataFmspcTcbDaoVersionedV3.sol";
 import {AutomataEnclaveIdentityDaoVersioned} from "../../../src/automata_pccs/versioned/AutomataEnclaveIdentityDaoVersioned.sol";
 
 contract DeployAutomataVersioned is DeploymentConfig, P256Configuration, Multichain {
@@ -21,6 +22,7 @@ contract DeployAutomataVersioned is DeploymentConfig, P256Configuration, Multich
     address enclaveIdentityHelper = readContractAddress("EnclaveIdentityHelper", true);
     address fmspcTcbHelper = readContractAddress("FmspcTcbHelper", true);
     address fmspcTcbHelperV2 = readContractAddress("FmspcTcbHelperV2", false);
+    address fmspcTcbHelperV3 = readContractAddress("FmspcTcbHelperV3", false);
 
     function _useCreate2Deploy() internal returns (bool) {
         return vm.envOr("USE_CREATE2", true);
@@ -141,6 +143,50 @@ contract DeployAutomataVersioned is DeploymentConfig, P256Configuration, Multich
 
         console.log("[LOG] AutomataFmspcTcbDaoVersionedV2 deployed at: ", address(fmspcTcbDao));
         writeToJsonVersioned("AutomataFmspcTcbDaoVersionedV2", tcbEvaluationDataNumber, address(fmspcTcbDao));
+
+        vm.stopBroadcast();
+    }
+
+    function deployFmspcTcbDaoVersionedV3(uint32 tcbEvaluationDataNumber) public multichain {
+        address pccsStorageV2Addr = readContractAddress("AutomataDaoStorageV2", true);
+        address pcsDaoAddr = readContractAddress("AutomataPcsDao", true);
+
+        require(fmspcTcbHelperV3 != address(0), "FmspcTcbHelperV3 not deployed");
+
+        vm.startBroadcast(owner);
+
+        AutomataFmspcTcbDaoVersionedV3 fmspcTcbDao = _useCreate2Deploy()
+            ? new AutomataFmspcTcbDaoVersionedV3{salt: FMSPC_TCB_DAO_V3_SALT}(
+                pccsStorageV2Addr,
+                simulateVerify(),
+                pcsDaoAddr,
+                fmspcTcbHelper,
+                fmspcTcbHelperV2,
+                fmspcTcbHelperV3,
+                x509,
+                x509Crl,
+                owner,
+                tcbEvaluationDataNumber
+            )
+            : new AutomataFmspcTcbDaoVersionedV3(
+                pccsStorageV2Addr,
+                simulateVerify(),
+                pcsDaoAddr,
+                fmspcTcbHelper,
+                fmspcTcbHelperV2,
+                fmspcTcbHelperV3,
+                x509,
+                x509Crl,
+                owner,
+                tcbEvaluationDataNumber
+            );
+
+        if (!_skipPostDeployGrants()) {
+            AutomataDaoStorageV2(pccsStorageV2Addr).grantDao(address(fmspcTcbDao));
+        }
+
+        console.log("[LOG] AutomataFmspcTcbDaoVersionedV3 deployed at: ", address(fmspcTcbDao));
+        writeToJsonVersioned("AutomataFmspcTcbDaoVersionedV3", tcbEvaluationDataNumber, address(fmspcTcbDao));
 
         vm.stopBroadcast();
     }

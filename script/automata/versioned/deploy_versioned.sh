@@ -35,6 +35,8 @@ show_usage() {
     echo "  storage-v2                 Deploy AutomataDaoStorageV2 only"
     echo "  versioned                  Deploy versioned DAO contracts (EnclaveIdentity + FmspcTcb)"
     echo "  fmspc-v2                   Deploy AutomataFmspcTcbDaoVersionedV2 only"
+    echo "  fmspc-v3                   Deploy AutomataFmspcTcbDaoVersionedV3 only"
+    echo "  helpers-v3                 Deploy FmspcTcbHelperV3 only"
     echo ""
     echo "Arguments for 'tcb-eval':"
     echo "  (no additional arguments required)"
@@ -81,9 +83,9 @@ if [ -z "$COMMAND" ]; then
     exit 1
 fi
 
-if [ "$COMMAND" != "tcb-eval" ] && [ "$COMMAND" != "storage-v2" ] && [ "$COMMAND" != "versioned" ] && [ "$COMMAND" != "fmspc-v2" ]; then
+if [ "$COMMAND" != "tcb-eval" ] && [ "$COMMAND" != "storage-v2" ] && [ "$COMMAND" != "versioned" ] && [ "$COMMAND" != "fmspc-v2" ] && [ "$COMMAND" != "fmspc-v3" ] && [ "$COMMAND" != "helpers-v3" ]; then
     print_error "Invalid command: $COMMAND"
-    print_error "Valid commands: tcb-eval, storage-v2, versioned, fmspc-v2"
+    print_error "Valid commands: tcb-eval, storage-v2, versioned, fmspc-v2, fmspc-v3, helpers-v3"
     show_usage
     exit 1
 fi
@@ -96,14 +98,14 @@ if [ "$COMMAND" = "tcb-eval" ]; then
         exit 1
     fi
     TCB_EVALUATION_DATA_NUMBER=""  # Not used for tcb-eval
-elif [ "$COMMAND" = "storage-v2" ]; then
+elif [ "$COMMAND" = "storage-v2" ] || [ "$COMMAND" = "helpers-v3" ]; then
     if [ $# -ne 1 ]; then
-        print_error "storage-v2 command takes no additional arguments"
+        print_error "$COMMAND command takes no additional arguments"
         show_usage
         exit 1
     fi
     TCB_EVALUATION_DATA_NUMBER=""
-elif [ "$COMMAND" = "versioned" ] || [ "$COMMAND" = "fmspc-v2" ]; then
+elif [ "$COMMAND" = "versioned" ] || [ "$COMMAND" = "fmspc-v2" ] || [ "$COMMAND" = "fmspc-v3" ]; then
     if [ $# -ne 2 ]; then
         print_error "$COMMAND command requires tcb-eval-data-number argument"
         show_usage
@@ -379,6 +381,50 @@ elif [ "$COMMAND" = "fmspc-v2" ]; then
 
     if [ $? -ne 0 ]; then
         print_error "Failed to deploy AutomataFmspcTcbDaoVersionedV2"
+        exit 1
+    fi
+elif [ "$COMMAND" = "helpers-v3" ]; then
+    print_info "Deploying FmspcTcbHelperV3..."
+    cd "$PROJECT_ROOT" && OWNER="$OWNER" forge script script/helper/DeployHelpers.s.sol:DeployHelpers \
+        $FORGE_ARGS \
+        --sig "deployFmspcTcbHelperV3()"
+
+    if [ $? -ne 0 ]; then
+        print_error "Failed to deploy FmspcTcbHelperV3"
+        exit 1
+    fi
+elif [ "$COMMAND" = "fmspc-v3" ]; then
+    if [ "$MULTICHAIN" != "true" ]; then
+        resolve_addresses
+
+        STORAGE_V2_ADDR=$(jq -r '.AutomataDaoStorageV2' "$DEPLOYMENT_FILE")
+        if [ -z "$STORAGE_V2_ADDR" ] || [ "$STORAGE_V2_ADDR" = "null" ]; then
+            print_error "AutomataDaoStorageV2 not found in $DEPLOYMENT_FILE"
+            print_error "Please deploy storage-v2 first using: $0 storage-v2"
+            exit 1
+        fi
+
+        FMSPC_HELPER_V3=$(jq -r '.FmspcTcbHelperV3 // empty' "$DEPLOYMENT_FILE")
+        if [ -z "$FMSPC_HELPER_V3" ]; then
+            print_error "FmspcTcbHelperV3 not found in $DEPLOYMENT_FILE"
+            print_error "Please deploy helpers-v3 first using: $0 helpers-v3"
+            exit 1
+        fi
+
+        FMSPC_V2_HELPER="${FMSPC_HELPER_V2:-$FMSPC_HELPER}"
+        FMSPC_V3_SPEC="AutomataFmspcTcbDaoVersionedV3:constructor(address,address,address,address,address,address,address,address,address,uint32):$STORAGE_V2_ADDR,$P256_ADDR,$PCS_DAO_ADDR,$FMSPC_HELPER,$FMSPC_V2_HELPER,$FMSPC_HELPER_V3,$X509_HELPER,$CRL_HELPER,$OWNER,$TCB_EVALUATION_DATA_NUMBER"
+        estimate_gas "$FMSPC_V3_SPEC"
+    else
+        print_warn "MULTICHAIN mode: Gas estimation skipped (per-chain estimation)"
+    fi
+
+    print_info "Deploying AutomataFmspcTcbDaoVersionedV3 (tcb-eval-data-number: $TCB_EVALUATION_DATA_NUMBER)..."
+    cd "$PROJECT_ROOT" && OWNER="$OWNER" forge script script/automata/versioned/DeployAutomataVersioned.s.sol:DeployAutomataVersioned \
+        $FORGE_ARGS \
+        --sig "deployFmspcTcbDaoVersionedV3(uint32)" "$TCB_EVALUATION_DATA_NUMBER"
+
+    if [ $? -ne 0 ]; then
+        print_error "Failed to deploy AutomataFmspcTcbDaoVersionedV3"
         exit 1
     fi
 fi

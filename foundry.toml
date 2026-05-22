@@ -8,16 +8,13 @@ ffi = true
 
 solc = "0.8.27"
 optimizer = true
-optimizer_runs = 999999
+optimizer_runs = 200
 # https://github.com/foundry-rs/foundry/issues/6780
 via_ir = true
 evm_version = "paris"
-
-# https://github.com/foundry-rs/foundry/issues/6780#issuecomment-1962319449
-# auto_detect_remappings = false
-# bytecode_hash = "none"
-# cbor_metadata = false
-# sparse_mode = false
+# Strip CBOR metadata to keep the V3 DAO under EIP-170 (24,576 bytes).
+bytecode_hash = "none"
+cbor_metadata = false
 
 [etherscan]
 base_sepolia = { key = "${ETHERSCAN_API_KEY}" }

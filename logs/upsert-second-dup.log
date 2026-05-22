@@ -1,0 +1,161 @@
+warning: type `AsyncParsePlan` is more private than the item `load_tcb_info_payload_from_file`
+   --> src/helper/tcb_fmspc_async.rs:118:1
+    |
+118 | / pub(crate) fn load_tcb_info_payload_from_file(
+119 | |     log_prefix: &str,
+120 | |     path: &str,
+121 | |     platform: &str,
+122 | |     collateral_version: &str,
+123 | |     signature_hex: Option<&str>,
+124 | | ) -> Result<(String, TcbInfoJsonObj, TcbLocator, AsyncParsePlan), String> {
+    | |_________________________________________________________________________^ function `load_tcb_info_payload_from_file` is reachable at visibility `pub(crate)`
+    |
+note: but type `AsyncParsePlan` is only usable at visibility `pub(self)`
+   --> src/helper/tcb_fmspc_async.rs:53:1
+    |
+ 53 | struct AsyncParsePlan {
+    | ^^^^^^^^^^^^^^^^^^^^^
+    = note: `#[warn(private_interfaces)]` on by default
+
+warning: type `AsyncParsePlan` is more private than the item `fetch_tcb_info_payload`
+   --> src/helper/tcb_fmspc_async.rs:184:1
+    |
+184 | / pub(crate) async fn fetch_tcb_info_payload(
+185 | |     log_prefix: &str,
+186 | |     fmspc: &str,
+187 | |     platform: &str,
+...   |
+190 | |     tcb_evaluation_data_number: Option<u32>,
+191 | | ) -> Result<(String, TcbInfoJsonObj, TcbLocator, AsyncParsePlan), String> {
+    | |_________________________________________________________________________^ function `fetch_tcb_info_payload` is reachable at visibility `pub(crate)`
+    |
+note: but type `AsyncParsePlan` is only usable at visibility `pub(self)`
+   --> src/helper/tcb_fmspc_async.rs:53:1
+    |
+ 53 | struct AsyncParsePlan {
+    | ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `send_transaction_with_response` is never used
+   --> src/helper/tcb_fmspc_async.rs:423:10
+    |
+423 | async fn send_transaction_with_response<M, D>(
+    |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `upsert_tcb_eval_data_number` is never used
+   --> src/contracts.rs:518:14
+    |
+518 | pub async fn upsert_tcb_eval_data_number(
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `upsert_tcb_eval_data_number_func` is never used
+    --> src/helper.rs:1320:14
+     |
+1320 | pub async fn upsert_tcb_eval_data_number_func(
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `upsert_root_ca_func` is never used
+    --> src/helper.rs:1364:14
+     |
+1364 | pub async fn upsert_root_ca_func(
+     |              ^^^^^^^^^^^^^^^^^^^
+
+warning: function `upsert_root_ca_crl_func` is never used
+    --> src/helper.rs:1486:14
+     |
+1486 | pub async fn upsert_root_ca_crl_func(
+     |              ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `upsert_platform_ca_func` is never used
+    --> src/helper.rs:1573:14
+     |
+1573 | pub async fn upsert_platform_ca_func(
+     |              ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `upsert_platform_ca_crl_func` is never used
+    --> src/helper.rs:1703:14
+     |
+1703 | pub async fn upsert_platform_ca_crl_func(
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `upsert_processor_ca_func` is never used
+    --> src/helper.rs:1721:14
+     |
+1721 | pub async fn upsert_processor_ca_func(
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `upsert_processor_ca_crl_func` is never used
+    --> src/helper.rs:1851:14
+     |
+1851 | pub async fn upsert_processor_ca_crl_func(
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `upsert_tcb_signing_ca_func` is never used
+    --> src/helper.rs:1869:14
+     |
+1869 | pub async fn upsert_tcb_signing_ca_func(
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `upsert_enclave_identity_func` is never used
+    --> src/helper.rs:2001:14
+     |
+2001 | pub async fn upsert_enclave_identity_func(
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `upsert_platform_processor_ca_crl` is never used
+    --> src/helper.rs:2130:10
+     |
+2130 | async fn upsert_platform_processor_ca_crl(
+     |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `send_transaction_with_response` is never used
+   --> src/helper/tcb_fmspc_async.rs:423:10
+    |
+423 | async fn send_transaction_with_response<M, D>(
+    |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `enclave_identity` is never read
+ --> src/pccs_types.rs:8:9
+  |
+6 | pub struct EnclaveIdentity {
+  |            --------------- field in this struct
+7 |     #[serde(rename = "enclaveIdentity")]
+8 |     pub enclave_identity: IndexMap<String, Value>,
+  |         ^^^^^^^^^^^^^^^^
+  |
+  = note: `EnclaveIdentity` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: struct `TcbEvalDataNumber` is never constructed
+  --> src/pccs_types.rs:20:12
+   |
+20 | pub struct TcbEvalDataNumber {
+   |            ^^^^^^^^^^^^^^^^^
+
+[2026-05-21T16:51:50Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xa274E2C291C5D0c3322917aB54D6456d7A00B183] txn[start_async_upsert] hash: 0xec170a00b93db2d4eea5bcabcfaa28f96ae5f76de6def48cac3084cbdf571637
+[2026-05-21T16:51:57Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xa274E2C291C5D0c3322917aB54D6456d7A00B183] txn[start_async_upsert] receipt: Some(TransactionReceipt { transaction_hash: 0xec170a00b93db2d4eea5bcabcfaa28f96ae5f76de6def48cac3084cbdf571637, transaction_index: 0, block_hash: Some(0x463a141f8cab703fc6190a95b23b431af7e5ae340f4c31905cb46435de2bab1c), block_number: Some(18535553), from: 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266, to: Some(0xa274e2c291c5d0c3322917ab54d6456d7a00b183), cumulative_gas_used: 317617, gas_used: Some(317617), contract_address: None, logs: [Log { address: 0x9f72340fbd4b8ce8aa4590835a7779e9cb192a06, topics: [0xe8c60b50c51da54511df9b2a8734e83cd565108d8a878ff287cd5b03de8f98b4, 0x22405efe962d3ec8729b87e7610eb25b75c2f3a698fb77584cc73cee3b81e505], data: Bytes(0x), block_hash: Some(0x463a141f8cab703fc6190a95b23b431af7e5ae340f4c31905cb46435de2bab1c), block_number: Some(18535553), transaction_hash: Some(0xec170a00b93db2d4eea5bcabcfaa28f96ae5f76de6def48cac3084cbdf571637), transaction_index: Some(0), log_index: Some(0), transaction_log_index: None, log_type: None, removed: Some(false) }, Log { address: 0x9f72340fbd4b8ce8aa4590835a7779e9cb192a06, topics: [0xe8c60b50c51da54511df9b2a8734e83cd565108d8a878ff287cd5b03de8f98b4, 0x06e10af8620186ed7d5bb12a378dfeedbc0e01a0dea7f29206b872c84d73bafb], data: Bytes(0x), block_hash: Some(0x463a141f8cab703fc6190a95b23b431af7e5ae340f4c31905cb46435de2bab1c), block_number: Some(18535553), transaction_hash: Some(0xec170a00b93db2d4eea5bcabcfaa28f96ae5f76de6def48cac3084cbdf571637), transaction_index: Some(0), log_index: Some(1), transaction_log_index: None, log_type: None, removed: Some(false) }, Log { address: 0x9f72340fbd4b8ce8aa4590835a7779e9cb192a06, topics: [0xe8c60b50c51da54511df9b2a8734e83cd565108d8a878ff287cd5b03de8f98b4, 0x134da428a9b664e45c2a7993703152aac2674b8c4e3a23a763e28b8c819014d4], data: Bytes(0x), block_hash: Some(0x463a141f8cab703fc6190a95b23b431af7e5ae340f4c31905cb46435de2bab1c), block_number: Some(18535553), transaction_hash: Some(0xec170a00b93db2d4eea5bcabcfaa28f96ae5f76de6def48cac3084cbdf571637), transaction_index: Some(0), log_index: Some(2), transaction_log_index: None, log_type: None, removed: Some(false) }, Log { address: 0x9f72340fbd4b8ce8aa4590835a7779e9cb192a06, topics: [0xe8c60b50c51da54511df9b2a8734e83cd565108d8a878ff287cd5b03de8f98b4, 0xa9274f8261872d7fb7a842d6b1eb532ad09cb1c5260e19cb54d8e7b205e4f81c], data: Bytes(0x), block_hash: Some(0x463a141f8cab703fc6190a95b23b431af7e5ae340f4c31905cb46435de2bab1c), block_number: Some(18535553), transaction_hash: Some(0xec170a00b93db2d4eea5bcabcfaa28f96ae5f76de6def48cac3084cbdf571637), transaction_index: Some(0), log_index: Some(3), transaction_log_index: None, log_type: None, removed: Some(false) }], status: Some(1), root: None, logs_bloom: 0x00080000000000000000000000010004000000000000000000000000000040000000000000000000000000000000200000000000000000000000000000000000000000000000000004000000000000000000000000000000040000000000000000000000000000000000000001000000000000000000000000000008000800000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000004008000000000000000000000040000000000000000001000000000000000000000000001000000000000000000000000000000000000000000000000000000000008000000000000000000000000002000000, transaction_type: Some(2), effective_gas_price: Some(50000000007), other: OtherFields { inner: {"blobGasPrice": String("0x1")} } })
+[2026-05-21T16:51:57Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xa274E2C291C5D0c3322917aB54D6456d7A00B183] txn[upload_chunk_data_0] hash: 0x1d7513554d56c2ec9741cbed8e53f82520aa96970bddbe3f78117d9735e49336
+[2026-05-21T16:52:04Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xa274E2C291C5D0c3322917aB54D6456d7A00B183] txn[upload_chunk_data_0] receipt: Some(TransactionReceipt { transaction_hash: 0x1d7513554d56c2ec9741cbed8e53f82520aa96970bddbe3f78117d9735e49336, transaction_index: 0, block_hash: Some(0xdf1a5da9738636af45f531bc4044c038f10a50caff6db05837a5a0e2f11401bb), block_number: Some(18535554), from: 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266, to: Some(0xa274e2c291c5d0c3322917ab54d6456d7a00b183), cumulative_gas_used: 5878350, gas_used: Some(5878350), contract_address: None, logs: [Log { address: 0x9f72340fbd4b8ce8aa4590835a7779e9cb192a06, topics: [0x7656bed4e956fe059c82a390825d59e565ad76d49b58cc2866a08883b22793e3, 0x22405efe962d3ec8729b87e7610eb25b75c2f3a698fb77584cc73cee3b81e505], data: Bytes(0x00000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000002000), block_hash: Some(0xdf1a5da9738636af45f531bc4044c038f10a50caff6db05837a5a0e2f11401bb), block_number: Some(18535554), transaction_hash: Some(0x1d7513554d56c2ec9741cbed8e53f82520aa96970bddbe3f78117d9735e49336), transaction_index: Some(0), log_index: Some(0), transaction_log_index: None, log_type: None, removed: Some(false) }], status: Some(1), root: None, logs_bloom: 0x02000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000001004000000000000000000000000000000800000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000, transaction_type: Some(2), effective_gas_price: Some(50000000007), other: OtherFields { inner: {"blobGasPrice": String("0x1")} } })
+[2026-05-21T16:52:04Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xa274E2C291C5D0c3322917aB54D6456d7A00B183] txn[upload_chunk_data_1] hash: 0x4e24ad92c6945438dfefb3f66c200dfd63568dafe19fdabc8eb87e4a2335c398
+[2026-05-21T16:52:11Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xa274E2C291C5D0c3322917aB54D6456d7A00B183] txn[upload_chunk_data_1] receipt: Some(TransactionReceipt { transaction_hash: 0x4e24ad92c6945438dfefb3f66c200dfd63568dafe19fdabc8eb87e4a2335c398, transaction_index: 0, block_hash: Some(0xdaade3c1010dfd300383a96ce33dc9d0e5f05121342ed75cd1ca8ace842bf711), block_number: Some(18535555), from: 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266, to: Some(0xa274e2c291c5d0c3322917ab54d6456d7a00b183), cumulative_gas_used: 1385949, gas_used: Some(1385949), contract_address: None, logs: [Log { address: 0x9f72340fbd4b8ce8aa4590835a7779e9cb192a06, topics: [0x7656bed4e956fe059c82a390825d59e565ad76d49b58cc2866a08883b22793e3, 0x22405efe962d3ec8729b87e7610eb25b75c2f3a698fb77584cc73cee3b81e505], data: Bytes(0x00000000000000000000000000000000000000000000000000000000000003e700000000000000000000000000000000000000000000000000000000000023e7), block_hash: Some(0xdaade3c1010dfd300383a96ce33dc9d0e5f05121342ed75cd1ca8ace842bf711), block_number: Some(18535555), transaction_hash: Some(0x4e24ad92c6945438dfefb3f66c200dfd63568dafe19fdabc8eb87e4a2335c398), transaction_index: Some(0), log_index: Some(0), transaction_log_index: None, log_type: None, removed: Some(false) }], status: Some(1), root: None, logs_bloom: 0x02000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000001004000000000000000000000000000000800000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000, transaction_type: Some(2), effective_gas_price: Some(50000000007), other: OtherFields { inner: {"blobGasPrice": String("0x1")} } })
+[2026-05-21T16:52:11Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xa274E2C291C5D0c3322917aB54D6456d7A00B183] txn[upload_components_template] hash: 0xb414f1842093f61c89fde237b0bc536116c48294b332bf4c2c6be1fe6b73fae1
+[2026-05-21T16:52:18Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xa274E2C291C5D0c3322917aB54D6456d7A00B183] txn[upload_components_template] receipt: Some(TransactionReceipt { transaction_hash: 0xb414f1842093f61c89fde237b0bc536116c48294b332bf4c2c6be1fe6b73fae1, transaction_index: 0, block_hash: Some(0x118dfa42fc6f002dc5b5389c05235a148e8da19f87add84036121235e9e2245e), block_number: Some(18535556), from: 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266, to: Some(0xa274e2c291c5d0c3322917ab54d6456d7a00b183), cumulative_gas_used: 358242, gas_used: Some(358242), contract_address: None, logs: [Log { address: 0x9f72340fbd4b8ce8aa4590835a7779e9cb192a06, topics: [0xe8c60b50c51da54511df9b2a8734e83cd565108d8a878ff287cd5b03de8f98b4, 0x98a8f924bd51247acc5497b093e55014bc7be9b9da599260a69be22bf31dce5e], data: Bytes(0x), block_hash: Some(0x118dfa42fc6f002dc5b5389c05235a148e8da19f87add84036121235e9e2245e), block_number: Some(18535556), transaction_hash: Some(0xb414f1842093f61c89fde237b0bc536116c48294b332bf4c2c6be1fe6b73fae1), transaction_index: Some(0), log_index: Some(0), transaction_log_index: None, log_type: None, removed: Some(false) }, Log { address: 0x9f72340fbd4b8ce8aa4590835a7779e9cb192a06, topics: [0x7656bed4e956fe059c82a390825d59e565ad76d49b58cc2866a08883b22793e3, 0x98a8f924bd51247acc5497b093e55014bc7be9b9da599260a69be22bf31dce5e], data: Bytes(0x00000000000000000000000000000000000000000000000000000000000001490000000000000000000000000000000000000000000000000000000000000149), block_hash: Some(0x118dfa42fc6f002dc5b5389c05235a148e8da19f87add84036121235e9e2245e), block_number: Some(18535556), transaction_hash: Some(0xb414f1842093f61c89fde237b0bc536116c48294b332bf4c2c6be1fe6b73fae1), transaction_index: Some(0), log_index: Some(1), transaction_log_index: None, log_type: None, removed: Some(false) }], status: Some(1), root: None, logs_bloom: 0x02000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000001004000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000001040004000000000000000000000000000000000000000000000000000008000000000000000000000000000000000, transaction_type: Some(2), effective_gas_price: Some(50000000007), other: OtherFields { inner: {"blobGasPrice": String("0x1")} } })
+[2026-05-21T16:52:18Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xa274E2C291C5D0c3322917aB54D6456d7A00B183] txn[commit_basics_extract] hash: 0x45ceb5e547ca102db91d0360b3e4694b818fb499b5f7646e086ba4effc84dcbd
+[2026-05-21T16:52:25Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xa274E2C291C5D0c3322917aB54D6456d7A00B183] txn[commit_basics_extract] receipt: Some(TransactionReceipt { transaction_hash: 0x45ceb5e547ca102db91d0360b3e4694b818fb499b5f7646e086ba4effc84dcbd, transaction_index: 0, block_hash: Some(0xddf3606a6a023894185741cef5781124c5f8afc5b923595dd3a541f4235eff8d), block_number: Some(18535557), from: 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266, to: Some(0xa274e2c291c5d0c3322917ab54d6456d7a00b183), cumulative_gas_used: 1126418, gas_used: Some(1126418), contract_address: None, logs: [], status: Some(1), root: None, logs_bloom: 0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000, transaction_type: Some(2), effective_gas_price: Some(50000000007), other: OtherFields { inner: {"blobGasPrice": String("0x1")} } })
+[2026-05-21T16:52:25Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xa274E2C291C5D0c3322917aB54D6456d7A00B183] txn[commit_tcb_levels_range] hash: 0x43e820678c99e2e62adbeaef30c76e7ce8c538cfe3749a835efff0745a4b629a
+[2026-05-21T16:52:32Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xa274E2C291C5D0c3322917aB54D6456d7A00B183] txn[commit_tcb_levels_range] receipt: Some(TransactionReceipt { transaction_hash: 0x43e820678c99e2e62adbeaef30c76e7ce8c538cfe3749a835efff0745a4b629a, transaction_index: 0, block_hash: Some(0x3c561c91e1b8fe2a2a4971d08c7e3a505d99256382b12f5528472a89aa5707cb), block_number: Some(18535558), from: 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266, to: Some(0xa274e2c291c5d0c3322917ab54d6456d7a00b183), cumulative_gas_used: 4002916, gas_used: Some(4002916), contract_address: None, logs: [Log { address: 0x9f72340fbd4b8ce8aa4590835a7779e9cb192a06, topics: [0xe8c60b50c51da54511df9b2a8734e83cd565108d8a878ff287cd5b03de8f98b4, 0x498fef36194caeb8c85198354f02b6127c0ddd0adeeab3835b159b0de0e322fe], data: Bytes(0x), block_hash: Some(0x3c561c91e1b8fe2a2a4971d08c7e3a505d99256382b12f5528472a89aa5707cb), block_number: Some(18535558), transaction_hash: Some(0x43e820678c99e2e62adbeaef30c76e7ce8c538cfe3749a835efff0745a4b629a), transaction_index: Some(0), log_index: Some(0), transaction_log_index: None, log_type: None, removed: Some(false) }], status: Some(1), root: None, logs_bloom: 0x00000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000001000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100001000000000000000000000000001000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000, transaction_type: Some(2), effective_gas_price: Some(50000000007), other: OtherFields { inner: {"blobGasPrice": String("0x1")} } })
+[2026-05-21T16:52:32Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xa274E2C291C5D0c3322917aB54D6456d7A00B183] txn[upload_parsed_tcb_levels_batch_v3] hash: 0x686f502d64feca4a1aa7744d2c0e1259165e0414f082723d11915d8f0f1dea5f
+[2026-05-21T16:52:39Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xa274E2C291C5D0c3322917aB54D6456d7A00B183] txn[upload_parsed_tcb_levels_batch_v3] receipt: Some(TransactionReceipt { transaction_hash: 0x686f502d64feca4a1aa7744d2c0e1259165e0414f082723d11915d8f0f1dea5f, transaction_index: 0, block_hash: Some(0xe4e12b611c4c080431686e8040932e18c0d846e735a52950a8665de79cfd2dbf), block_number: Some(18535559), from: 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266, to: Some(0xa274e2c291c5d0c3322917ab54d6456d7a00b183), cumulative_gas_used: 2078510, gas_used: Some(2078510), contract_address: None, logs: [Log { address: 0x9f72340fbd4b8ce8aa4590835a7779e9cb192a06, topics: [0x7656bed4e956fe059c82a390825d59e565ad76d49b58cc2866a08883b22793e3, 0x498fef36194caeb8c85198354f02b6127c0ddd0adeeab3835b159b0de0e322fe], data: Bytes(0x00000000000000000000000000000000000000000000000000000000000001410000000000000000000000000000000000000000000000000000000000000141), block_hash: Some(0xe4e12b611c4c080431686e8040932e18c0d846e735a52950a8665de79cfd2dbf), block_number: Some(18535559), transaction_hash: Some(0x686f502d64feca4a1aa7744d2c0e1259165e0414f082723d11915d8f0f1dea5f), transaction_index: Some(0), log_index: Some(0), transaction_log_index: None, log_type: None, removed: Some(false) }], status: Some(1), root: None, logs_bloom: 0x02000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000001004000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000100001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000, transaction_type: Some(2), effective_gas_price: Some(50000000007), other: OtherFields { inner: {"blobGasPrice": String("0x1")} } })
+[2026-05-21T16:52:39Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xa274E2C291C5D0c3322917aB54D6456d7A00B183] txn[upload_parsed_tcb_levels_batch_v3] hash: 0xc89e4529f7d9a7b2c5ada0d365964140676bc25852d871bd22909fe18ef91682
+[2026-05-21T16:52:46Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xa274E2C291C5D0c3322917aB54D6456d7A00B183] txn[upload_parsed_tcb_levels_batch_v3] receipt: Some(TransactionReceipt { transaction_hash: 0xc89e4529f7d9a7b2c5ada0d365964140676bc25852d871bd22909fe18ef91682, transaction_index: 0, block_hash: Some(0x6818e2e561992f2551be3371d1e21bc1a3ee613389c2a73bb688d6e47c01a6b8), block_number: Some(18535560), from: 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266, to: Some(0xa274e2c291c5d0c3322917ab54d6456d7a00b183), cumulative_gas_used: 2247228, gas_used: Some(2247228), contract_address: None, logs: [Log { address: 0x9f72340fbd4b8ce8aa4590835a7779e9cb192a06, topics: [0x7656bed4e956fe059c82a390825d59e565ad76d49b58cc2866a08883b22793e3, 0x498fef36194caeb8c85198354f02b6127c0ddd0adeeab3835b159b0de0e322fe], data: Bytes(0x00000000000000000000000000000000000000000000000000000000000001b900000000000000000000000000000000000000000000000000000000000002fa), block_hash: Some(0x6818e2e561992f2551be3371d1e21bc1a3ee613389c2a73bb688d6e47c01a6b8), block_number: Some(18535560), transaction_hash: Some(0xc89e4529f7d9a7b2c5ada0d365964140676bc25852d871bd22909fe18ef91682), transaction_index: Some(0), log_index: Some(0), transaction_log_index: None, log_type: None, removed: Some(false) }], status: Some(1), root: None, logs_bloom: 0x02000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000001004000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000100001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000, transaction_type: Some(2), effective_gas_price: Some(50000000007), other: OtherFields { inner: {"blobGasPrice": String("0x1")} } })
+[2026-05-21T16:52:46Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xa274E2C291C5D0c3322917aB54D6456d7A00B183] txn[upload_parsed_tcb_levels_batch_v3] hash: 0x2314c3253d11fb885a24888ae9ff89cb13c667728014a1564d81d1f41333bf6e
+[2026-05-21T16:52:53Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xa274E2C291C5D0c3322917aB54D6456d7A00B183] txn[upload_parsed_tcb_levels_batch_v3] receipt: Some(TransactionReceipt { transaction_hash: 0x2314c3253d11fb885a24888ae9ff89cb13c667728014a1564d81d1f41333bf6e, transaction_index: 0, block_hash: Some(0x8007a9ee7ef7171c154f0b26bf42d408ee8497fdd9d18ada3a96a82e87b40c47), block_number: Some(18535561), from: 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266, to: Some(0xa274e2c291c5d0c3322917ab54d6456d7a00b183), cumulative_gas_used: 2483136, gas_used: Some(2483136), contract_address: None, logs: [Log { address: 0x9f72340fbd4b8ce8aa4590835a7779e9cb192a06, topics: [0x7656bed4e956fe059c82a390825d59e565ad76d49b58cc2866a08883b22793e3, 0x498fef36194caeb8c85198354f02b6127c0ddd0adeeab3835b159b0de0e322fe], data: Bytes(0x0000000000000000000000000000000000000000000000000000000000000222000000000000000000000000000000000000000000000000000000000000051c), block_hash: Some(0x8007a9ee7ef7171c154f0b26bf42d408ee8497fdd9d18ada3a96a82e87b40c47), block_number: Some(18535561), transaction_hash: Some(0x2314c3253d11fb885a24888ae9ff89cb13c667728014a1564d81d1f41333bf6e), transaction_index: Some(0), log_index: Some(0), transaction_log_index: None, log_type: None, removed: Some(false) }], status: Some(1), root: None, logs_bloom: 0x02000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000001004000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000100001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000, transaction_type: Some(2), effective_gas_price: Some(50000000007), other: OtherFields { inner: {"blobGasPrice": String("0x1")} } })
+[2026-05-21T16:52:53Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xa274E2C291C5D0c3322917aB54D6456d7A00B183] txn[upload_parsed_tcb_levels_batch_v3] hash: 0x7eedab34e539d8119e7e06546e0457340b766ee7d52ba1815d9a3bfd2e22e813
+[2026-05-21T16:53:00Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xa274E2C291C5D0c3322917aB54D6456d7A00B183] txn[upload_parsed_tcb_levels_batch_v3] receipt: Some(TransactionReceipt { transaction_hash: 0x7eedab34e539d8119e7e06546e0457340b766ee7d52ba1815d9a3bfd2e22e813, transaction_index: 0, block_hash: Some(0x13c81f0181359e488684e8a1e078271f6e0cd35fbeae9c46750dae69b4d0ac73), block_number: Some(18535562), from: 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266, to: Some(0xa274e2c291c5d0c3322917ab54d6456d7a00b183), cumulative_gas_used: 2747212, gas_used: Some(2747212), contract_address: None, logs: [Log { address: 0x9f72340fbd4b8ce8aa4590835a7779e9cb192a06, topics: [0x7656bed4e956fe059c82a390825d59e565ad76d49b58cc2866a08883b22793e3, 0x498fef36194caeb8c85198354f02b6127c0ddd0adeeab3835b159b0de0e322fe], data: Bytes(0x000000000000000000000000000000000000000000000000000000000000029a00000000000000000000000000000000000000000000000000000000000007b6), block_hash: Some(0x13c81f0181359e488684e8a1e078271f6e0cd35fbeae9c46750dae69b4d0ac73), block_number: Some(18535562), transaction_hash: Some(0x7eedab34e539d8119e7e06546e0457340b766ee7d52ba1815d9a3bfd2e22e813), transaction_index: Some(0), log_index: Some(0), transaction_log_index: None, log_type: None, removed: Some(false) }], status: Some(1), root: None, logs_bloom: 0x02000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000001004000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000100001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000, transaction_type: Some(2), effective_gas_price: Some(50000000007), other: OtherFields { inner: {"blobGasPrice": String("0x1")} } })
+[2026-05-21T16:53:00Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xa274E2C291C5D0c3322917aB54D6456d7A00B183] txn[upload_parsed_tcb_levels_batch_v3] hash: 0x429a110e125e19ea6a8c139ccd33f301d088d843649cd54c3d96baf5c8302d70
+[2026-05-21T16:53:07Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xa274E2C291C5D0c3322917aB54D6456d7A00B183] txn[upload_parsed_tcb_levels_batch_v3] receipt: Some(TransactionReceipt { transaction_hash: 0x429a110e125e19ea6a8c139ccd33f301d088d843649cd54c3d96baf5c8302d70, transaction_index: 0, block_hash: Some(0xbff28974221d4a4d757920fcc61b845d3186a36adefefa63b42b069879f127e1), block_number: Some(18535563), from: 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266, to: Some(0xa274e2c291c5d0c3322917ab54d6456d7a00b183), cumulative_gas_used: 3412999, gas_used: Some(3412999), contract_address: None, logs: [Log { address: 0x9f72340fbd4b8ce8aa4590835a7779e9cb192a06, topics: [0x7656bed4e956fe059c82a390825d59e565ad76d49b58cc2866a08883b22793e3, 0x498fef36194caeb8c85198354f02b6127c0ddd0adeeab3835b159b0de0e322fe], data: Bytes(0x00000000000000000000000000000000000000000000000000000000000003e40000000000000000000000000000000000000000000000000000000000000b9a), block_hash: Some(0xbff28974221d4a4d757920fcc61b845d3186a36adefefa63b42b069879f127e1), block_number: Some(18535563), transaction_hash: Some(0x429a110e125e19ea6a8c139ccd33f301d088d843649cd54c3d96baf5c8302d70), transaction_index: Some(0), log_index: Some(0), transaction_log_index: None, log_type: None, removed: Some(false) }], status: Some(1), root: None, logs_bloom: 0x02000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000001004000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000100001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000, transaction_type: Some(2), effective_gas_price: Some(50000000007), other: OtherFields { inner: {"blobGasPrice": String("0x1")} } })
+[2026-05-21T16:53:07Z ERROR automata_dcap_qpl_tool::helper] [1315][0xa274E2C291C5D0c3322917aB54D6456d7A00B183] txn[finalize_async_upsert] estimate_gas at latest failed: MiddlewareError(JsonRpcClientError(JsonRpcError(JsonRpcError { code: 3, message: "execution reverted: custom error 0x72bd8361", data: Some(String("0x72bd8361")) })))
+[2026-05-21T16:53:07Z WARN  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xa274E2C291C5D0c3322917aB54D6456d7A00B183] txn[finalize_async_upsert] using fallback gas limit from QPL_FALLBACK_GAS_LIMIT: 30000000
+[2026-05-21T16:53:07Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xa274E2C291C5D0c3322917aB54D6456d7A00B183] txn[finalize_async_upsert] hash: 0x370b0d9e6bbe16c383a5be2bb7e4e726b0312574ffbf33ccf9aa0e881c3030f1
