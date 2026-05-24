@@ -53,16 +53,6 @@ contract ConfigureAutomataDaoVersioned is DeploymentConfig, Multichain {
         }
     }
 
-    function configureFmspcTcbDaoVersionedV3Roles(address user, uint32 version, uint256 roles, bool authorize)
-        external
-        multichain
-    {
-        address fmspcTcbDao = readVersionedContractAddress("AutomataFmspcTcbDaoVersionedV3", version, false);
-        if (fmspcTcbDao != address(0)) {
-            _configureRoles(fmspcTcbDao, user, roles, authorize);
-        }
-    }
-
     function configureEnclaveIdentityDaoVersionedRoles(address user, uint32 version, uint256 roles, bool authorize)
         external
         multichain

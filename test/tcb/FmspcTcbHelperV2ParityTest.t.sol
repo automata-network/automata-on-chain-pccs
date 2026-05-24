@@ -4,29 +4,33 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 import {VmSafe} from "forge-std/Vm.sol";
 
-import {FmspcTcbHelper, TcbInfoBasic, TcbId, TDXModule} from "../../src/helpers/FmspcTcbHelper.sol";
+import {
+    FmspcTcbHelper,
+    TcbInfoBasic,
+    TcbId,
+    TCBLevelsObj,
+    TDXModule,
+    TDXModuleIdentity
+} from "../../src/helpers/FmspcTcbHelper.sol";
 import {FmspcTcbHelperV2} from "../../src/helpers/FmspcTcbHelperV2.sol";
-import {FmspcTcbHelperV3} from "../../src/helpers/FmspcTcbHelperV3.sol";
 import "./TCBConstants.t.sol";
 
-/// @notice Asserts that V3's hand-rolled extractBasics + findArrayBounds produces field-by-field
-/// identical results to V1/V2 helpers' Solady-based parseTcbString + parseTdxModule +
-/// countTcbLevels + countTdxModuleIdentities, across:
+/// @notice Asserts that V2's hand-rolled extractBasics + findArrayBounds produces field-by-field
+/// identical results to V1 helper's Solady-based parseTcbString + parseTdxModule +
+/// parseTcbLevels + parseTcbTdxModules, across:
 ///   - every published SGX V4 fmspc (37 fixtures under test/tcb/fixtures/pcs/sgx_*.tcbInfo)
 ///   - every published TDX V4 fmspc (14 fixtures under test/tcb/fixtures/pcs/tdx_*.tcbInfo)
 ///   - the embedded schema-v2 fixture (`sgx_v2_tcbStr` from TCBConstants)
 /// The fixtures are downloaded by test/tcb/fixtures/pcs/fetch.sh and committed alongside.
 ///
 /// If you add fixtures (e.g. new fmspcs Intel publishes), drop them under that dir and re-run.
-contract FmspcTcbHelperV3ParityTest is TCBConstants, Test {
+contract FmspcTcbHelperV2ParityTest is TCBConstants, Test {
     FmspcTcbHelper internal v1;
-    FmspcTcbHelperV2 internal v2;
-    FmspcTcbHelperV3 internal v3;
+    FmspcTcbHelperV2 internal candidate;
 
     function setUp() public {
         v1 = new FmspcTcbHelper();
-        v2 = new FmspcTcbHelperV2();
-        v3 = new FmspcTcbHelperV3();
+        candidate = new FmspcTcbHelperV2();
     }
 
     function testParity_AllPcsFixtures() public {
@@ -70,9 +74,17 @@ contract FmspcTcbHelperV3ParityTest is TCBConstants, Test {
             refModule = v1.parseTdxModule(tdxModuleString);
             refHasModule = true;
         }
-        uint256 refLevelCount = v2.countTcbLevels(tcbLevelsString);
-        uint256 refIdentityCount =
-            (refBasic.id == TcbId.TDX) ? v2.countTdxModuleIdentities(tdxModuleIdentitiesString) : 0;
+        TCBLevelsObj[] memory refLevels = v1.parseTcbLevels(uint256(refBasic.version), tcbLevelsString);
+        uint256 refLevelCount = refLevels.length;
+        uint256 refIdentityCount;
+        if (refBasic.id == TcbId.TDX) {
+            bytes memory minimalTdxModule = bytes(
+                "{\"mrsigner\":\"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\",\"attributes\":\"0000000000000000\",\"attributesMask\":\"FFFFFFFFFFFFFFFF\"}"
+            );
+            (, TDXModuleIdentity[] memory refIdentities) =
+                v1.parseTcbTdxModules(string(minimalTdxModule), tdxModuleIdentitiesString);
+            refIdentityCount = refIdentities.length;
+        }
 
         // Candidate (hand-rolled) pipeline.
         bytes memory rawBytes = bytes(rawStr);
@@ -80,7 +92,7 @@ contract FmspcTcbHelperV3ParityTest is TCBConstants, Test {
          TDXModule memory candModule,
          bool candHasModule,
          uint32 candTdxObjStart,
-         uint32 candTdxObjEnd) = v3.extractBasics(rawBytes);
+         uint32 candTdxObjEnd) = candidate.extractBasics(rawBytes);
         (
             uint32 tcbStart,
             uint32 tcbEnd,
@@ -88,7 +100,7 @@ contract FmspcTcbHelperV3ParityTest is TCBConstants, Test {
             uint32 idEnd,
             uint32 candLevelCount,
             uint32 candIdentityCount
-        ) = v3.findArrayBounds(rawBytes);
+        ) = candidate.findArrayBounds(rawBytes);
 
         // ---- TcbInfoBasic field-by-field ----
         assertEq(uint256(candBasic.tcbType), uint256(refBasic.tcbType), _msg(label, "tcbType"));
@@ -124,7 +136,7 @@ contract FmspcTcbHelperV3ParityTest is TCBConstants, Test {
         assertEq(uint256(candLevelCount), refLevelCount, _msg(label, "tcbLevels count"));
         assertEq(uint256(candIdentityCount), refIdentityCount, _msg(label, "tdxModuleIdentities count"));
 
-        // ---- string substrings (used by finalize's contentHash; V3 slices them from raw
+        // ---- string substrings (used by finalize's contentHash; V2 slices them from raw
         //      using these byte ranges instead of re-parsing with Solady) ----
         assertEq(
             keccak256(bytes(_sliceStr(rawBytes, tcbStart, tcbEnd))),

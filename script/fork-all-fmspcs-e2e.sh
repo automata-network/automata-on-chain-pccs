@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Loops the V3 async upsert flow against every published Intel SGX + TDX fmspc V4 endpoint,
+# Loops the V2 async upsert flow against every published Intel SGX + TDX fmspc V4 endpoint,
 # against a single forked Story Aeneid anvil instance. Deploy/setup happens ONCE up front;
 # steps 1-4 of fork-story-aeneid-e2e.sh are reused, then we loop step 5 per fmspc with the
 # correct --pck_ca and TCB_TYPE so each goes to the right Intel PCS endpoint and lands in
 # the right DAO key. Step 6-8 (router lookup / quote verify) are skipped — this script only
-# proves that the V3 upsert pipeline handles every published fmspc.
+# proves that the V2 upsert pipeline handles every published fmspc.
 #
 # Each fmspc's qpl-tool run produces ~5-12 txs; we summarise per-fmspc totals + the heaviest
 # single tx at the end as a markdown table.
@@ -23,9 +23,8 @@ ANVIL_PORT="${ANVIL_PORT:-8545}"
 CHAIN_ID="${CHAIN_ID:-1315}"
 QPL_GAS_PRICE="${QPL_GAS_PRICE:-50000000000}"
 QPL_FALLBACK_GAS_LIMIT="${QPL_FALLBACK_GAS_LIMIT:-30000000}"
-FMSPC_VERSION=v3
-DAO_JSON_KEY="AutomataFmspcTcbDaoVersionedV3_tcbeval_${TCB_EVAL}"
-QPL_FUNC="upsert_tcb_fmspc_async_v3"
+DAO_JSON_KEY="AutomataFmspcTcbDaoVersionedV2_tcbeval_${TCB_EVAL}"
+QPL_FUNC="upsert_tcb_fmspc_async"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PCCS_REPO="${PCCS_REPO:-$(cd "$SCRIPT_DIR/.." && pwd)}"
@@ -86,7 +85,7 @@ echo "[setup 2/4] Fund impersonated owner"
 curl -sS -X POST "$LOCAL_RPC_URL" -H 'content-type: application/json' \
   --data '{"jsonrpc":"2.0","method":"anvil_setBalance","params":["'"$OWNER_ADDR"'","0x3635C9ADC5DEA00000"],"id":1}' >/dev/null
 
-echo "[setup 3/4] Delta update — deploy V3 helper + DAO + repoint router (one-time)"
+echo "[setup 3/4] Delta update — deploy V2 helper + DAO + repoint router (one-time)"
 cd "$PCCS_REPO"
 RPC_URL="$LOCAL_RPC_URL" \
 CHAIN_ID="$CHAIN_ID" \
@@ -94,7 +93,6 @@ TCB_EVAL="$TCB_EVAL" \
 ATTESTER="$ATTESTER_ADDR" \
 UNLOCKED=true \
 OWNER="$OWNER_ADDR" \
-FMSPC_VERSION="$FMSPC_VERSION" \
 ./script/delta-update-existing-network.sh
 
 NEW_DAO=$(jq -r ".${DAO_JSON_KEY}" "$PCCS_REPO/deployment/$CHAIN_ID.json")

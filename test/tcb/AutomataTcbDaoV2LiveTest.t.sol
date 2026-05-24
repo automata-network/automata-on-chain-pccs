@@ -6,19 +6,18 @@ import {CA} from "../../src/Common.sol";
 import {AutomataDaoStorage} from "../../src/automata_pccs/shared/AutomataDaoStorage.sol";
 import {AutomataDaoStorageV2} from "../../src/automata_pccs/shared/AutomataDaoStorageV2.sol";
 import {AutomataPcsDao} from "../../src/automata_pccs/AutomataPcsDao.sol";
-import {AutomataFmspcTcbDaoVersionedV3} from
-    "../../src/automata_pccs/versioned/AutomataFmspcTcbDaoVersionedV3.sol";
-import {FmspcTcbDaoV3} from "../../src/bases/FmspcTcbDaoV3.sol";
+import {AutomataFmspcTcbDaoVersionedV2} from
+    "../../src/automata_pccs/versioned/AutomataFmspcTcbDaoVersionedV2.sol";
+import {FmspcTcbDaoV2} from "../../src/bases/FmspcTcbDaoV2.sol";
 import {TcbInfoJsonObj, TCBLevelsObj, TcbId} from "../../src/helpers/FmspcTcbHelper.sol";
-import {FmspcTcbHelperV2} from "../../src/helpers/FmspcTcbHelperV2.sol";
-import {FmspcTcbHelperV3, TcbInfoRanges} from "../../src/helpers/FmspcTcbHelperV3.sol";
+import {FmspcTcbHelperV2, TcbInfoRanges} from "../../src/helpers/FmspcTcbHelperV2.sol";
 import {AlwaysTrueP256Verifier} from "../mock/AlwaysTrueP256Verifier.sol";
 
-/// @notice Replays the V3 async upsert against the LIVE Intel response we captured at
+/// @notice Replays the V2 async upsert against the LIVE Intel response we captured at
 /// test/tcb/fixtures/live_intel_eval19_inner.txt to reproduce the on-chain revert seen in the
 /// fork-aeneid e2e run. If this test reverts in the same place, foundry's trace gives us the
 /// exact location.
-contract AutomataTcbDaoV3LiveTest is PCSSetupBase {
+contract AutomataTcbDaoV2LiveTest is PCSSetupBase {
     uint32 internal constant TEST_EVAL = 19;
     uint8 internal constant SGX_TCB_TYPE = 0;
     bytes6 internal constant LIVE_FMSPC = hex"00606a000000";
@@ -27,9 +26,8 @@ contract AutomataTcbDaoV3LiveTest is PCSSetupBase {
     AutomataDaoStorage storageAsyncFallback;
     AutomataDaoStorageV2 storageV2;
     AutomataPcsDao pcsAsync;
-    AutomataFmspcTcbDaoVersionedV3 daoV3;
+    AutomataFmspcTcbDaoVersionedV2 daoV2;
     FmspcTcbHelperV2 fmspcTcbLibV2;
-    FmspcTcbHelperV3 fmspcTcbLibV3;
     AlwaysTrueP256Verifier verifierStub;
     address attester = address(0xBEEF);
 
@@ -39,20 +37,18 @@ contract AutomataTcbDaoV3LiveTest is PCSSetupBase {
 
         verifierStub = new AlwaysTrueP256Verifier();
         fmspcTcbLibV2 = new FmspcTcbHelperV2();
-        fmspcTcbLibV3 = new FmspcTcbHelperV3();
 
         storageAsyncFallback = new AutomataDaoStorage(admin);
         pcsAsync = new AutomataPcsDao(
             address(storageAsyncFallback), address(verifierStub), address(x509Lib), address(x509CrlLib)
         );
         storageV2 = new AutomataDaoStorageV2(admin, address(storageAsyncFallback));
-        daoV3 = new AutomataFmspcTcbDaoVersionedV3(
+        daoV2 = new AutomataFmspcTcbDaoVersionedV2(
             address(storageV2),
             address(verifierStub),
             address(pcsAsync),
             address(fmspcTcbLib),
             address(fmspcTcbLibV2),
-            address(fmspcTcbLibV3),
             address(x509Lib),
             address(x509CrlLib),
             admin,
@@ -65,15 +61,15 @@ contract AutomataTcbDaoV3LiveTest is PCSSetupBase {
         storageAsyncFallback.setCallerAuthorization(admin, true);
 
         storageV2.grantDao(admin);
-        storageV2.grantDao(address(daoV3));
+        storageV2.grantDao(address(daoV2));
         storageV2.setCallerAuthorization(admin, true);
 
-        daoV3.grantRoles(attester, daoV3.ATTESTER_ROLE());
+        daoV2.grantRoles(attester, daoV2.ATTESTER_ROLE());
         _seedPcs(pcsAsync, storageAsyncFallback);
         vm.stopPrank();
     }
 
-    function testLive_V3_FreshUpsertReproducesE2eFailure() public {
+    function testLive_V2_FreshUpsertReproducesE2eFailure() public {
         // The live Intel payload nextUpdate is 2026-06-19; warp to a date inside that window.
         vm.warp(1779292924); // 2026-05-20 16:02:04Z (matches the live issueDate)
 
@@ -81,21 +77,21 @@ contract AutomataTcbDaoV3LiveTest is PCSSetupBase {
         string memory sigHex = vm.readFile("test/tcb/fixtures/live_intel_eval19_sig.txt");
         bytes memory signature = vm.parseBytes(string.concat("0x", sigHex));
 
-        bytes32 refId = keccak256("live-v3-test");
+        bytes32 refId = keccak256("live-v2-test");
         vm.startPrank(attester);
-        daoV3.startAsyncUpsert(refId, signature);
+        daoV2.startAsyncUpsert(refId, signature);
 
         // Upload raw in 4KB chunks (mirrors the QPL chunking).
         bytes memory rawBytes = bytes(raw);
         for (uint256 cursor = 0; cursor < rawBytes.length; cursor += 4096) {
             uint256 length = cursor + 4096 > rawBytes.length ? rawBytes.length - cursor : 4096;
-            daoV3.uploadChunkData(refId, _slice(rawBytes, cursor, length));
+            daoV2.uploadChunkData(refId, _slice(rawBytes, cursor, length));
         }
 
-        // Use V3 helper's depth-1 scanner to get array bounds.
+        // Use V2 helper's depth-1 scanner to get array bounds.
         TcbInfoRanges memory ranges;
         {
-            (uint32 a, uint32 b, uint32 c, uint32 d,,) = fmspcTcbLibV3.findArrayBounds(rawBytes);
+            (uint32 a, uint32 b, uint32 c, uint32 d,,) = fmspcTcbLibV2.findArrayBounds(rawBytes);
             ranges = TcbInfoRanges(a, b, c, d);
         }
         // Pull sgxComponents template from level[0] via brace scan.
@@ -104,10 +100,10 @@ contract AutomataTcbDaoV3LiveTest is PCSSetupBase {
         bytes memory sgxTpl =
             _extractValueArrayBytes(rawBytes, starts[0], ends[0], "\"sgxtcbcomponents\":");
         // No TDX in this fixture.
-        daoV3.uploadComponentsTemplate(refId, sgxTpl, bytes(""));
+        daoV2.uploadComponentsTemplate(refId, sgxTpl, bytes(""));
         // Use the staged commit trio (Tier 1) — keeps per-tx gas well under the cap.
-        daoV3.commitBasicsExtract(refId);
-        daoV3.commitTcbLevelsRange(refId);
+        daoV2.commitBasicsExtract(refId);
+        daoV2.commitTcbLevelsRange(refId);
         // SGX path — no tdxModuleIdentities tx needed.
 
         // Build the level stream.
@@ -125,11 +121,11 @@ contract AutomataTcbDaoV3LiveTest is PCSSetupBase {
             );
         }
 
-        daoV3.uploadParsedTcbLevelsBatchV3(refId, 0, starts.length, levelStream);
+        daoV2.uploadParsedTcbLevelsBatch(refId, 0, starts.length, levelStream);
 
-        bytes32 key = daoV3.FMSPC_TCB_KEY(SGX_TCB_TYPE, LIVE_FMSPC, TEST_VERSION);
+        bytes32 key = daoV2.FMSPC_TCB_KEY(SGX_TCB_TYPE, LIVE_FMSPC, TEST_VERSION);
         bytes32 attestationId = storageV2.collateralPointer(key);
-        daoV3.finalizeAsyncUpsert(attestationId, refId);
+        daoV2.finalizeAsyncUpsert(attestationId, refId);
         vm.stopPrank();
     }
 

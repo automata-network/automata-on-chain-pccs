@@ -34,7 +34,6 @@ show_usage() {
     echo "  tcb-eval                   Configure AutomataTcbEvalDao roles"
     echo "  versioned                  Configure versioned DAO roles (EnclaveIdentity + FmspcTcb)"
     echo "  fmspc-v2                   Configure AutomataFmspcTcbDaoVersionedV2 roles"
-    echo "  fmspc-v3                   Configure AutomataFmspcTcbDaoVersionedV3 roles"
     echo ""
     echo "Arguments for 'tcb-eval':"
     echo "  user_address               Address to grant/revoke roles (default: derived from wallet)"
@@ -87,9 +86,9 @@ if [ -z "$COMMAND" ]; then
     exit 1
 fi
 
-if [ "$COMMAND" != "tcb-eval" ] && [ "$COMMAND" != "versioned" ] && [ "$COMMAND" != "fmspc-v2" ] && [ "$COMMAND" != "fmspc-v3" ]; then
+if [ "$COMMAND" != "tcb-eval" ] && [ "$COMMAND" != "versioned" ] && [ "$COMMAND" != "fmspc-v2" ]; then
     print_error "Invalid command: $COMMAND"
-    print_error "Valid commands: tcb-eval, versioned, fmspc-v2, fmspc-v3"
+    print_error "Valid commands: tcb-eval, versioned, fmspc-v2"
     show_usage
     exit 1
 fi
@@ -152,7 +151,7 @@ if [ "$COMMAND" = "tcb-eval" ]; then
     ROLES="${3:-1}"
     AUTHORIZE="${4:-true}"
     TCB_EVAL_DATA_NUMBER=""  # Not used for tcb-eval
-elif [ "$COMMAND" = "versioned" ] || [ "$COMMAND" = "fmspc-v2" ] || [ "$COMMAND" = "fmspc-v3" ]; then
+elif [ "$COMMAND" = "versioned" ] || [ "$COMMAND" = "fmspc-v2" ]; then
     TCB_EVAL_DATA_NUMBER="$2"
     USER_ADDRESS="${3:-$OWNER}"
     ROLES="${4:-1}"
@@ -273,16 +272,6 @@ elif [ "$COMMAND" = "fmspc-v2" ]; then
 
     if [ $? -ne 0 ]; then
         print_error "Failed to configure AutomataFmspcTcbDaoVersionedV2 roles"
-        exit 1
-    fi
-elif [ "$COMMAND" = "fmspc-v3" ]; then
-    print_info "Configuring AutomataFmspcTcbDaoVersionedV3 roles (tcb-eval-data-number: $TCB_EVAL_DATA_NUMBER)..."
-    cd "$PROJECT_ROOT" && OWNER="$OWNER" forge script script/automata/versioned/ConfigAutomataDaoVersioned.s.sol:ConfigureAutomataDaoVersioned \
-        $FORGE_ARGS \
-        --sig "configureFmspcTcbDaoVersionedV3Roles(address,uint32,uint256,bool)" "$USER_ADDRESS" "$TCB_EVAL_DATA_NUMBER" "$ROLES" "$AUTHORIZE"
-
-    if [ $? -ne 0 ]; then
-        print_error "Failed to configure AutomataFmspcTcbDaoVersionedV3 roles"
         exit 1
     fi
 fi

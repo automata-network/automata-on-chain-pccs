@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "../../src/helpers/EnclaveIdentityHelper.sol";
 import "../../src/helpers/FmspcTcbHelper.sol";
 import "../../src/helpers/FmspcTcbHelperV2.sol";
-import "../../src/helpers/FmspcTcbHelperV3.sol";
 import "../../src/helpers/PCKHelper.sol";
 import "../../src/helpers/X509CRLHelper.sol";
 import "../../src/helpers/TcbEvalHelper.sol";
@@ -22,7 +21,6 @@ contract DeployHelpers is DeploymentConfig {
         deployEnclaveIdentityHelper();
         deployFmspcTcbHelper();
         deployFmspcTcbHelperV2();
-        deployFmspcTcbHelperV3();
         deployPckHelper();
         deployX509CrlHelper();
         deployTcbEvalHelper();
@@ -54,16 +52,6 @@ contract DeployHelpers is DeploymentConfig {
         vm.stopBroadcast();
 
         writeToJson("FmspcTcbHelperV2", address(fmspcTcbHelper));
-    }
-
-    function deployFmspcTcbHelperV3() public {
-        vm.startBroadcast(owner);
-        FmspcTcbHelperV3 fmspcTcbHelper =
-            _useCreate2Deploy() ? new FmspcTcbHelperV3{salt: FMSPC_TCB_HELPER_V3_SALT}() : new FmspcTcbHelperV3();
-        console.log("[LOG] FmspcTcbHelperV3: ", address(fmspcTcbHelper));
-        vm.stopBroadcast();
-
-        writeToJson("FmspcTcbHelperV3", address(fmspcTcbHelper));
     }
 
     function deployPckHelper() public {

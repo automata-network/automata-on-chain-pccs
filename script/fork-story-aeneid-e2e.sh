@@ -28,23 +28,8 @@ REFRESH_PLATFORM_CRL_WITH_TEST_FIXTURE="${REFRESH_PLATFORM_CRL_WITH_TEST_FIXTURE
 VERIFY_SEND="${VERIFY_SEND:-false}"
 QUOTE_FILE="${QUOTE_FILE:-}"
 QUOTE_TX_HASH="${QUOTE_TX_HASH:-0xa7b1120210ccb7dc8ef0ce05f9b3db9fe90e611418b5ff7174efba89b2eb22a0}"
-# FMSPC_VERSION selects which generation of FmspcTcbDao to deploy + drive: v2 (default) or v3.
-FMSPC_VERSION="${FMSPC_VERSION:-v2}"
-if [[ "$FMSPC_VERSION" != "v2" && "$FMSPC_VERSION" != "v3" ]]; then
-  echo "invalid FMSPC_VERSION: $FMSPC_VERSION (expected v2 or v3)" >&2
-  exit 1
-fi
-
-case "$FMSPC_VERSION" in
-  v2)
-    DAO_JSON_KEY="AutomataFmspcTcbDaoVersionedV2_tcbeval_${TCB_EVAL}"
-    QPL_FUNC="upsert_tcb_fmspc_async"
-    ;;
-  v3)
-    DAO_JSON_KEY="AutomataFmspcTcbDaoVersionedV3_tcbeval_${TCB_EVAL}"
-    QPL_FUNC="upsert_tcb_fmspc_async_v3"
-    ;;
-esac
+DAO_JSON_KEY="AutomataFmspcTcbDaoVersionedV2_tcbeval_${TCB_EVAL}"
+QPL_FUNC="upsert_tcb_fmspc_async"
 extract_quote_from_tx() {
   local tx_hash="$1"
   local tx_input
@@ -126,7 +111,7 @@ echo "[3/8] Show current router target"
 OLD_DAO=$(cast call 0xcb1934EA19c6650a8cC9888c0306D39f0BeBc2AB "fmspcTcbDaoVersionedAddr(uint32)(address)" "$TCB_EVAL" --rpc-url "$LOCAL_RPC_URL")
 echo "Old router DAO[$TCB_EVAL]: $OLD_DAO"
 
-echo "[4/8] Run delta update against the fork (FMSPC_VERSION=$FMSPC_VERSION)"
+echo "[4/8] Run delta update against the fork"
 cd "$PCCS_REPO"
 RPC_URL="$LOCAL_RPC_URL" \
 CHAIN_ID="$CHAIN_ID" \
@@ -134,14 +119,13 @@ TCB_EVAL="$TCB_EVAL" \
 ATTESTER="$ATTESTER_ADDR" \
 UNLOCKED=true \
 OWNER="$OWNER_ADDR" \
-FMSPC_VERSION="$FMSPC_VERSION" \
 ./script/delta-update-existing-network.sh
 
 NEW_DAO=$(jq -r ".${DAO_JSON_KEY}" "$PCCS_REPO/deployment/$CHAIN_ID.json")
 NEW_STORAGE=$(jq -r ".AutomataDaoStorageV2" "$PCCS_REPO/deployment/$CHAIN_ID.json")
 ROUTER_DAO=$(cast call 0xcb1934EA19c6650a8cC9888c0306D39f0BeBc2AB "fmspcTcbDaoVersionedAddr(uint32)(address)" "$TCB_EVAL" --rpc-url "$LOCAL_RPC_URL")
 echo "New StorageV2: $NEW_STORAGE"
-echo "New DAO ${FMSPC_VERSION}[$TCB_EVAL]: $NEW_DAO"
+echo "New DAO V2[$TCB_EVAL]: $NEW_DAO"
 echo "Router DAO[$TCB_EVAL] after update: $ROUTER_DAO"
 test "$ROUTER_DAO" = "$NEW_DAO"
 

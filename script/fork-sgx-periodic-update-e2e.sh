@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Periodic re-upsert correctness test for the V3 SGX flow.
+# Periodic re-upsert correctness test for the V2 SGX flow.
 #
 #   1. Anvil-fork Story Aeneid (single instance, lives for the whole test)
-#   2. Delta-update: deploy V3 helper + V3 DAO, repoint router
+#   2. Delta-update: deploy V2 helper + V2 DAO, repoint router
 #   3. Fetch Intel PCS for SGX fmspc 00606A000000 → snapshot-1
 #   4. async upsert from snapshot-1
 #   5. Read TCB info back from chain, validate it matches snapshot-1 byte-for-byte
@@ -44,9 +44,8 @@ QPL_FALLBACK_GAS_LIMIT="${QPL_FALLBACK_GAS_LIMIT:-30000000}"
 ROUTER_ADDR="${ROUTER_ADDR:-0xcb1934EA19c6650a8cC9888c0306D39f0BeBc2AB}"
 VERIFY_TARGET="${VERIFY_TARGET:-0xB8621Da79b42A62E576408995155D48E9f856489}"
 
-FMSPC_VERSION=v3
-DAO_JSON_KEY="AutomataFmspcTcbDaoVersionedV3_tcbeval_${TCB_EVAL}"
-QPL_FUNC="upsert_tcb_fmspc_async_v3"
+DAO_JSON_KEY="AutomataFmspcTcbDaoVersionedV2_tcbeval_${TCB_EVAL}"
+QPL_FUNC="upsert_tcb_fmspc_async"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PCCS_REPO="${PCCS_REPO:-$(cd "$SCRIPT_DIR/.." && pwd)}"
@@ -250,14 +249,13 @@ banner "[2/12] Fund impersonated owner"
 curl -sS -X POST "$LOCAL_RPC_URL" -H 'content-type: application/json' \
   --data '{"jsonrpc":"2.0","method":"anvil_setBalance","params":["'"$OWNER_ADDR"'","0x3635C9ADC5DEA00000"],"id":1}' >/dev/null
 
-banner "[3/12] Delta update — deploy V3 helper + DAO + repoint router"
+banner "[3/12] Delta update — deploy V2 helper + DAO + repoint router"
 cd "$PCCS_REPO"
 RPC_URL="$LOCAL_RPC_URL" CHAIN_ID="$CHAIN_ID" TCB_EVAL="$TCB_EVAL" \
 ATTESTER="$ATTESTER_ADDR" UNLOCKED=true OWNER="$OWNER_ADDR" \
-FMSPC_VERSION="$FMSPC_VERSION" \
 ./script/delta-update-existing-network.sh
 NEW_DAO=$(jq -r ".${DAO_JSON_KEY}" "$PCCS_REPO/deployment/$CHAIN_ID.json")
-echo "V3 DAO: $NEW_DAO"
+echo "V2 DAO: $NEW_DAO"
 
 banner "[4/12] Build Intel snapshot-1 from archived fixture (older issueDate)"
 # Use the archived fixture (captured 2026-05-20) as snapshot-1, so snapshot-2 (a fresh fetch

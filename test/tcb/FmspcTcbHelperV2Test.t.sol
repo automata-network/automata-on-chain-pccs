@@ -4,22 +4,22 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 
 import "../../src/helpers/FmspcTcbHelper.sol";
-import "../../src/helpers/FmspcTcbHelperV3.sol";
+import "../../src/helpers/FmspcTcbHelperV2.sol";
 import "./TCBConstants.t.sol";
 
-/// @notice Byte-exact round-trip tests for FmspcTcbHelperV3.serializeTcbLevel.
+/// @notice Byte-exact round-trip tests for FmspcTcbHelperV2.serializeTcbLevel.
 /// For each of the three embedded fixtures (sgx v2, sgx v3, tdx v3) we:
 /// 1) Parse the inner tcbInfo with FmspcTcbHelper to obtain TCBLevelsObj[] and packed bytes
 /// 2) Walk the raw tcbInfo string with a depth-1 brace scanner to find per-level byte ranges
 /// 3) Extract sgxComponentsTemplate (and tdxComponentsTemplate when present) from level[0]
-/// 4) Call FmspcTcbHelperV3.serializeTcbLevel(...) and assert byte-exact equality with the raw level slice
-contract FmspcTcbHelperV3Test is TCBConstants, Test {
+/// 4) Call FmspcTcbHelperV2.serializeTcbLevel(...) and assert byte-exact equality with the raw level slice
+contract FmspcTcbHelperV2Test is TCBConstants, Test {
     FmspcTcbHelper fmspcTcbLib;
-    FmspcTcbHelperV3 fmspcTcbLibV3;
+    FmspcTcbHelperV2 fmspcTcbLibV2;
 
     function setUp() public {
         fmspcTcbLib = new FmspcTcbHelper();
-        fmspcTcbLibV3 = new FmspcTcbHelperV3();
+        fmspcTcbLibV2 = new FmspcTcbHelperV2();
     }
 
     function testRoundTripSgxV3() public {
@@ -43,7 +43,7 @@ contract FmspcTcbHelperV3Test is TCBConstants, Test {
         returns (TcbInfoBasic memory basic, TcbInfoRanges memory ranges)
     {
         (basic, , , ) = fmspcTcbLib.parseTcbString(string(raw));
-        (uint32 a, uint32 b, uint32 c, uint32 d,,) = fmspcTcbLibV3.findArrayBounds(raw);
+        (uint32 a, uint32 b, uint32 c, uint32 d,,) = fmspcTcbLibV2.findArrayBounds(raw);
         ranges = TcbInfoRanges(a, b, c, d);
     }
 
@@ -75,7 +75,7 @@ contract FmspcTcbHelperV3Test is TCBConstants, Test {
                 _extractIdentityHexFields(raw, idStarts[i], idEnds[i]);
             bytes20[] memory nestedDates = _extractNestedTcbDates(raw, idStarts[i], idEnds[i]);
 
-            bytes memory serialized = fmspcTcbLibV3.serializeTdxModuleIdentity(
+            bytes memory serialized = fmspcTcbLibV2.serializeTdxModuleIdentity(
                 packed,
                 mrSignerHex,
                 attrHex,
@@ -145,7 +145,7 @@ contract FmspcTcbHelperV3Test is TCBConstants, Test {
             bytes memory packed = fmspcTcbLib.tcbLevelsObjToBytes(levels[i]);
             bytes20 rawDate = _extractRawTcbDate(raw, levelStarts[i], levelEnds[i]);
 
-            bytes memory serialized = fmspcTcbLibV3.serializeTcbLevel(
+            bytes memory serialized = fmspcTcbLibV2.serializeTcbLevel(
                 packed,
                 rawDate,
                 schemaVersion,
