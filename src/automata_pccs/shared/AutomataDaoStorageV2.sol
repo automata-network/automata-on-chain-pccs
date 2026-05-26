@@ -28,6 +28,7 @@ contract AutomataDaoStorageV2 is AutomataTCBManager, IDaoAttestationResolver, Pa
     event SetFallbackResolver(address fallbackResolver);
     event AsyncStarted(bytes32 indexed refId);
     event AsyncAppended(bytes32 indexed refId, uint256 length, uint256 totalLength);
+    event AsyncWritten(bytes32 indexed refId, uint256 offset, uint256 length);
     event AsyncFinalized(bytes32 indexed attestationId, bytes32 indexed refId);
 
     modifier onlyDao(address dao) {
@@ -121,11 +122,38 @@ contract AutomataDaoStorageV2 is AutomataTCBManager, IDaoAttestationResolver, Pa
         emit AsyncStarted(refId);
     }
 
+    function startAsyncWithLength(bytes32 refId, uint256 length) external onlyDao(msg.sender) {
+        require(refId != bytes32(0), "INVALID_REF");
+        require(length > 31, "LENGTH_TOO_SMALL");
+        require(!occupiedRefIds[refId] && _db[refId].length == 0, "REF_OCCUPIED");
+        occupiedRefIds[refId] = true;
+
+        bytes storage collateral = _db[refId];
+        assembly {
+            sstore(collateral.slot, add(shl(1, length), 1))
+        }
+
+        emit AsyncStarted(refId);
+        emit AsyncWritten(refId, 0, length);
+    }
+
     function appendAttestation(bytes32 refId, bytes calldata chunk) external onlyDao(msg.sender) {
         require(occupiedRefIds[refId], "UNKNOWN_REF");
         require(!finalizedRefIds[refId], "REF_FINALIZED");
         _db[refId] = bytes.concat(_db[refId], chunk);
         emit AsyncAppended(refId, chunk.length, _db[refId].length);
+    }
+
+    function writeAttestation(bytes32 refId, uint256 offset, bytes calldata chunk) external onlyDao(msg.sender) {
+        require(occupiedRefIds[refId], "UNKNOWN_REF");
+        require(!finalizedRefIds[refId], "REF_FINALIZED");
+        require(chunk.length > 0, "EMPTY_CHUNK");
+
+        bytes storage collateral = _db[refId];
+        require(offset + chunk.length <= collateral.length, "WRITE_OOB");
+
+        _writeBytes(collateral, offset, chunk);
+        emit AsyncWritten(refId, offset, chunk.length);
     }
 
     function finalizeAsync(bytes32 attestationId, bytes32 refId) external onlyDao(msg.sender) {
@@ -138,6 +166,38 @@ contract AutomataDaoStorageV2 is AutomataTCBManager, IDaoAttestationResolver, Pa
 
     function refForAttestation(bytes32 attestationId) external view returns (bytes32 refId) {
         refId = refMap[attestationId];
+    }
+
+    function _writeBytes(bytes storage target, uint256 offset, bytes calldata chunk) private {
+        assembly {
+            let dataSlot := target.slot
+            mstore(0x00, dataSlot)
+            let baseSlot := keccak256(0x00, 0x20)
+
+            let src := chunk.offset
+            let remaining := chunk.length
+            let dst := offset
+
+            for {} gt(remaining, 0) {} {
+                let slotOffset := and(dst, 31)
+                let writable := sub(32, slotOffset)
+                if gt(writable, remaining) { writable := remaining }
+
+                let slot := add(baseSlot, shr(5, dst))
+                let word := shr(mul(slotOffset, 8), calldataload(src))
+
+                let endOffset := add(slotOffset, writable)
+                let highEnd := not(sub(shl(mul(sub(32, endOffset), 8), 1), 1))
+                let highStart := not(sub(shl(mul(sub(32, slotOffset), 8), 1), 1))
+                let mask := xor(highEnd, highStart)
+
+                sstore(slot, or(and(sload(slot), not(mask)), and(word, mask)))
+
+                src := add(src, writable)
+                dst := add(dst, writable)
+                remaining := sub(remaining, writable)
+            }
+        }
     }
 
     /// Attestation ID Computation

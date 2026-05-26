@@ -28,6 +28,13 @@ REFRESH_PLATFORM_CRL_WITH_TEST_FIXTURE="${REFRESH_PLATFORM_CRL_WITH_TEST_FIXTURE
 VERIFY_SEND="${VERIFY_SEND:-false}"
 QUOTE_FILE="${QUOTE_FILE:-}"
 QUOTE_TX_HASH="${QUOTE_TX_HASH:-0xa7b1120210ccb7dc8ef0ce05f9b3db9fe90e611418b5ff7174efba89b2eb22a0}"
+DOUBLE_UPSERT="${DOUBLE_UPSERT:-false}"
+FIRST_TCB_INFO_JSON_FILE="${FIRST_TCB_INFO_JSON_FILE:-}"
+FIRST_TCB_INFO_SIGNATURE_HEX="${FIRST_TCB_INFO_SIGNATURE_HEX:-}"
+FIRST_TCB_INFO_SIGNATURE_HEX_FILE="${FIRST_TCB_INFO_SIGNATURE_HEX_FILE:-}"
+SECOND_TCB_INFO_JSON_FILE="${SECOND_TCB_INFO_JSON_FILE:-}"
+SECOND_TCB_INFO_SIGNATURE_HEX="${SECOND_TCB_INFO_SIGNATURE_HEX:-}"
+SECOND_TCB_INFO_SIGNATURE_HEX_FILE="${SECOND_TCB_INFO_SIGNATURE_HEX_FILE:-}"
 DAO_JSON_KEY="AutomataFmspcTcbDaoVersionedV2_tcbeval_${TCB_EVAL}"
 QPL_FUNC="upsert_tcb_fmspc_async"
 extract_quote_from_tx() {
@@ -129,7 +136,7 @@ echo "New DAO V2[$TCB_EVAL]: $NEW_DAO"
 echo "Router DAO[$TCB_EVAL] after update: $ROUTER_DAO"
 test "$ROUTER_DAO" = "$NEW_DAO"
 
-echo "[5/8] Run async upsert from qpl tool via Intel PCS fetch (function: $QPL_FUNC)"
+echo "[5/8] Run async upsert from qpl tool (function: $QPL_FUNC)"
 cd "$QPL_REPO"
 export QPL_FALLBACK_GAS_LIMIT
 if [[ -n "${QPL_ASYNC_PARSE_BATCH_SIZE:-}" ]]; then
@@ -142,17 +149,107 @@ if [[ "$TCB_TYPE" == "1" ]]; then
   # which has the wrong shape (no tdxModuleIdentities, wrong tcb_type in DAO).
   QPL_PCK_CA="tdx"
 fi
-cargo run --release -- \
-  --function "$QPL_FUNC" \
-  --private_key "$ATTESTER_PRIVATE_KEY" \
-  --rpc_url "$LOCAL_RPC_URL" \
-  --chain_id "$CHAIN_ID" \
-  --gas_price "$QPL_GAS_PRICE" \
-  --collateral_version v4 \
-  --fmspc "$FMSPC" \
-  --pck_ca "$QPL_PCK_CA" \
-  --fmspc_tcb_dao_contract_addr "$NEW_DAO" \
-  --tcb_evaluation_data_number "$TCB_EVAL"
+
+resolve_local_path() {
+  local value="$1"
+  if [[ -z "$value" || "$value" == /* ]]; then
+    printf '%s' "$value"
+  elif [[ -e "$PCCS_REPO/$value" ]]; then
+    printf '%s' "$PCCS_REPO/$value"
+  elif [[ -e "$PROJECT_DIR/$value" ]]; then
+    printf '%s' "$PROJECT_DIR/$value"
+  else
+    printf '%s' "$value"
+  fi
+}
+
+FIRST_TCB_INFO_JSON_FILE="$(resolve_local_path "$FIRST_TCB_INFO_JSON_FILE")"
+FIRST_TCB_INFO_SIGNATURE_HEX_FILE="$(resolve_local_path "$FIRST_TCB_INFO_SIGNATURE_HEX_FILE")"
+SECOND_TCB_INFO_JSON_FILE="$(resolve_local_path "$SECOND_TCB_INFO_JSON_FILE")"
+SECOND_TCB_INFO_SIGNATURE_HEX_FILE="$(resolve_local_path "$SECOND_TCB_INFO_SIGNATURE_HEX_FILE")"
+
+read_signature_hex() {
+  local inline_hex="$1"
+  local file_path="$2"
+  if [[ -n "$inline_hex" ]]; then
+    printf '%s' "${inline_hex#0x}"
+  elif [[ -n "$file_path" ]]; then
+    tr -d '\n\r' < "$file_path" | sed 's/^0x//'
+  fi
+}
+
+run_qpl_upsert() {
+  local label="$1"
+  local json_file="$2"
+  local signature_hex="$3"
+  local signature_file="$4"
+  local -a qpl_args=(
+    --function "$QPL_FUNC"
+    --private_key "$ATTESTER_PRIVATE_KEY"
+    --rpc_url "$LOCAL_RPC_URL"
+    --chain_id "$CHAIN_ID"
+    --gas_price "$QPL_GAS_PRICE"
+    --collateral_version v4
+    --fmspc "$FMSPC"
+    --pck_ca "$QPL_PCK_CA"
+    --fmspc_tcb_dao_contract_addr "$NEW_DAO"
+    --tcb_evaluation_data_number "$TCB_EVAL"
+  )
+  if [[ -n "$json_file" ]]; then
+    qpl_args+=(--tcb_info_json_file "$json_file")
+    local resolved_sig
+    resolved_sig="$(read_signature_hex "$signature_hex" "$signature_file")"
+    if [[ -n "$resolved_sig" ]]; then
+      qpl_args+=(--tcb_info_signature_hex "$resolved_sig")
+    fi
+  fi
+  echo "---- qpl async upsert ($label) ----"
+  cargo run --release -- "${qpl_args[@]}"
+}
+
+read_current_raw_hash() {
+  local dao_key
+  dao_key=$(cast call "$NEW_DAO" "FMSPC_TCB_KEY(uint8,bytes6,uint32)(bytes32)" \
+    "$TCB_TYPE" "0x$FMSPC" 3 --rpc-url "$LOCAL_RPC_URL")
+  cast call "$NEW_DAO" "getCollateralHash(bytes32)(bytes32)" "$dao_key" --rpc-url "$LOCAL_RPC_URL"
+}
+
+read_current_validity() {
+  local dao_key
+  dao_key=$(cast call "$NEW_DAO" "FMSPC_TCB_KEY(uint8,bytes6,uint32)(bytes32)" \
+    "$TCB_TYPE" "0x$FMSPC" 3 --rpc-url "$LOCAL_RPC_URL")
+  cast call "$NEW_DAO" "getCollateralValidity(bytes32)(uint64,uint64)" "$dao_key" --rpc-url "$LOCAL_RPC_URL"
+}
+
+if [[ "$DOUBLE_UPSERT" == "true" || -n "$FIRST_TCB_INFO_JSON_FILE" ]]; then
+  if [[ -z "$FIRST_TCB_INFO_JSON_FILE" ]]; then
+    echo "DOUBLE_UPSERT=true requires FIRST_TCB_INFO_JSON_FILE" >&2
+    exit 1
+  fi
+  run_qpl_upsert "first/local snapshot" \
+    "$FIRST_TCB_INFO_JSON_FILE" "$FIRST_TCB_INFO_SIGNATURE_HEX" "$FIRST_TCB_INFO_SIGNATURE_HEX_FILE"
+  FIRST_RAW_HASH="$(read_current_raw_hash)"
+  FIRST_VALIDITY="$(read_current_validity)"
+  echo "First upsert raw hash: $FIRST_RAW_HASH"
+  echo "First upsert validity:"
+  echo "$FIRST_VALIDITY"
+fi
+
+run_qpl_upsert "second/current Intel PCS" \
+  "$SECOND_TCB_INFO_JSON_FILE" "$SECOND_TCB_INFO_SIGNATURE_HEX" "$SECOND_TCB_INFO_SIGNATURE_HEX_FILE"
+
+if [[ -n "${FIRST_RAW_HASH:-}" ]]; then
+  SECOND_RAW_HASH="$(read_current_raw_hash)"
+  SECOND_VALIDITY="$(read_current_validity)"
+  echo "Second upsert raw hash: $SECOND_RAW_HASH"
+  echo "Second upsert validity:"
+  echo "$SECOND_VALIDITY"
+  if [[ "$SECOND_RAW_HASH" == "$FIRST_RAW_HASH" ]]; then
+    echo "second async upsert did not overwrite the first raw hash" >&2
+    exit 1
+  fi
+  echo "Second async upsert overwrote the first result."
+fi
 
 echo "[6/8] Verify router serves the upserted TCBInfo content hash"
 CONTENT_HASH=$(cast call 0xcb1934EA19c6650a8cC9888c0306D39f0BeBc2AB \

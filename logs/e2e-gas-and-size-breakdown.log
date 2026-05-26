@@ -1,71 +1,299 @@
-PCCS async upsert E2E gas and runtime-size record
-Recorded: 2026-05-22
+PCCS optimized async upsert V2 E2E gas and runtime-size record
+Recorded: 2026-05-25
 
 Sources:
-- SGX E2E: logs/sgx-e2e.log
-- TDX E2E: logs/tdx-e2e.log
-- Deploy/config gas: latest Foundry broadcast receipts and E2E logs
+- SGX double-upsert E2E: logs/sgx-e2e.log
+- TDX double-upsert E2E: logs/tdx-e2e.log
+- Full FMSPC regression: logs/all-available-fmspc.log
+- Full FMSPC gas summary: logs/all-available-fmspc-summary.log
 - Runtime sizes: forge build --sizes in automata-on-chain-pccs and automata-dcap-attestation/evm
 
-Note:
-- Gas rows below list each transaction individually.
+Notes:
+- Dedicated SGX/TDX E2E sections list every charged transaction individually; Full FMSPC regression also records per-row total gas derived from those tx gas values.
 - Quote verification is executed through eth_call in these E2E runs, so it has no charged transaction gas.
 - EIP-170 runtime code size limit: 24,576 bytes.
 
-Deploy / config transactions
+SGX deploy and router config transactions
 
-| Stage | Transaction | Gas |
+| Stage | Transaction | Tx hash | Gas |
+| --- | --- | --- | ---: |
+| Deploy helper | FmspcTcbHelperV2 create | 0x9407d5f97cb655944e4eaa3074564aaf8a06ee06757a9ddbd0c6847f80725084 | 2,669,869 |
+| Deploy storage | AutomataDaoStorageV2 create | 0xee4ffe909135b79a9a15aee4204b9ad516ee7be2610b2dd5df5e55ba5e7d08bc | 1,658,299 |
+| Deploy storage | AutomataDaoStorageV2 grantDao(address) | 0x1e17df1a3f80f97c684b73a7d207f1e01944ef9e970512e69cf5f2157228c91e | 47,277 |
+| Deploy DAO | AutomataFmspcTcbDaoVersionedV2 create | 0x144080a0b25e72a4ae8dd7b618857dc2e1ef853ab97df96fc26d868b52faad82 | 5,362,504 |
+| Config | StorageV2 grant DAO writer | 0x0ac4a32eb13fedc5896be79fa57a56d889d9c175ca6f00b33449549bd5d7cd83 | 47,353 |
+| Config | DAO grant attester role | 0x01f06b1bf6394fafb7deec903a71011f74a69c1c6c57620af713aeafd71d4c17 | 47,703 |
+| Router config | authorize PCCS Storage | 0xa0bb2d0aa6910d20e0c5c497b71a8f918b0f7bcfa84ebcce0bd261f04f3f093e | 27,643 |
+| Router config | authorize PCCS StorageV2 | 0xec5e690c82fc1df3253ed7853f859799f46b640b64be027ac7a08aa8a7a9b3e3 | 47,620 |
+| Router config | updateVersionedDaoConfig tx 1 | 0xc654f15d2110ddf2b8ff70d94e4caeb55b6026e5ac56ef9aea3b2eaada47a3b5 | 31,354 |
+| Router config | updateVersionedDaoConfig tx 2 | 0xdd9230b2fdcd294c2284de22c64454ff8db34e6ee761b2d5e43ec403e7fc7e4d | 34,354 |
+
+SGX async upsert transactions - first/local snapshot
+
+| Function | Tx hash | Gas |
 | --- | --- | ---: |
-| Deploy helper | FmspcTcbHelperV2 create | 3,549,315 |
-| Deploy storage | AutomataDaoStorageV2 create | 1,364,323 |
-| Deploy storage | post-deploy grant | 47,277 |
-| Deploy DAO | AutomataFmspcTcbDaoVersionedV2 create | 4,275,997 |
-| Config | grant StorageV2 access to DAO | 47,328 |
-| Config | grant attester role | 47,703 |
-| Router config | authorize PCCS Storage | 27,643 |
-| Router config | authorize PCCS StorageV2 | 47,628 |
-| Router config | update versioned DAO config tx #1 | 31,354 |
-| Router config | update versioned DAO config tx #2 | 34,332 |
+| start_async_upsert | 0x08c52cad2a9cb8064bc1983c2c8f457c23bd77c9cefd4ea1bf04b631ab1eadda | 406,725 |
+| upload_basic_info | 0x340b23f5f38e70b5f3f1564b4ef8875e7a3c8d8459620dd52b4f0c5b4776d961 | 493,169 |
+| upload_tcb_levels_batch_0_3 | 0xa5cc389162ebc56dbc2cdf1d3adfb434607e36a202b5ea7a892082196338f3c7 | 2,292,872 |
+| upload_tcb_levels_batch_3_6 | 0xb37556f0dc376e95ca67975fab5cdc358799025944f74008cc878131d15bf3ce | 2,467,820 |
+| upload_tcb_levels_batch_6_9 | 0x4ed6859c75f92df3d0c5d330b3caa990d12607e6f36ab46ba958f9e5c65fb7aa | 2,687,401 |
+| upload_tcb_levels_batch_9_12 | 0xf91db8785a34126b5b26b26792bb1381f6af9f938f015907252ed90f869e1295 | 2,926,379 |
+| upload_tcb_levels_batch_12_15 | 0x2bdc030b325f549049070652a3a3af7e2e1fba0bc6cf7f6380b40b8b6e081666 | 3,560,598 |
+| finalize_async_upsert | 0xc0c40b237b5fc0897cf10f48876816d4abe1551194efc13fc9fa262370b5275f | 4,150,386 |
 
-SGX async upsert transactions
+SGX async upsert transactions - second/current Intel PCS
 
-| Function | Transaction | Gas |
-| --- | ---: | ---: |
-| start_async_upsert | #1 | 317,563 |
-| upload_chunk_data_0 | #1 | 5,878,318 |
-| upload_chunk_data_1 | #1 | 1,385,917 |
-| upload_components_template | #1 | 358,254 |
-| commit_basics_extract | #1 | 1,126,364 |
-| commit_tcb_levels_range | #1 | 4,002,884 |
-| upload_parsed_tcb_levels_batch | #1 | 2,078,676 |
-| upload_parsed_tcb_levels_batch | #2 | 2,247,394 |
-| upload_parsed_tcb_levels_batch | #3 | 2,483,302 |
-| upload_parsed_tcb_levels_batch | #4 | 2,747,378 |
-| upload_parsed_tcb_levels_batch | #5 | 3,413,165 |
-| finalize_async_upsert | #1 | 1,899,391 |
+| Function | Tx hash | Gas |
+| --- | --- | ---: |
+| start_async_upsert | 0x7f059c92c752c2a77ac14ed3d1c1b1031b466bdd3ae6368dd3a7afd8e93b67ea | 406,701 |
+| upload_basic_info | 0xd13a9a158a6a9db455837c0ccf3d83d5d22ef35c341b384a82b973f7f1e213e7 | 493,145 |
+| upload_tcb_levels_batch_0_3 | 0x1ff4e2631405a929c401cc736f2553fc4b7c76bd6e734a064d92e452c4d2face | 2,292,848 |
+| upload_tcb_levels_batch_3_6 | 0x9f20502ec44e005479ea6f0b1b5db8813918c55e3608bd96dd72aa681f18ac9f | 2,467,796 |
+| upload_tcb_levels_batch_6_9 | 0xc742d4a8e422daa201082df1104c845a7ee6178d8d0d6ed98cd15730b5854a12 | 2,687,377 |
+| upload_tcb_levels_batch_9_12 | 0xb2f5c2a4022be27cb216fa4093ae4d6eb816e92b0cb41920e55d893577f9fb27 | 2,926,355 |
+| upload_tcb_levels_batch_12_15 | 0xe9d281b709a6bcfead07a42d0bb73ad9ecc9a29191892369dd50d224f23d4dca | 3,560,574 |
+| finalize_async_upsert | 0x9ad20e191db660873cb7f7cc071c250e637c50eb2a574d8a2ec4b17022359c43 | 4,084,937 |
 
-TDX async upsert transactions
+SGX double-upsert result
 
-| Function | Transaction | Gas |
-| --- | ---: | ---: |
-| start_async_upsert | #1 | 317,563 |
-| upload_chunk_data_0 | #1 | 4,515,521 |
-| upload_components_template | #1 | 684,959 |
-| commit_basics_extract | #1 | 1,268,796 |
-| commit_tcb_levels_range | #1 | 2,722,642 |
-| commit_tdx_identities_range | #1 | 1,022,152 |
-| upload_parsed_tcb_levels_batch | #1 | 3,087,578 |
-| upload_parsed_tcb_levels_batch | #2 | 2,908,021 |
-| upload_parsed_tdx_module_identities_batch | #1 | 1,000,860 |
-| finalize_async_upsert | #1 | 1,649,797 |
+| Check | Value |
+| --- | --- |
+| First raw hash | 0xfc00320cde98fc0abadebb7906c94ac5715aeeab621d0b1c3d0096cd7ca4f7fb |
+| Second raw hash | 0x09b35908060300457a9022427c224d8c02f56b6d30ac50099aa36a64e8a613be |
+| Overwrite check | Second async upsert overwrote the first result |
+| Router-served content hash | 0x2f41e997bed8656b1004b828f85ff4b865e147363f0bc0623195d878927d3c3e |
+| Quote verification | verifyAndAttestOnChain returned success=true |
+
+TDX deploy and router config transactions
+
+| Stage | Transaction | Tx hash | Gas |
+| --- | --- | --- | ---: |
+| Deploy helper | FmspcTcbHelperV2 create | 0x8d0425e35ced2204fef2097c3dacb77004b145ede060434aab6451e8aece97f8 | 2,669,869 |
+| Deploy storage | AutomataDaoStorageV2 create | 0x5a54a0f48e08fa1384e8b0345e8b0eb5ecfe63f1debf617ee484ae37ca4cbf88 | 1,658,299 |
+| Deploy storage | AutomataDaoStorageV2 grantDao(address) | 0x7e2c2d2117919963b85a5b6445dac914f38bb6956757fab554f8d853bbb87464 | 47,277 |
+| Deploy DAO | AutomataFmspcTcbDaoVersionedV2 create | 0xe95332abc8441d736400141ea8d34982a8296a3119783056de024c3cf8bc358f | 5,362,504 |
+| Config | StorageV2 grant DAO writer | 0x9ac1eca75eaa78d91afda5e48bbc388022b720aa0138aeea3dd71e11df967209 | 47,353 |
+| Config | DAO grant attester role | 0x6235f1e07e80d8b49524802838a04286bc3058e0f072dc2f87b6e5bc5fb209d6 | 47,703 |
+| Router config | authorize PCCS Storage | 0xf9c409a85181f9ad71767ba0ecc431a920d91a55929af60bd9abdb1cba34b85a | 27,643 |
+| Router config | authorize PCCS StorageV2 | 0x99efdbdd94be8934d3f8a80711daf37b7535838909450f8a91c3fa28bc8ca00a | 47,620 |
+| Router config | updateVersionedDaoConfig tx 1 | 0x46ef3be6dcd8362196c187dd425ea6e95823415091d1471a899d2efc8f55a0b9 | 31,354 |
+| Router config | updateVersionedDaoConfig tx 2 | 0x8297077f3e4d50abaed05cd8eab73becc57fa63264aaad9e29cd2cd9b14f0a46 | 34,354 |
+
+TDX async upsert transactions - first/local snapshot
+
+| Function | Tx hash | Gas |
+| --- | --- | ---: |
+| start_async_upsert | 0xaa01ef8adaeba474ad78e427beb80045ac3bd0668a9b15a91d001889bd0a81e8 | 406,725 |
+| upload_basic_info | 0x2ec37431f8a50591879fbc4ce117829987d4c05061fca779b3e16aa98fc74590 | 902,500 |
+| upload_tcb_levels_batch_0_3 | 0xaa9d02be8498f8e3b2863852654cb8984a854609e6126366d6af53d82a2c270f | 4,081,929 |
+| upload_tcb_levels_batch_3_5 | 0xe1baf75cc6b166551315bcee329ed481130203db4d9c0c050ffb6f68d7225664 | 3,456,018 |
+| upload_tdx_module_identities_batch_0_2 | 0x7cc8cbf525af9732fe9c847293ca16253848f07c3c40c25e226c122636de23c2 | 1,220,210 |
+| finalize_async_upsert | 0x68bbd00dde4d0537bc658192ba7fdf4f05fa7db97bcf78236b4adfd0011b575f | 3,146,689 |
+
+TDX async upsert transactions - second/current Intel PCS
+
+| Function | Tx hash | Gas |
+| --- | --- | ---: |
+| start_async_upsert | 0x973618ae7a926dd84b46fdcfec5c4a67ca3c493c178e9f95cfa4ca6e969a316c | 406,725 |
+| upload_basic_info | 0xc6eb3bfed9051f1d8344c843f3070b6979f1078ac3f19df0b4f62c21f7b66583 | 902,573 |
+| upload_tcb_levels_batch_0_3 | 0xc53a3bb1463dfb31a2c74506e428e18826ebe63bdf10e031fe830b193cdc415b | 4,081,929 |
+| upload_tcb_levels_batch_3_5 | 0x78fdcbf1099b09843f0ef1c25be73199f1c7a8d07ae25bae25af33a9a6bd2ac6 | 3,456,018 |
+| upload_tdx_module_identities_batch_0_2 | 0xe5442d1e597e3c28f448e977be23140ae990d34e53afdaa43876a4061cbbb340 | 1,220,210 |
+| finalize_async_upsert | 0x6a6f7d5165d9b4a7e89c5ed691532b779dd203845ee0b86ae3a6c1c37d3e5b24 | 3,081,845 |
+
+TDX double-upsert result
+
+| Check | Value |
+| --- | --- |
+| First raw hash | 0xea5e36a2e1810f6f3b812609a35355e6ba3c7a67adc609886269a8411e0a96ce |
+| Second raw hash | 0xba7ee002e0f49c877f6ca5384ed04edc49ab8dc4af8d28b9db54011f1352bb6f |
+| Overwrite check | Second async upsert overwrote the first result |
+| Router-served content hash | 0x8a7e1c81df438b468a48e5d9c0cf3db240fa28aa940d6633cc51ca00a54851f5 |
+| Quote verification | verifyAndAttestOnChain returned success=true |
+
+Full FMSPC regression
+
+| Item | Value |
+| --- | --- |
+| Eval numbers | 19, 20, 21 |
+| Attempted rows | 153 |
+| Passed rows | 151 |
+| Per-row tx gas | logs/all-available-fmspc-summary.log lists every successful row's individual tx gas; the table below sums them by row and names the max-gas subtransaction |
+| Raw run log | logs/all-available-fmspc.log |
+
+Full FMSPC regression gas by row
+
+| EVAL | TEE | FMSPC | STATUS | TOTAL GAS | MAX SUBTX | MAX SUBTX GAS |
+| ---: | --- | --- | --- | ---: | --- | ---: |
+| 19 | SGX | 00606C040000 | OK | 19113418 | finalize_async_upsert | 4164268 |
+| 19 | SGX | 00906EC10000 | OK | 3295708 | finalize_async_upsert | 1251979 |
+| 19 | SGX | 00806F050000 | OK | 7817762 | upload_tcb_levels_batch_0_3 | 2492895 |
+| 19 | SGX | 00706E470000 | OK | 14748485 | finalize_async_upsert | 3140103 |
+| 19 | SGX | 00906EA10000 | OK | 24945472 | finalize_async_upsert | 4801889 |
+| 19 | SGX | 00906EA50000 | OK | 24951517 | finalize_async_upsert | 4807934 |
+| 19 | SGX | C0806F000000 | OK | 7531087 | upload_tcb_levels_batch_0_3 | 2492895 |
+| 19 | SGX | 00A06E050000 | OK | 3799126 | upload_tcb_levels_batch_0_2 | 1498420 |
+| 19 | SGX | 00A06D080000 | OK | 3779608 | upload_tcb_levels_batch_0_2 | 1475426 |
+| 19 | SGX | 20A06E050000 | FAIL | - | - | - |
+| 19 | SGX | 10A06F010000 | OK | 2931296 | finalize_async_upsert | 1222301 |
+| 19 | SGX | B0C06F000000 | OK | 5402082 | upload_tcb_levels_batch_0_3 | 2802815 |
+| 19 | SGX | 00606A000000 | OK | 18980696 | finalize_async_upsert | 4145732 |
+| 19 | SGX | 00806F000000 | OK | 7842543 | upload_tcb_levels_batch_0_3 | 2493886 |
+| 19 | SGX | 00906ED50000 | OK | 22350393 | finalize_async_upsert | 4384801 |
+| 19 | SGX | F0806F000000 | OK | 7379782 | upload_tcb_levels_batch_0_3 | 2493886 |
+| 19 | SGX | 00906EB10000 | OK | 24951047 | finalize_async_upsert | 4807464 |
+| 19 | SGX | 10A06D000000 | OK | 3778841 | upload_tcb_levels_batch_0_2 | 1475426 |
+| 19 | SGX | 00806EB70000 | OK | 3309565 | finalize_async_upsert | 1265836 |
+| 19 | SGX | 00A065510000 | OK | 13832936 | finalize_async_upsert | 2995203 |
+| 19 | SGX | 20A06D080000 | OK | 3805891 | upload_tcb_levels_batch_0_2 | 1498420 |
+| 19 | SGX | 90806F000000 | OK | 7845535 | upload_tcb_levels_batch_0_3 | 2493886 |
+| 19 | SGX | 30606A000000 | OK | 18978989 | finalize_async_upsert | 4144109 |
+| 19 | SGX | 00A067110000 | OK | 12925375 | finalize_async_upsert | 2832580 |
+| 19 | SGX | 20806EB70000 | OK | 23483481 | finalize_async_upsert | 4580405 |
+| 19 | SGX | 70A06D070000 | OK | 3769516 | upload_tcb_levels_batch_0_2 | 1475426 |
+| 19 | SGX | 50806F000000 | OK | 7814472 | upload_tcb_levels_batch_0_3 | 2492883 |
+| 19 | SGX | 00706A100000 | OK | 13379914 | upload_tcb_levels_batch_9_12 | 3132376 |
+| 19 | SGX | 30806F040000 | OK | 7842512 | upload_tcb_levels_batch_0_3 | 2493886 |
+| 19 | SGX | 60A06F000000 | OK | 4902980 | upload_tcb_levels_batch_0_3 | 2391566 |
+| 19 | SGX | 20A06F000000 | OK | 4901453 | upload_tcb_levels_batch_0_3 | 2391566 |
+| 19 | SGX | 20906EC10000 | OK | 23476751 | finalize_async_upsert | 4573723 |
+| 19 | SGX | 20606C040000 | OK | 17830107 | finalize_async_upsert | 3929073 |
+| 19 | SGX | 00706A800000 | OK | 9212131 | upload_tcb_levels_batch_6_9 | 2494124 |
+| 19 | SGX | 00906EC50000 | OK | 23477345 | finalize_async_upsert | 4574269 |
+| 19 | SGX | 00806EA60000 | OK | 24945081 | finalize_async_upsert | 4801486 |
+| 19 | SGX | 90C06F000000 | OK | 5402638 | upload_tcb_levels_batch_0_3 | 2802815 |
+| 19 | TDX | 10A06F010000 | OK | 5479202 | finalize_async_upsert | 1683644 |
+| 19 | TDX | 60A06F000000 | OK | 8595164 | upload_tcb_levels_batch_0_3 | 3768266 |
+| 19 | TDX | 20A06E050000 | FAIL | - | - | - |
+| 19 | TDX | C0806F000000 | OK | 12948261 | upload_tcb_levels_batch_0_3 | 4081929 |
+| 19 | TDX | 70A06D070000 | OK | 6887957 | upload_tcb_levels_batch_0_2 | 2393251 |
+| 19 | TDX | 20A06D080000 | OK | 6892271 | upload_tcb_levels_batch_0_2 | 2393919 |
+| 19 | TDX | 10A06D000000 | OK | 6906394 | upload_tcb_levels_batch_0_2 | 2393239 |
+| 19 | TDX | 00806F050000 | OK | 13221739 | upload_tcb_levels_batch_0_3 | 4081929 |
+| 19 | TDX | 20A06F000000 | OK | 8598655 | upload_tcb_levels_batch_0_3 | 3768254 |
+| 19 | TDX | 90C06F000000 | OK | 9223446 | upload_tcb_levels_batch_0_3 | 4284254 |
+| 19 | TDX | 50806F000000 | OK | 13219049 | upload_tcb_levels_batch_0_3 | 4081917 |
+| 19 | TDX | B0C06F000000 | OK | 9225686 | upload_tcb_levels_batch_0_3 | 4284254 |
+| 19 | TDX | 00A06D080000 | OK | 6889229 | upload_tcb_levels_batch_0_2 | 2393251 |
+| 19 | TDX | 00A06E050000 | OK | 6904319 | upload_tcb_levels_batch_0_2 | 2393919 |
+| 20 | SGX | 00606C040000 | OK | 19116508 | finalize_async_upsert | 4167358 |
+| 20 | SGX | 00906EC10000 | OK | 3303048 | finalize_async_upsert | 1259319 |
+| 20 | SGX | 00806F050000 | OK | 8874906 | upload_tcb_levels_batch_3_6 | 3245747 |
+| 20 | SGX | 00706E470000 | OK | 14745354 | finalize_async_upsert | 3136960 |
+| 20 | SGX | 00906EA10000 | OK | 24956832 | finalize_async_upsert | 4813237 |
+| 20 | SGX | 00906EA50000 | OK | 24945213 | finalize_async_upsert | 4801618 |
+| 20 | SGX | C0806F000000 | OK | 8600179 | upload_tcb_levels_batch_3_6 | 3021758 |
+| 20 | SGX | 00A06E050000 | OK | 3796323 | upload_tcb_levels_batch_0_2 | 1498420 |
+| 20 | SGX | 00A06D080000 | OK | 4838472 | upload_tcb_levels_batch_0_3 | 2334492 |
+| 20 | SGX | 20A06E050000 | OK | 3801790 | upload_tcb_levels_batch_0_2 | 1498420 |
+| 20 | SGX | 10A06F010000 | OK | 2928867 | finalize_async_upsert | 1219872 |
+| 20 | SGX | B0C06F000000 | OK | 6492778 | upload_tcb_levels_batch_0_3 | 2379151 |
+| 20 | SGX | 00606A000000 | OK | 18971735 | finalize_async_upsert | 4136771 |
+| 20 | SGX | 00806F000000 | OK | 8901552 | upload_tcb_levels_batch_3_6 | 3246776 |
+| 20 | SGX | 00906ED50000 | OK | 22360110 | finalize_async_upsert | 4394506 |
+| 20 | SGX | F0806F000000 | OK | 8431955 | upload_tcb_levels_batch_3_6 | 2874803 |
+| 20 | SGX | 00906EB10000 | OK | 24946728 | finalize_async_upsert | 4803133 |
+| 20 | SGX | 10A06D000000 | OK | 4840237 | upload_tcb_levels_batch_0_3 | 2334492 |
+| 20 | SGX | 00806EB70000 | OK | 3312445 | finalize_async_upsert | 1268716 |
+| 20 | SGX | 00A065510000 | OK | 13824627 | finalize_async_upsert | 2986906 |
+| 20 | SGX | 20A06D080000 | OK | 4840154 | upload_tcb_levels_batch_0_3 | 2335480 |
+| 20 | SGX | 90806F000000 | OK | 8902270 | upload_tcb_levels_batch_3_6 | 3246776 |
+| 20 | SGX | 30606A000000 | OK | 18977894 | finalize_async_upsert | 4142930 |
+| 20 | SGX | 00A067110000 | OK | 12921864 | finalize_async_upsert | 2829081 |
+| 20 | SGX | 20806EB70000 | OK | 23480708 | finalize_async_upsert | 4577632 |
+| 20 | SGX | 70A06D070000 | OK | 4826601 | upload_tcb_levels_batch_0_3 | 2334492 |
+| 20 | SGX | 50806F000000 | OK | 8876038 | upload_tcb_levels_batch_3_6 | 3245759 |
+| 20 | SGX | 00706A100000 | OK | 13382780 | upload_tcb_levels_batch_9_12 | 3132352 |
+| 20 | SGX | 30806F040000 | OK | 8901596 | upload_tcb_levels_batch_3_6 | 3246764 |
+| 20 | SGX | 60A06F000000 | OK | 6141464 | upload_tcb_levels_batch_0_3 | 2437184 |
+| 20 | SGX | 20A06F000000 | OK | 6118331 | upload_tcb_levels_batch_0_3 | 2437184 |
+| 20 | SGX | 20906EC10000 | OK | 23486859 | finalize_async_upsert | 4583891 |
+| 20 | SGX | 20606C040000 | OK | 17830082 | finalize_async_upsert | 3929048 |
+| 20 | SGX | 00706A800000 | OK | 9224931 | upload_tcb_levels_batch_6_9 | 2494136 |
+| 20 | SGX | 00906EC50000 | OK | 23477450 | finalize_async_upsert | 4574482 |
+| 20 | SGX | 00806EA60000 | OK | 24952777 | finalize_async_upsert | 4809182 |
+| 20 | SGX | 90C06F000000 | OK | 6487379 | upload_tcb_levels_batch_0_3 | 2379151 |
+| 20 | TDX | 10A06F010000 | OK | 6047029 | finalize_async_upsert | 1821576 |
+| 20 | TDX | 60A06F000000 | OK | 11247887 | upload_tcb_levels_batch_0_3 | 3965238 |
+| 20 | TDX | 20A06E050000 | OK | 7455937 | upload_tcb_levels_batch_0_2 | 2393919 |
+| 20 | TDX | C0806F000000 | OK | 15661145 | upload_tcb_levels_batch_3_6 | 5030101 |
+| 20 | TDX | 70A06D070000 | OK | 9247782 | upload_tcb_levels_batch_0_3 | 3837377 |
+| 20 | TDX | 20A06D080000 | OK | 9276116 | upload_tcb_levels_batch_0_3 | 3838441 |
+| 20 | TDX | 10A06D000000 | OK | 9255451 | upload_tcb_levels_batch_0_3 | 3837365 |
+| 20 | TDX | 00806F050000 | OK | 15968013 | upload_tcb_levels_batch_3_6 | 5295219 |
+| 20 | TDX | 20A06F000000 | OK | 11243022 | upload_tcb_levels_batch_0_3 | 3965238 |
+| 20 | TDX | 90C06F000000 | OK | 11769678 | upload_tcb_levels_batch_0_3 | 3964950 |
+| 20 | TDX | 50806F000000 | OK | 15964608 | upload_tcb_levels_batch_3_6 | 5295219 |
+| 20 | TDX | B0C06F000000 | OK | 11784279 | upload_tcb_levels_batch_0_3 | 3964950 |
+| 20 | TDX | 00A06D080000 | OK | 9251219 | upload_tcb_levels_batch_0_3 | 3837377 |
+| 20 | TDX | 00A06E050000 | OK | 7451277 | upload_tcb_levels_batch_0_2 | 2393919 |
+| 21 | SGX | 00606C040000 | OK | 19112315 | finalize_async_upsert | 4163249 |
+| 21 | SGX | 00906EC10000 | OK | 3303990 | finalize_async_upsert | 1260261 |
+| 21 | SGX | 00806F050000 | OK | 8859628 | upload_tcb_levels_batch_3_6 | 3245759 |
+| 21 | SGX | 00706E470000 | OK | 14746988 | finalize_async_upsert | 3138594 |
+| 21 | SGX | 00906EA10000 | OK | 24951427 | finalize_async_upsert | 4807832 |
+| 21 | SGX | 00906EA50000 | OK | 24955723 | finalize_async_upsert | 4812128 |
+| 21 | SGX | C0806F000000 | OK | 8606519 | upload_tcb_levels_batch_3_6 | 3021758 |
+| 21 | SGX | 00A06E050000 | OK | 3800485 | upload_tcb_levels_batch_0_2 | 1498420 |
+| 21 | SGX | 00A06D080000 | OK | 4834730 | upload_tcb_levels_batch_0_3 | 2334480 |
+| 21 | SGX | 20A06E050000 | OK | 3799029 | upload_tcb_levels_batch_0_2 | 1498420 |
+| 21 | SGX | 10A06F010000 | OK | 2942371 | finalize_async_upsert | 1233376 |
+| 21 | SGX | B0C06F000000 | OK | 6487041 | upload_tcb_levels_batch_0_3 | 2379151 |
+| 21 | SGX | 00606A000000 | OK | 18970471 | finalize_async_upsert | 4135507 |
+| 21 | SGX | 00806F000000 | OK | 8900161 | upload_tcb_levels_batch_3_6 | 3246776 |
+| 21 | SGX | 00906ED50000 | OK | 22360073 | finalize_async_upsert | 4394469 |
+| 21 | SGX | F0806F000000 | OK | 8433045 | upload_tcb_levels_batch_3_6 | 2874791 |
+| 21 | SGX | 00906EB10000 | OK | 24946086 | finalize_async_upsert | 4802491 |
+| 21 | SGX | 10A06D000000 | OK | 4840980 | upload_tcb_levels_batch_0_3 | 2334492 |
+| 21 | SGX | 00806EB70000 | OK | 3292956 | finalize_async_upsert | 1249227 |
+| 21 | SGX | 00A065510000 | OK | 13826606 | finalize_async_upsert | 2988957 |
+| 21 | SGX | 20A06D080000 | OK | 4841469 | upload_tcb_levels_batch_0_3 | 2335480 |
+| 21 | SGX | 90806F000000 | OK | 8902987 | upload_tcb_levels_batch_3_6 | 3246776 |
+| 21 | SGX | 30606A000000 | OK | 18981503 | finalize_async_upsert | 4146563 |
+| 21 | SGX | 00A067110000 | OK | 12918980 | finalize_async_upsert | 2826185 |
+| 21 | SGX | 20806EB70000 | OK | 23485571 | finalize_async_upsert | 4582495 |
+| 21 | SGX | 70A06D070000 | OK | 4842209 | upload_tcb_levels_batch_0_3 | 2334492 |
+| 21 | SGX | 50806F000000 | OK | 8876197 | upload_tcb_levels_batch_3_6 | 3245759 |
+| 21 | SGX | 00706A100000 | OK | 13383258 | upload_tcb_levels_batch_9_12 | 3132376 |
+| 21 | SGX | 30806F040000 | OK | 8900897 | upload_tcb_levels_batch_3_6 | 3246776 |
+| 21 | SGX | 60A06F000000 | OK | 6131155 | upload_tcb_levels_batch_0_3 | 2437184 |
+| 21 | SGX | 20A06F000000 | OK | 6131561 | upload_tcb_levels_batch_0_3 | 2437184 |
+| 21 | SGX | 20906EC10000 | OK | 23473626 | finalize_async_upsert | 4570550 |
+| 21 | SGX | 20606C040000 | OK | 17834846 | finalize_async_upsert | 3933824 |
+| 21 | SGX | 00706A800000 | OK | 9210702 | upload_tcb_levels_batch_6_9 | 2494136 |
+| 21 | SGX | 00906EC50000 | OK | 23485562 | finalize_async_upsert | 4582486 |
+| 21 | SGX | 00806EA60000 | OK | 24952947 | finalize_async_upsert | 4809352 |
+| 21 | SGX | 90C06F000000 | OK | 6494682 | upload_tcb_levels_batch_0_3 | 2379151 |
+| 21 | TDX | 10A06F010000 | OK | 6621204 | upload_tdx_module_identities_batch_0_2 | 2086171 |
+| 21 | TDX | 60A06F000000 | OK | 11843977 | upload_tcb_levels_batch_0_3 | 3965238 |
+| 21 | TDX | 20A06E050000 | OK | 8027190 | upload_tcb_levels_batch_0_2 | 2393919 |
+| 21 | TDX | C0806F000000 | OK | 16235495 | upload_tcb_levels_batch_3_6 | 5030101 |
+| 21 | TDX | 70A06D070000 | OK | 9844048 | upload_tcb_levels_batch_0_3 | 3859736 |
+| 21 | TDX | 20A06D080000 | OK | 9837386 | upload_tcb_levels_batch_0_3 | 3860800 |
+| 21 | TDX | 10A06D000000 | OK | 9848974 | upload_tcb_levels_batch_0_3 | 3859736 |
+| 21 | TDX | 00806F050000 | OK | 16530961 | upload_tcb_levels_batch_3_6 | 5295219 |
+| 21 | TDX | 20A06F000000 | OK | 11834299 | upload_tcb_levels_batch_0_3 | 3965238 |
+| 21 | TDX | 90C06F000000 | OK | 12359039 | upload_tcb_levels_batch_0_3 | 3964950 |
+| 21 | TDX | 50806F000000 | OK | 16534973 | upload_tcb_levels_batch_3_6 | 5295219 |
+| 21 | TDX | B0C06F000000 | OK | 12354212 | upload_tcb_levels_batch_0_3 | 3964950 |
+| 21 | TDX | 00A06D080000 | OK | 9846666 | upload_tcb_levels_batch_0_3 | 3859736 |
+| 21 | TDX | 00A06E050000 | OK | 8022882 | upload_tcb_levels_batch_0_2 | 2393907 |
+
+Regression failures recorded in logs/all-available-fmspc.log:
+- eval=19 SGX 20A06E050000: Intel PCS returned 404 Not Found.
+- eval=19 TDX 20A06E050000: Intel PCS returned 404 Not Found.
+
+Targeted rerun recorded in logs/all-available-fmspc.log:
+- eval=19 SGX 00606A000000: OK after rerun on 2026-05-26.
+- Gas: start_async_upsert=406725, upload_basic_info=493169, upload_tcb_levels_batch_0_3=2292872, upload_tcb_levels_batch_3_6=2467820, upload_tcb_levels_batch_6_9=2687401, upload_tcb_levels_batch_9_12=2926379, upload_tcb_levels_batch_12_15=3560598, finalize_async_upsert=4145732.
 
 Runtime code size check
 
 | Repo | Contract | Runtime Size (B) | Runtime Margin (B) | Status |
 | --- | --- | ---: | ---: | --- |
-| automata-on-chain-pccs | FmspcTcbHelperV2 | 16,172 | 8,404 | OK |
-| automata-on-chain-pccs | AutomataDaoStorageV2 | 5,707 | 18,869 | OK |
-| automata-on-chain-pccs | AutomataFmspcTcbDaoVersionedV2 | 18,906 | 5,670 | OK |
+| automata-on-chain-pccs | FmspcTcbHelperV2 | 12,104 | 12,472 | OK |
+| automata-on-chain-pccs | AutomataDaoStorageV2 | 7,068 | 17,508 | OK |
+| automata-on-chain-pccs | AutomataFmspcTcbDaoVersionedV2 | 23,926 | 650 | OK |
 | automata-dcap-attestation/evm | PCCSRouter | 13,475 | 11,101 | OK |
 | automata-dcap-attestation/evm | AutomataDcapAttestationFee | 9,263 | 15,313 | OK |
 | automata-dcap-attestation/evm | V3QuoteVerifier | 17,844 | 6,732 | OK |
@@ -74,4 +302,5 @@ Runtime code size check
 
 Size check result:
 - All listed runtime code sizes are below 24,576 bytes.
-- V5QuoteVerifier is the closest to the EIP-170 limit, with 417 bytes of runtime margin.
+- AutomataFmspcTcbDaoVersionedV2 has 650 bytes of runtime margin.
+- V5QuoteVerifier has 417 bytes of runtime margin.

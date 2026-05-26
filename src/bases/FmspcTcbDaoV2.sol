@@ -1,91 +1,128 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {LibString} from "solady/utils/LibString.sol";
+
 import {FmspcTcbDao} from "./FmspcTcbDao.sol";
 import {AutomataDaoStorageV2} from "../automata_pccs/shared/AutomataDaoStorageV2.sol";
 import {FmspcTcbHelperV2} from "../helpers/FmspcTcbHelperV2.sol";
+import {DateTimeUtils} from "../utils/DateTimeUtils.sol";
 
 import {CA} from "../Common.sol";
-import {
-    TcbInfoJsonObj,
-    TcbId,
-    TcbInfoBasic,
-    TDXModule
-} from "../helpers/FmspcTcbHelper.sol";
+import {TcbInfoJsonObj, TcbId, TcbInfoBasic, TDXModule} from "../helpers/FmspcTcbHelper.sol";
 
 /**
  * @title FMSPC TCB Data Access Object V2
- * @notice Splits FMSPC TCBInfo upserts into async upload, parse, range-verified batch
- * upload, and finalize stages. V2 closes the original async consistency hole by requiring
- * the offchain worker to submit byte ranges into the Intel-signed raw JSON and by verifying
- * each packed level / identity with byte-exact reverse serialization before it can be used.
+ * @notice Optimized async TCBInfo upsert. Off-chain workers upload typed fields plus
+ * source-order metadata; the DAO rebuilds the Intel-signed raw JSON while storing the
+ * packed representation required by legacy readers. Finalization verifies the rebuilt raw
+ * against Intel's signature, so no on-chain JSON parser or raw-slice round-trip serializer is
+ * needed.
  */
 abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
     FmspcTcbHelperV2 public FmspcTcbLibV2;
+
+    uint8 public constant ASYNC_UPSERT_PROTOCOL_VERSION = 2;
 
     bytes32 private constant RAW_REF_TAG = keccak256("fmspcTcb.raw");
     bytes32 private constant HASH_REF_TAG = keccak256("fmspcTcb.hash");
     bytes32 private constant ISSUE_EVAL_REF_TAG = keccak256("fmspcTcb.issueEvaluation");
     bytes32 private constant CONTENT_HASH_REF_TAG = keccak256("fmspcTcb.contentHash");
-    bytes32 private constant SGX_COMPONENTS_TEMPLATE_TAG = keccak256("fmspcTcb.sgxComponentsTemplate.v2");
-    bytes32 private constant TDX_COMPONENTS_TEMPLATE_TAG = keccak256("fmspcTcb.tdxComponentsTemplate.v2");
     bytes32 private constant VERIFIED_LEVELS_REF_TAG = keccak256("fmspcTcb.verifiedLevels.v2");
     bytes32 private constant VERIFIED_IDENTITIES_REF_TAG = keccak256("fmspcTcb.verifiedIdentities.v2");
+
+    uint8 private constant FIELD_ID = 0;
+    uint8 private constant FIELD_VERSION = 1;
+    uint8 private constant FIELD_ISSUE_DATE = 2;
+    uint8 private constant FIELD_NEXT_UPDATE = 3;
+    uint8 private constant FIELD_FMSPC = 4;
+    uint8 private constant FIELD_PCEID = 5;
+    uint8 private constant FIELD_TCB_TYPE = 6;
+    uint8 private constant FIELD_EVAL_NUMBER = 7;
+    uint8 private constant FIELD_TDX_MODULE = 8;
+    uint8 private constant FIELD_TDX_IDENTITIES = 9;
+    uint8 private constant FIELD_TCB_LEVELS = 10;
+    uint8 private constant TOP_FIELD_COUNT = 11;
 
     error Use_Async_Upsert();
     error Async_Upsert_Not_Started();
     error Async_Upsert_Finalized();
     error Async_Upsert_Incomplete();
     error Async_Upsert_Invalid_Range();
+    error Async_Upsert_Invalid_Order();
+    error Async_Upsert_Invalid_Length();
     error Async_Upsert_Invalid_Attestation_Id();
     error Async_Upsert_Missing_Signature();
-    error V2_Template_Missing();
-    error V2_Template_Already_Set();
-    error V2_Level_Adjacency_Mismatch();
-    error V2_Identity_Adjacency_Mismatch();
+    error TCBInfo_Invalid();
 
     struct AsyncRefs {
         bytes32 raw;
         bytes32 hash;
         bytes32 issueEvaluation;
         bytes32 contentHash;
+        bytes32 levels;
+        bytes32 identities;
     }
 
-    struct AsyncUpsertState {
-        bool started;
-        bool basicParsed;
-        bool finalized;
-        bytes32 tcbKey;
-        bytes32 rawHash;
-        bytes32 contentHash;
-        uint256 totalLevels;
-        uint256 parsedLevels;
-        uint256 totalModuleIdentities;
-        uint256 parsedModuleIdentities;
-        uint256 moduleIdentitiesCursor;
-        TcbInfoBasic basic;
-        TDXModule module;
-        bytes signature;
-        AsyncRefs refs;
-    }
-
-    mapping(bytes32 rootRefId => AsyncUpsertState state) internal _asyncUpserts;
-    mapping(bytes32 tcbKey => bytes32 rootRefId) internal _finalizedAsyncRoots;
-    mapping(bytes32 rootRefId => bool uploaded) internal _templateUploaded;
-
-    struct V2RefState {
+    struct RawRanges {
         uint32 tcbLevelsArrayStart;
         uint32 tcbLevelsArrayEnd;
         uint32 tdxIdentitiesArrayStart;
         uint32 tdxIdentitiesArrayEnd;
-        uint32 expectedNextLevelByteStart;
-        uint32 expectedNextIdentityByteStart;
         uint32 tdxModuleObjStart;
         uint32 tdxModuleObjEnd;
-        bool rangesParsed;
     }
 
-    mapping(bytes32 rootRefId => V2RefState state) internal _v2RefState;
+    struct AsyncUpsertState {
+        bool started;
+        bool basicUploaded;
+        bool finalized;
+        bytes32 tcbKey;
+        bytes32 rawHash;
+        bytes32 contentHash;
+        uint32 rawLength;
+        uint32 totalLevels;
+        uint32 parsedLevels;
+        uint32 totalModuleIdentities;
+        uint32 parsedModuleIdentities;
+        uint256 levelsStreamCursor;
+        uint256 identitiesStreamCursor;
+        TcbInfoBasic basic;
+        TDXModule module;
+        bytes signature;
+        AsyncRefs refs;
+        RawRanges ranges;
+    }
+
+    struct BasicInput {
+        uint32[TOP_FIELD_COUNT] offsets;
+        uint32 tcbLevelsArrayStart;
+        uint32 tcbLevelsArrayEnd;
+        uint32 tcbLevelsCount;
+        uint32 tdxIdentitiesArrayStart;
+        uint32 tdxIdentitiesArrayEnd;
+        uint32 tdxIdentitiesCount;
+        uint32 tdxModuleObjStart;
+        uint32 tdxModuleObjEnd;
+        uint32 levelsStreamLength;
+        uint32 identitiesStreamLength;
+        uint8 id;
+        uint32 version;
+        bytes20 issueDateRaw;
+        bytes20 nextUpdateRaw;
+        bytes12 fmspcHex;
+        bytes4 pceidHex;
+        uint8 tcbType;
+        uint32 evaluationDataNumber;
+        bool hasTdxModule;
+        bytes moduleOrder;
+        bytes moduleMrsignerHex;
+        bytes moduleAttributesHex;
+        bytes moduleAttributesMaskHex;
+    }
+
+    mapping(bytes32 rootRefId => AsyncUpsertState state) internal _asyncUpserts;
+    mapping(bytes32 tcbKey => bytes32 rootRefId) internal _finalizedAsyncRoots;
 
     constructor(
         address _resolver,
@@ -99,191 +136,146 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         FmspcTcbLibV2 = FmspcTcbHelperV2(_fmspcHelperV2);
     }
 
+    function asyncUpsertProtocolVersion() external pure returns (uint8) {
+        return ASYNC_UPSERT_PROTOCOL_VERSION;
+    }
+
     function upsertFmspcTcb(TcbInfoJsonObj calldata) external pure virtual override returns (bytes32) {
         revert Use_Async_Upsert();
     }
 
-    function startAsyncUpsert(bytes32 refId, bytes calldata signature) external virtual {
+    function startAsyncUpsert(bytes32 refId, bytes calldata signature, uint32 rawLength) external virtual {
         _authorizeAsyncUpsert();
-        _startAsyncUpsert(refId);
-        _asyncUpserts[refId].signature = signature;
-    }
+        if (signature.length == 0) revert Async_Upsert_Missing_Signature();
+        if (rawLength <= 31) revert Async_Upsert_Invalid_Length();
 
-    function uploadChunkData(bytes32 refId, bytes calldata chunkData) external virtual {
-        _authorizeAsyncUpsert();
-        _uploadChunkData(refId, chunkData);
-    }
+        AsyncUpsertState storage state = _asyncUpserts[refId];
+        if (state.started) revert Async_Upsert_Finalized();
 
-    /// @notice Bundled setup: extract basics + scan both array ranges in one tx. Convenient
-    /// for smaller raws. For production and larger Intel payloads, prefer the staged trio
-    /// `commitBasicsExtract` -> `commitTcbLevelsRange` -> `commitTdxIdentitiesRange`.
-    function commitBasicsV2(bytes32 refId) external virtual {
-        AsyncUpsertState storage state = _enterAsync(refId);
-        _ensureRangesParsedV2(refId, state);
-    }
-
-    /// @notice Stage 1: parse the fixed top-level fields, raw hash, tcb key, and optional TDX module.
-    function commitBasicsExtract(bytes32 refId) external virtual {
-        AsyncUpsertState storage state = _enterAsync(refId);
-        _ensureBasicParsed(refId, state);
-    }
-
-    /// @notice Stage 2: scan the signed raw JSON for the top-level `tcbLevels` byte range.
-    function commitTcbLevelsRange(bytes32 refId) external virtual {
-        AsyncUpsertState storage state = _enterAsync(refId);
-        _ensureBasicParsed(refId, state);
-        V2RefState storage rs = _v2RefState[refId];
-        if (rs.tcbLevelsArrayEnd == 0) {
-            _scanTcbLevelsRange(refId, state, rs);
-        }
-        if (state.basic.id != TcbId.TDX) {
-            rs.rangesParsed = true;
-        }
-    }
-
-    /// @notice Stage 3 for TDX payloads: scan the `tdxModuleIdentities` byte range.
-    function commitTdxIdentitiesRange(bytes32 refId) external virtual {
-        AsyncUpsertState storage state = _enterAsync(refId);
-        _ensureBasicParsed(refId, state);
-        if (state.basic.id != TcbId.TDX) revert Async_Upsert_Invalid_Range();
-        V2RefState storage rs = _v2RefState[refId];
-        if (rs.tdxIdentitiesArrayEnd == 0) {
-            _scanTdxIdentitiesRange(refId, state, rs);
-        }
-        rs.rangesParsed = true;
-    }
-
-    function uploadComponentsTemplate(
-        bytes32 refId,
-        bytes calldata sgxComponentsTemplate,
-        bytes calldata tdxComponentsTemplate
-    ) external virtual {
-        _enterAsync(refId);
-        if (_templateUploaded[refId]) revert V2_Template_Already_Set();
-        if (sgxComponentsTemplate.length == 0) revert V2_Template_Missing();
+        state.started = true;
+        state.rawLength = rawLength;
+        state.signature = signature;
+        state.refs = AsyncRefs({
+            raw: _deriveRefId(refId, RAW_REF_TAG),
+            hash: _deriveRefId(refId, HASH_REF_TAG),
+            issueEvaluation: _deriveRefId(refId, ISSUE_EVAL_REF_TAG),
+            contentHash: _deriveRefId(refId, CONTENT_HASH_REF_TAG),
+            levels: _deriveRefId(refId, VERIFIED_LEVELS_REF_TAG),
+            identities: _deriveRefId(refId, VERIFIED_IDENTITIES_REF_TAG)
+        });
 
         AutomataDaoStorageV2 storageV2 = _storageV2();
-        bytes32 sgxRef = _deriveRefId(refId, SGX_COMPONENTS_TEMPLATE_TAG);
-        storageV2.startAsync(sgxRef);
-        storageV2.appendAttestation(sgxRef, sgxComponentsTemplate);
-        if (tdxComponentsTemplate.length > 0) {
-            bytes32 tdxRef = _deriveRefId(refId, TDX_COMPONENTS_TEMPLATE_TAG);
-            storageV2.startAsync(tdxRef);
-            storageV2.appendAttestation(tdxRef, tdxComponentsTemplate);
-        }
-        _templateUploaded[refId] = true;
+        storageV2.startAsyncWithLength(state.refs.raw, rawLength);
+        storageV2.startAsync(state.refs.hash);
+        storageV2.startAsync(state.refs.issueEvaluation);
+        storageV2.startAsync(state.refs.contentHash);
     }
 
-    /// @notice Submit a pre-encoded batch of TCB levels with byte-ranges into the signed raw.
-    /// `batchStream` shape:
-    /// (uint32 packedLength, bytes packedLevel, uint32 byteStart, uint32 byteEnd, bytes20 rawTcbDate)*
-    function uploadParsedTcbLevelsBatch(
-        bytes32 refId,
-        uint256 start,
-        uint256 itemCount,
-        bytes calldata batchStream
-    )
+    function uploadBasicInfo(bytes32 refId, bytes calldata basicPayload, bytes calldata topLevelOrder)
+        external
+        virtual
+    {
+        AsyncUpsertState storage state = _enterAsync(refId);
+        if (state.basicUploaded) revert Async_Upsert_Invalid_Range();
+        if (topLevelOrder.length != TOP_FIELD_COUNT) revert Async_Upsert_Invalid_Order();
+
+        BasicInput memory input = _decodeBasicInput(basicPayload);
+        _validateTopOrder(input, topLevelOrder);
+        _storeBasicState(state, input);
+        _writeBasicRaw(state, input, topLevelOrder);
+
+        AutomataDaoStorageV2 storageV2 = _storageV2();
+        storageV2.startAsyncWithLength(state.refs.levels, input.levelsStreamLength);
+        if (input.identitiesStreamLength > 0) {
+            storageV2.startAsyncWithLength(state.refs.identities, input.identitiesStreamLength);
+        }
+
+        state.basicUploaded = true;
+    }
+
+    function uploadTcbLevelsBatch(bytes32 refId, uint256 start, uint256 itemCount, bytes calldata payload)
         external
         virtual
         returns (uint256 parsed, uint256 total, bool complete)
     {
-        AsyncUpsertState storage state = _enterAsync(refId);
-        _ensureRangesParsedV2(refId, state);
-        if (state.basic.version >= 3 && !_templateUploaded[refId]) revert V2_Template_Missing();
+        AsyncUpsertState storage state = _enterUploadedAsync(refId);
         if (start != state.parsedLevels) revert Async_Upsert_Invalid_Range();
-        if (itemCount == 0 || batchStream.length == 0) revert Async_Upsert_Invalid_Range();
+        if (itemCount == 0) revert Async_Upsert_Invalid_Range();
 
-        V2RefState storage rs = _v2RefState[refId];
-        bytes memory packedStream;
-        uint32 nextExpectedByteStart;
-        {
-            bytes memory raw = _storageV2().readRef(state.refs.raw);
-            bytes memory sgxTpl = _readTemplate(refId, SGX_COMPONENTS_TEMPLATE_TAG);
-            bytes memory tdxTpl =
-                (state.basic.id == TcbId.TDX) ? _readTemplate(refId, TDX_COMPONENTS_TEMPLATE_TAG) : bytes("");
-            (packedStream, nextExpectedByteStart) = FmspcTcbLibV2.verifyAndExtractLevels(
-                batchStream,
-                raw,
-                sgxTpl,
-                tdxTpl,
-                uint8(state.basic.version),
-                state.basic.id == TcbId.TDX,
-                rs.expectedNextLevelByteStart,
-                rs.tcbLevelsArrayEnd,
-                itemCount
+        FmspcTcbHelperV2.AsyncBuiltItem[] memory items =
+            FmspcTcbLibV2.buildAsyncTcbLevelsBatch(state.basic.version, payload, itemCount);
+        if (items.length != itemCount) revert TCBInfo_Invalid();
+        AutomataDaoStorageV2 storageV2 = _storageV2();
+        for (uint256 i = 0; i < itemCount; i++) {
+            uint256 globalIndex = start + i;
+            state.levelsStreamCursor = _writeBuiltItem(
+                storageV2,
+                state.refs.raw,
+                state.refs.levels,
+                state.levelsStreamCursor,
+                items[i],
+                globalIndex,
+                state.ranges.tcbLevelsArrayEnd
             );
+            state.parsedLevels++;
         }
-        rs.expectedNextLevelByteStart = nextExpectedByteStart;
-        _storageV2().appendAttestation(_deriveRefId(refId, VERIFIED_LEVELS_REF_TAG), packedStream);
 
-        state.parsedLevels += itemCount;
         parsed = itemCount;
         total = state.totalLevels;
         complete = _parseComplete(state);
     }
 
-    function uploadParsedTdxModuleIdentitiesBatch(
-        bytes32 refId,
-        uint256 start,
-        uint256 itemCount,
-        bytes calldata batchStream
-    )
+    function uploadTdxModuleIdentitiesBatch(bytes32 refId, uint256 start, uint256 itemCount, bytes calldata payload)
         external
         virtual
         returns (uint256 parsed, uint256 total, bool complete)
     {
-        AsyncUpsertState storage state = _enterAsync(refId);
-        _ensureRangesParsedV2(refId, state);
+        AsyncUpsertState storage state = _enterUploadedAsync(refId);
         if (state.basic.id != TcbId.TDX) revert Async_Upsert_Invalid_Range();
         if (start != state.parsedModuleIdentities) revert Async_Upsert_Invalid_Range();
-        if (itemCount == 0 || batchStream.length == 0) revert Async_Upsert_Invalid_Range();
+        if (itemCount == 0) revert Async_Upsert_Invalid_Range();
 
-        V2RefState storage rs = _v2RefState[refId];
-        bytes memory packedStream;
-        uint32 nextExpectedByteStart;
-        {
-            bytes memory raw = _storageV2().readRef(state.refs.raw);
-            (packedStream, nextExpectedByteStart) = FmspcTcbLibV2.verifyAndExtractIdentities(
-                batchStream, raw, rs.expectedNextIdentityByteStart, rs.tdxIdentitiesArrayEnd, itemCount
+        FmspcTcbHelperV2.AsyncBuiltItem[] memory items =
+            FmspcTcbLibV2.buildAsyncTdxModuleIdentitiesBatch(payload, itemCount);
+        if (items.length != itemCount) revert TCBInfo_Invalid();
+        AutomataDaoStorageV2 storageV2 = _storageV2();
+        for (uint256 i = 0; i < itemCount; i++) {
+            uint256 globalIndex = start + i;
+            state.identitiesStreamCursor = _writeBuiltItem(
+                storageV2,
+                state.refs.raw,
+                state.refs.identities,
+                state.identitiesStreamCursor,
+                items[i],
+                globalIndex,
+                state.ranges.tdxIdentitiesArrayEnd
             );
+            state.parsedModuleIdentities++;
         }
-        rs.expectedNextIdentityByteStart = nextExpectedByteStart;
-        _storageV2().appendAttestation(_deriveRefId(refId, VERIFIED_IDENTITIES_REF_TAG), packedStream);
 
-        state.parsedModuleIdentities += itemCount;
         parsed = itemCount;
         total = state.totalModuleIdentities;
         complete = _parseComplete(state);
     }
 
     function finalizeAsyncUpsert(bytes32 attestationId, bytes32 refId) external virtual returns (bytes32) {
-        AsyncUpsertState storage state = _enterAsync(refId);
-        _ensureRangesParsedV2(refId, state);
+        AsyncUpsertState storage state = _enterUploadedAsync(refId);
         if (!_parseComplete(state)) revert Async_Upsert_Incomplete();
-        if (state.basic.version >= 3 && !_templateUploaded[refId]) revert V2_Template_Missing();
-        V2RefState storage rs = _v2RefState[refId];
-        if (rs.expectedNextLevelByteStart != rs.tcbLevelsArrayEnd) revert V2_Level_Adjacency_Mismatch();
-        if (
-            state.basic.id == TcbId.TDX && state.totalModuleIdentities > 0
-                && rs.expectedNextIdentityByteStart != rs.tdxIdentitiesArrayEnd
-        ) {
-            revert V2_Identity_Adjacency_Mismatch();
-        }
         return _finalizeAsyncUpsertCommon(attestationId, refId, state);
     }
 
-    function _finalizeAsyncUpsertCommon(
-        bytes32 attestationId,
-        bytes32 refId,
-        AsyncUpsertState storage state
-    ) internal returns (bytes32) {
+    function _finalizeAsyncUpsertCommon(bytes32 attestationId, bytes32 refId, AsyncUpsertState storage state)
+        internal
+        returns (bytes32)
+    {
         bytes32 expectedAttestationId = resolver.collateralPointer(state.tcbKey);
         if (attestationId != expectedAttestationId) revert Async_Upsert_Invalid_Attestation_Id();
 
         bytes memory raw = _storageV2().readRef(state.refs.raw);
-        bytes32 rawHash = sha256(raw);
-        if (rawHash != state.rawHash) revert Async_Upsert_Incomplete();
+        if (raw.length != state.rawLength) revert Async_Upsert_Incomplete();
 
+        bytes32 rawHash = sha256(raw);
+        state.rawHash = rawHash;
         _checkCollateralDuplicate(state.tcbKey, rawHash);
         _validateTcbInfoV2(string(raw), state.signature);
 
@@ -292,10 +284,10 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         }
         _checkTcbEvaluationData(state.tcbKey, state.basic);
 
-        (, string memory levelsJson, string memory moduleJson, string memory moduleIdentitiesJson) = _loadParseInputs(refId, state);
-        state.contentHash = FmspcTcbLib.generateFmspcTcbContentHash(
-            state.basic, levelsJson, moduleJson, moduleIdentitiesJson
-        );
+        (, string memory levelsJson, string memory moduleJson, string memory moduleIdentitiesJson) =
+            _loadParseInputsFromRaw(raw, state);
+        state.contentHash =
+            FmspcTcbLib.generateFmspcTcbContentHash(state.basic, levelsJson, moduleJson, moduleIdentitiesJson);
 
         _appendFinalRefs(state);
         _finalizeExternalRefs(refId, state);
@@ -337,13 +329,7 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
 
     function _storeFmspcTcbContentHash(bytes32, bytes32) internal virtual override {}
 
-    function _loadFmspcTcbContentHash(bytes32 tcbKey)
-        internal
-        view
-        virtual
-        override
-        returns (bytes32 contentHash)
-    {
+    function _loadFmspcTcbContentHash(bytes32 tcbKey) internal view virtual override returns (bytes32 contentHash) {
         bytes memory data = _fetchDataFromResolver(_computeContentHashKey(tcbKey), false);
         if (data.length > 0) {
             contentHash = bytes32(data);
@@ -352,104 +338,303 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
 
     function _authorizeAsyncUpsert() internal view virtual {}
 
-    function _startAsyncUpsert(bytes32 refId) internal {
-        AsyncUpsertState storage state = _asyncUpserts[refId];
-        if (state.started) revert Async_Upsert_Finalized();
+    function _decodeBasicInput(bytes calldata data) private pure returns (BasicInput memory input) {
+        uint256 cursor;
+        for (uint256 i = 0; i < TOP_FIELD_COUNT; i++) {
+            (input.offsets[i], cursor) = _readU32(data, cursor);
+        }
+        (input.tcbLevelsArrayStart, cursor) = _readU32(data, cursor);
+        (input.tcbLevelsArrayEnd, cursor) = _readU32(data, cursor);
+        (input.tcbLevelsCount, cursor) = _readU32(data, cursor);
+        (input.tdxIdentitiesArrayStart, cursor) = _readU32(data, cursor);
+        (input.tdxIdentitiesArrayEnd, cursor) = _readU32(data, cursor);
+        (input.tdxIdentitiesCount, cursor) = _readU32(data, cursor);
+        (input.tdxModuleObjStart, cursor) = _readU32(data, cursor);
+        (input.tdxModuleObjEnd, cursor) = _readU32(data, cursor);
+        (input.levelsStreamLength, cursor) = _readU32(data, cursor);
+        (input.identitiesStreamLength, cursor) = _readU32(data, cursor);
+        input.id = _readU8(data, cursor);
+        cursor++;
+        (input.version, cursor) = _readU32(data, cursor);
+        input.issueDateRaw = bytes20(data[cursor:cursor + 20]);
+        cursor += 20;
+        input.nextUpdateRaw = bytes20(data[cursor:cursor + 20]);
+        cursor += 20;
+        input.fmspcHex = bytes12(data[cursor:cursor + 12]);
+        cursor += 12;
+        input.pceidHex = bytes4(data[cursor:cursor + 4]);
+        cursor += 4;
+        input.tcbType = _readU8(data, cursor);
+        cursor++;
+        (input.evaluationDataNumber, cursor) = _readU32(data, cursor);
+        input.hasTdxModule = _readU8(data, cursor) != 0;
+        cursor++;
+        if (input.hasTdxModule) {
+            input.moduleOrder = data[cursor:cursor + 3];
+            cursor += 3;
+            input.moduleMrsignerHex = data[cursor:cursor + 96];
+            cursor += 96;
+            input.moduleAttributesHex = data[cursor:cursor + 16];
+            cursor += 16;
+            input.moduleAttributesMaskHex = data[cursor:cursor + 16];
+            cursor += 16;
+        }
+        if (cursor != data.length) revert TCBInfo_Invalid();
+    }
 
-        state.started = true;
-        state.refs = AsyncRefs({
-            raw: _deriveRefId(refId, RAW_REF_TAG),
-            hash: _deriveRefId(refId, HASH_REF_TAG),
-            issueEvaluation: _deriveRefId(refId, ISSUE_EVAL_REF_TAG),
-            contentHash: _deriveRefId(refId, CONTENT_HASH_REF_TAG)
+    function _validateTopOrder(BasicInput memory input, bytes calldata order) private pure {
+        _requireOrder(order);
+        if (input.version < 3 && uint8(order[FIELD_ID]) != 0) revert Async_Upsert_Invalid_Order();
+        if (input.hasTdxModule) {
+            if (uint8(order[FIELD_TDX_MODULE]) == 0 || uint8(order[FIELD_TDX_IDENTITIES]) == 0) {
+                revert Async_Upsert_Invalid_Order();
+            }
+        } else {
+            if (uint8(order[FIELD_TDX_MODULE]) != 0 || uint8(order[FIELD_TDX_IDENTITIES]) != 0) {
+                revert Async_Upsert_Invalid_Order();
+            }
+        }
+        if (uint8(order[FIELD_TCB_LEVELS]) == 0) revert Async_Upsert_Invalid_Order();
+    }
+
+    function _storeBasicState(AsyncUpsertState storage state, BasicInput memory input) private {
+        state.basic.id = input.id == 1 ? TcbId.TDX : TcbId.SGX;
+        state.basic.version = input.version;
+        state.basic.issueDate = _parseIso(input.issueDateRaw);
+        state.basic.nextUpdate = _parseIso(input.nextUpdateRaw);
+        state.basic.fmspc = bytes6(uint48(_parseHex(abi.encodePacked(input.fmspcHex))));
+        state.basic.pceid = bytes2(uint16(_parseHex(abi.encodePacked(input.pceidHex))));
+        state.basic.tcbType = input.tcbType;
+        state.basic.evaluationDataNumber = input.evaluationDataNumber;
+        state.tcbKey = FMSPC_TCB_KEY(uint8(state.basic.id), state.basic.fmspc, state.basic.version);
+
+        state.totalLevels = input.tcbLevelsCount;
+        state.totalModuleIdentities = input.tdxIdentitiesCount;
+        state.ranges = RawRanges({
+            tcbLevelsArrayStart: input.tcbLevelsArrayStart,
+            tcbLevelsArrayEnd: input.tcbLevelsArrayEnd,
+            tdxIdentitiesArrayStart: input.tdxIdentitiesArrayStart,
+            tdxIdentitiesArrayEnd: input.tdxIdentitiesArrayEnd,
+            tdxModuleObjStart: input.tdxModuleObjStart,
+            tdxModuleObjEnd: input.tdxModuleObjEnd
         });
 
+        if (input.hasTdxModule) {
+            state.module = TDXModule({
+                mrsigner: _hexDecode(input.moduleMrsignerHex),
+                attributes: bytes8(uint64(_parseHex(input.moduleAttributesHex))),
+                attributesMask: bytes8(uint64(_parseHex(input.moduleAttributesMaskHex)))
+            });
+        }
+    }
+
+    function _writeBasicRaw(AsyncUpsertState storage state, BasicInput memory input, bytes calldata order) private {
         AutomataDaoStorageV2 storageV2 = _storageV2();
-        storageV2.startAsync(state.refs.raw);
-        storageV2.startAsync(state.refs.hash);
-        storageV2.startAsync(state.refs.issueEvaluation);
-        storageV2.startAsync(state.refs.contentHash);
+        storageV2.writeAttestation(state.refs.raw, 0, bytes("{"));
+        storageV2.writeAttestation(state.refs.raw, state.rawLength - 1, bytes("}"));
 
-    }
+        if (input.version >= 3) {
+            _writeTopSegment(state, input.offsets[FIELD_ID], uint8(order[FIELD_ID]), _idSegment(state.basic.id));
+        }
+        _writeTopSegment(
+            state, input.offsets[FIELD_VERSION], uint8(order[FIELD_VERSION]), _kvUint("version", input.version)
+        );
+        _writeTopSegment(
+            state,
+            input.offsets[FIELD_ISSUE_DATE],
+            uint8(order[FIELD_ISSUE_DATE]),
+            _kvQuoted("issueDate", abi.encodePacked(input.issueDateRaw))
+        );
+        _writeTopSegment(
+            state,
+            input.offsets[FIELD_NEXT_UPDATE],
+            uint8(order[FIELD_NEXT_UPDATE]),
+            _kvQuoted("nextUpdate", abi.encodePacked(input.nextUpdateRaw))
+        );
+        _writeTopSegment(
+            state,
+            input.offsets[FIELD_FMSPC],
+            uint8(order[FIELD_FMSPC]),
+            _kvQuoted("fmspc", abi.encodePacked(input.fmspcHex))
+        );
+        _writeTopSegment(
+            state,
+            input.offsets[FIELD_PCEID],
+            uint8(order[FIELD_PCEID]),
+            _kvQuoted("pceId", abi.encodePacked(input.pceidHex))
+        );
+        _writeTopSegment(
+            state, input.offsets[FIELD_TCB_TYPE], uint8(order[FIELD_TCB_TYPE]), _kvUint("tcbType", input.tcbType)
+        );
+        _writeTopSegment(
+            state,
+            input.offsets[FIELD_EVAL_NUMBER],
+            uint8(order[FIELD_EVAL_NUMBER]),
+            _kvUint("tcbEvaluationDataNumber", input.evaluationDataNumber)
+        );
 
-    function _ensureBasicParsed(bytes32 refId, AsyncUpsertState storage state) internal virtual {
-        if (state.basicParsed) {
-            return;
+        if (input.hasTdxModule) {
+            _writeTopSegment(
+                state,
+                input.offsets[FIELD_TDX_MODULE],
+                uint8(order[FIELD_TDX_MODULE]),
+                _buildTdxModuleSegment(
+                    input.moduleOrder, input.moduleMrsignerHex, input.moduleAttributesHex, input.moduleAttributesMaskHex
+                )
+            );
+            _writeTopSegment(
+                state,
+                input.offsets[FIELD_TDX_IDENTITIES],
+                uint8(order[FIELD_TDX_IDENTITIES]),
+                bytes('"tdxModuleIdentities":[')
+            );
+            storageV2.writeAttestation(state.refs.raw, input.tdxIdentitiesArrayEnd - 1, bytes("]"));
         }
 
-        bytes memory raw = _storageV2().readRef(state.refs.raw);
-        if (raw.length == 0) revert Async_Upsert_Incomplete();
+        _writeTopSegment(state, input.offsets[FIELD_TCB_LEVELS], uint8(order[FIELD_TCB_LEVELS]), bytes('"tcbLevels":['));
+        storageV2.writeAttestation(state.refs.raw, input.tcbLevelsArrayEnd - 1, bytes("]"));
+    }
 
-        (
+    function _writeTopSegment(AsyncUpsertState storage state, uint32 offset, uint8 order, bytes memory segment)
+        private
+    {
+        if (order == 0) revert Async_Upsert_Invalid_Order();
+        if (offset == 0 || offset + segment.length > state.rawLength) revert Async_Upsert_Invalid_Range();
+        AutomataDaoStorageV2 storageV2 = _storageV2();
+        if (order > 1) {
+            storageV2.writeAttestation(state.refs.raw, offset - 1, bytes(","));
+        }
+        storageV2.writeAttestation(state.refs.raw, offset, segment);
+    }
+
+    function _writeBuiltItem(
+        AutomataDaoStorageV2 storageV2,
+        bytes32 rawRef,
+        bytes32 streamRef,
+        uint256 streamCursor,
+        FmspcTcbHelperV2.AsyncBuiltItem memory item,
+        uint256 globalIndex,
+        uint32 arrayEnd
+    ) private returns (uint256 nextStreamCursor) {
+        if (item.byteEnd <= item.byteStart || item.byteEnd > arrayEnd - 1) {
+            revert Async_Upsert_Invalid_Range();
+        }
+        if (item.rawJson.length != item.byteEnd - item.byteStart) revert Async_Upsert_Invalid_Length();
+
+        if (globalIndex > 0) {
+            storageV2.writeAttestation(rawRef, item.byteStart - 1, bytes(","));
+        }
+        storageV2.writeAttestation(rawRef, item.byteStart, item.rawJson);
+
+        bytes memory streamItem = abi.encodePacked(uint32(item.packed.length), item.packed);
+        storageV2.writeAttestation(streamRef, streamCursor, streamItem);
+        nextStreamCursor = streamCursor + streamItem.length;
+    }
+
+    function _buildTdxModuleSegment(
+        bytes memory order,
+        bytes memory mrsignerHex,
+        bytes memory attributesHex,
+        bytes memory attributesMaskHex
+    ) private pure returns (bytes memory) {
+        bytes[] memory fields = new bytes[](3);
+        fields[0] = _kvQuoted("mrsigner", mrsignerHex);
+        fields[1] = _kvQuoted("attributes", attributesHex);
+        fields[2] = _kvQuoted("attributesMask", attributesMaskHex);
+        return abi.encodePacked('"tdxModule":', _orderedObject(fields, order));
+    }
+
+    function _orderedObject(bytes[] memory fields, bytes memory order) private pure returns (bytes memory out) {
+        _requireOrder(order);
+        out = bytes("{");
+        bool wrote;
+        for (uint8 pos = 1; pos <= fields.length; pos++) {
+            for (uint256 i = 0; i < fields.length; i++) {
+                if (uint8(order[i]) == pos) {
+                    if (fields[i].length == 0) revert Async_Upsert_Invalid_Order();
+                    if (wrote) out = abi.encodePacked(out, bytes(","));
+                    out = abi.encodePacked(out, fields[i]);
+                    wrote = true;
+                }
+            }
+        }
+        out = abi.encodePacked(out, bytes("}"));
+    }
+
+    function _loadParseInputsFromRaw(bytes memory raw, AsyncUpsertState storage state)
+        internal
+        view
+        virtual
+        returns (
             TcbInfoBasic memory basic,
-            TDXModule memory mod,
-            bool hasMod,
-            uint32 tdxModObjStart,
-            uint32 tdxModObjEnd
-        ) = FmspcTcbLibV2.extractBasics(raw);
-
-        state.basic = basic;
-        state.tcbKey = FMSPC_TCB_KEY(uint8(basic.id), basic.fmspc, basic.version);
-        state.rawHash = sha256(raw);
-
-        if (hasMod) {
-            state.module = mod;
-            V2RefState storage rs = _v2RefState[refId];
-            rs.tdxModuleObjStart = tdxModObjStart;
-            rs.tdxModuleObjEnd = tdxModObjEnd;
-        }
-
-        state.basicParsed = true;
-    }
-
-    /// @dev Totals are filled by the byte-range scanner stages.
-    function _countTcbTotals(
-        AsyncUpsertState storage,
-        string memory,
-        string memory
-    ) internal virtual {}
-
-    function _uploadChunkData(bytes32 refId, bytes calldata chunkData) internal {
-        AsyncUpsertState storage state = _requireAsyncUpsert(refId);
-        if (state.finalized) revert Async_Upsert_Finalized();
-        _storageV2().appendAttestation(state.refs.raw, chunkData);
-    }
-
-    function _ensureRangesParsedV2(bytes32 refId, AsyncUpsertState storage state) internal {
-        V2RefState storage rs = _v2RefState[refId];
-        if (rs.rangesParsed) return;
-        _ensureBasicParsed(refId, state);
-        if (rs.tcbLevelsArrayEnd == 0) {
-            _scanTcbLevelsRange(refId, state, rs);
-        }
-        if (state.basic.id == TcbId.TDX && rs.tdxIdentitiesArrayEnd == 0) {
-            _scanTdxIdentitiesRange(refId, state, rs);
-        }
-        rs.rangesParsed = true;
-    }
-
-    function _scanTcbLevelsRange(bytes32 refId, AsyncUpsertState storage state, V2RefState storage rs)
-        private
+            string memory tcbLevelsString,
+            string memory tdxModuleString,
+            string memory tdxModuleIdentitiesString
+        )
     {
-        bytes memory raw = _storageV2().readRef(state.refs.raw);
-        (uint32 start, uint32 end, uint32 count) = FmspcTcbLibV2.findTcbLevelsArray(raw);
-        rs.tcbLevelsArrayStart = start;
-        rs.tcbLevelsArrayEnd = end;
-        rs.expectedNextLevelByteStart = start + 1;
-        state.totalLevels = count;
-        _storageV2().startAsync(_deriveRefId(refId, VERIFIED_LEVELS_REF_TAG));
+        basic = state.basic;
+        RawRanges storage rs = state.ranges;
+        tcbLevelsString = string(_sliceBytes(raw, rs.tcbLevelsArrayStart, rs.tcbLevelsArrayEnd));
+        if (rs.tdxModuleObjEnd > rs.tdxModuleObjStart) {
+            tdxModuleString = string(_sliceBytes(raw, rs.tdxModuleObjStart, rs.tdxModuleObjEnd));
+        }
+        if (rs.tdxIdentitiesArrayEnd > rs.tdxIdentitiesArrayStart) {
+            tdxModuleIdentitiesString = string(_sliceBytes(raw, rs.tdxIdentitiesArrayStart, rs.tdxIdentitiesArrayEnd));
+        }
     }
 
-    function _scanTdxIdentitiesRange(bytes32 refId, AsyncUpsertState storage state, V2RefState storage rs)
-        private
+    function _validateTcbInfoV2(string memory tcbInfoStr, bytes memory signature) internal view {
+        if (signature.length == 0) revert Async_Upsert_Missing_Signature();
+
+        bytes32 issuerKey = Pcs.PCS_KEY(CA.SIGNING, false);
+        (uint256 issuerNotValidBefore, uint256 issuerNotValidAfter) = Pcs.getCollateralValidity(issuerKey);
+        if (block.timestamp < issuerNotValidBefore || block.timestamp > issuerNotValidAfter) {
+            revert TCB_Cert_Expired();
+        }
+
+        bytes memory signingDer = _fetchDataFromResolver(issuerKey, false);
+        if (signingDer.length == 0) revert Missing_TCB_Cert();
+
+        bytes memory rootCrl = _fetchDataFromResolver(Pcs.PCS_KEY(CA.ROOT, true), false);
+        if (rootCrl.length > 0) {
+            (bool snSuccess, bytes memory serialNumberData) =
+                x509.staticcall(abi.encodeWithSelector(0xb29b51cb, signingDer));
+            require(snSuccess, "Failed to get serial number");
+            uint256 serialNumber = abi.decode(serialNumberData, (uint256));
+            (bool crlSuccess, bytes memory serialNumberRevokedData) =
+                crlLibAddr.staticcall(abi.encodeWithSelector(0xcedb9781, serialNumber, rootCrl));
+            require(crlSuccess, "Failed to check CRL revocation");
+            bool revoked = abi.decode(serialNumberRevokedData, (bool));
+            if (revoked) revert TCB_Cert_Revoked(serialNumber);
+        }
+
+        bool sigVerified = verifySignature(sha256(bytes(tcbInfoStr)), signature, signingDer);
+        if (!sigVerified) revert Invalid_TCB_Cert_Signature();
+    }
+
+    function _buildFinalPayload(bytes32 refId, AsyncUpsertState storage state)
+        internal
+        view
+        virtual
+        returns (bytes memory reqData)
     {
-        bytes memory raw = _storageV2().readRef(state.refs.raw);
-        (uint32 start, uint32 end, uint32 count) = FmspcTcbLibV2.findTdxIdentitiesArray(raw);
-        rs.tdxIdentitiesArrayStart = start;
-        rs.tdxIdentitiesArrayEnd = end;
-        if (start != 0) rs.expectedNextIdentityByteStart = start + 1;
-        state.totalModuleIdentities = count;
-        _storageV2().startAsync(_deriveRefId(refId, VERIFIED_IDENTITIES_REF_TAG));
+        AutomataDaoStorageV2 storageV2 = _storageV2();
+        bytes memory raw = storageV2.readRef(state.refs.raw);
+        bytes memory levelsStream = storageV2.readRef(_deriveRefId(refId, VERIFIED_LEVELS_REF_TAG));
+        bytes memory identitiesStream;
+        if (state.totalModuleIdentities > 0) {
+            identitiesStream = storageV2.readRef(_deriveRefId(refId, VERIFIED_IDENTITIES_REF_TAG));
+        }
+        reqData = FmspcTcbLibV2.buildFinalPayload(
+            state.basic,
+            state.module,
+            levelsStream,
+            state.totalLevels,
+            identitiesStream,
+            state.totalModuleIdentities,
+            raw,
+            state.signature
+        );
     }
 
     function _appendFinalRefs(AsyncUpsertState storage state) internal {
@@ -466,149 +651,113 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         bytes32 key = state.tcbKey;
 
         storageV2.finalizeAsync(resolver.collateralHashPointer(key), state.refs.hash);
-        storageV2.finalizeAsync(resolver.collateralPointer(_computeTcbIssueEvaluationKey(key)), state.refs.issueEvaluation);
+        storageV2.finalizeAsync(
+            resolver.collateralPointer(_computeTcbIssueEvaluationKey(key)), state.refs.issueEvaluation
+        );
         storageV2.finalizeAsync(resolver.collateralPointer(_computeContentHashKey(key)), state.refs.contentHash);
-
         storageV2.finalizeAsync(_deriveRefId(refId, RAW_REF_TAG), state.refs.raw);
     }
 
     function _loadAsyncFinalPayload(bytes32 key) internal view returns (bytes memory payload) {
         bytes32 refId = _finalizedAsyncRoots[key];
-        if (refId == bytes32(0)) {
-            return payload;
-        }
+        if (refId == bytes32(0)) return payload;
 
         AsyncUpsertState storage state = _asyncUpserts[refId];
-        if (!state.finalized) {
-            return payload;
-        }
+        if (!state.finalized) return payload;
 
         payload = _buildFinalPayload(refId, state);
     }
 
-    function _loadParseInputs(bytes32 refId, AsyncUpsertState storage state)
-        internal
-        view
-        virtual
-        returns (
-            TcbInfoBasic memory basic,
-            string memory tcbLevelsString,
-            string memory tdxModuleString,
-            string memory tdxModuleIdentitiesString
-        )
-    {
-        basic = state.basic;
-        bytes memory raw = _storageV2().readRef(state.refs.raw);
-        V2RefState storage rs = _v2RefState[refId];
-        tcbLevelsString = string(_sliceBytes(raw, rs.tcbLevelsArrayStart, rs.tcbLevelsArrayEnd));
-        if (rs.tdxModuleObjEnd > rs.tdxModuleObjStart) {
-            tdxModuleString = string(_sliceBytes(raw, rs.tdxModuleObjStart, rs.tdxModuleObjEnd));
-        }
-        if (rs.tdxIdentitiesArrayEnd > rs.tdxIdentitiesArrayStart) {
-            tdxModuleIdentitiesString =
-                string(_sliceBytes(raw, rs.tdxIdentitiesArrayStart, rs.tdxIdentitiesArrayEnd));
-        }
-    }
-
-    function _validateTcbInfoV2(string memory tcbInfoStr, bytes memory signature) internal view {
-        if (signature.length == 0) revert Async_Upsert_Missing_Signature();
-
-        bytes32 issuerKey = Pcs.PCS_KEY(CA.SIGNING, false);
-        (uint256 issuerNotValidBefore, uint256 issuerNotValidAfter) = Pcs.getCollateralValidity(issuerKey);
-        if (block.timestamp < issuerNotValidBefore || block.timestamp > issuerNotValidAfter) {
-            revert TCB_Cert_Expired();
-        }
-
-        bytes memory signingDer = _fetchDataFromResolver(issuerKey, false);
-        if (signingDer.length == 0) {
-            revert Missing_TCB_Cert();
-        }
-
-        bytes memory rootCrl = _fetchDataFromResolver(Pcs.PCS_KEY(CA.ROOT, true), false);
-        if (rootCrl.length > 0) {
-            (bool snSuccess, bytes memory serialNumberData) =
-                x509.staticcall(abi.encodeWithSelector(0xb29b51cb, signingDer));
-            require(snSuccess, "Failed to get serial number");
-            uint256 serialNumber = abi.decode(serialNumberData, (uint256));
-            (bool crlSuccess, bytes memory serialNumberRevokedData) =
-                crlLibAddr.staticcall(abi.encodeWithSelector(0xcedb9781, serialNumber, rootCrl));
-            require(crlSuccess, "Failed to check CRL revocation");
-            bool revoked = abi.decode(serialNumberRevokedData, (bool));
-            if (revoked) {
-                revert TCB_Cert_Revoked(serialNumber);
-            }
-        }
-
-        bool sigVerified = verifySignature(sha256(bytes(tcbInfoStr)), signature, signingDer);
-        if (!sigVerified) {
-            revert Invalid_TCB_Cert_Signature();
-        }
-    }
-
-    function _buildFinalPayload(bytes32 refId, AsyncUpsertState storage state)
-        internal
-        view
-        virtual
-        returns (bytes memory reqData)
-    {
-        AutomataDaoStorageV2 storageV2 = _storageV2();
-        bytes memory raw = _storageV2().readRef(state.refs.raw);
-        bytes memory levelsStream = storageV2.readRef(_deriveRefId(refId, VERIFIED_LEVELS_REF_TAG));
-        bytes memory identitiesStream = (state.basic.id == TcbId.TDX && state.totalModuleIdentities > 0)
-            ? storageV2.readRef(_deriveRefId(refId, VERIFIED_IDENTITIES_REF_TAG))
-            : bytes("");
-        reqData = FmspcTcbLibV2.buildFinalPayload(
-            state.basic,
-            state.module,
-            levelsStream,
-            state.totalLevels,
-            identitiesStream,
-            state.totalModuleIdentities,
-            raw,
-            state.signature
-        );
-    }
-
     function _parseComplete(AsyncUpsertState storage state) internal view returns (bool) {
-        return state.basicParsed && state.parsedLevels == state.totalLevels
+        return state.basicUploaded && state.parsedLevels == state.totalLevels
             && (state.basic.id != TcbId.TDX || state.parsedModuleIdentities == state.totalModuleIdentities);
     }
 
-    function _requireAsyncUpsert(bytes32 refId) internal view returns (AsyncUpsertState storage state) {
+    function _enterAsync(bytes32 refId) internal view returns (AsyncUpsertState storage state) {
+        _authorizeAsyncUpsert();
         state = _asyncUpserts[refId];
         if (!state.started) revert Async_Upsert_Not_Started();
+        if (state.finalized) revert Async_Upsert_Finalized();
+    }
+
+    function _enterUploadedAsync(bytes32 refId) internal view returns (AsyncUpsertState storage state) {
+        state = _enterAsync(refId);
+        if (!state.basicUploaded) revert Async_Upsert_Incomplete();
     }
 
     function _storageV2() internal view returns (AutomataDaoStorageV2) {
         return AutomataDaoStorageV2(address(resolver));
     }
 
-    /// @dev Shared "begin an async upsert call" guard used by every state-mutating entry point.
-    function _enterAsync(bytes32 refId) internal view returns (AsyncUpsertState storage state) {
-        _authorizeAsyncUpsert();
-        state = _requireAsyncUpsert(refId);
-        if (state.finalized) revert Async_Upsert_Finalized();
-    }
-
     function _deriveRefId(bytes32 rootRefId, bytes32 tag) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(rootRefId, tag));
     }
 
-    function _readTemplate(bytes32 refId, bytes32 tag) private view returns (bytes memory) {
-        return _storageV2().readRef(_deriveRefId(refId, tag));
+    function _idSegment(TcbId id) private pure returns (bytes memory) {
+        return id == TcbId.TDX ? bytes('"id":"TDX"') : bytes('"id":"SGX"');
     }
 
-    function _sliceBytes(bytes memory src, uint256 start, uint256 end)
-        private
-        view
-        returns (bytes memory out)
-    {
+    function _kvUint(string memory key, uint256 value) private pure returns (bytes memory) {
+        return abi.encodePacked(bytes('"'), bytes(key), bytes('":'), bytes(LibString.toString(value)));
+    }
+
+    function _kvQuoted(string memory key, bytes memory value) private pure returns (bytes memory) {
+        return abi.encodePacked(bytes('"'), bytes(key), bytes('":"'), value, bytes('"'));
+    }
+
+    function _readU8(bytes calldata data, uint256 cursor) private pure returns (uint8) {
+        if (cursor + 1 > data.length) revert TCBInfo_Invalid();
+        return uint8(bytes1(data[cursor:cursor + 1]));
+    }
+
+    function _readU32(bytes calldata data, uint256 cursor) private pure returns (uint32 v, uint256 nextCursor) {
+        if (cursor + 4 > data.length) revert TCBInfo_Invalid();
+        v = uint32(bytes4(data[cursor:cursor + 4]));
+        nextCursor = cursor + 4;
+    }
+
+    function _requireOrder(bytes memory order) private pure {
+        uint256 seen;
+        for (uint256 i = 0; i < order.length; i++) {
+            uint8 pos = uint8(order[i]);
+            if (pos == 0) continue;
+            if (pos > order.length) revert Async_Upsert_Invalid_Order();
+            uint256 bit = uint256(1) << pos;
+            if ((seen & bit) != 0) revert Async_Upsert_Invalid_Order();
+            seen |= bit;
+        }
+    }
+
+    function _parseIso(bytes20 raw) private pure returns (uint64) {
+        return uint64(DateTimeUtils.fromISOToTimestamp(string(abi.encodePacked(raw))));
+    }
+
+    function _parseHex(bytes memory raw) private pure returns (uint256 value) {
+        for (uint256 i = 0; i < raw.length; i++) {
+            value = (value << 4) | uint256(_hexNibble(uint8(raw[i])));
+        }
+    }
+
+    function _hexDecode(bytes memory raw) private pure returns (bytes memory out) {
+        if (raw.length % 2 != 0) revert TCBInfo_Invalid();
+        out = new bytes(raw.length / 2);
+        for (uint256 i = 0; i < out.length; i++) {
+            out[i] = bytes1(uint8((_hexNibble(uint8(raw[2 * i])) << 4) | _hexNibble(uint8(raw[2 * i + 1]))));
+        }
+    }
+
+    function _hexNibble(uint8 c) private pure returns (uint8) {
+        if (c >= 48 && c <= 57) return c - 48;
+        if (c >= 65 && c <= 70) return c - 55;
+        if (c >= 97 && c <= 102) return c - 87;
+        revert TCBInfo_Invalid();
+    }
+
+    function _sliceBytes(bytes memory src, uint256 start, uint256 end) private pure returns (bytes memory out) {
         uint256 n = end - start;
         out = new bytes(n);
-        assembly {
-            // IDENTITY precompile (0x04): memory-to-memory copy in 3 gas per word.
-            let ok := staticcall(gas(), 0x04, add(add(src, 32), start), n, add(out, 32), n)
-            if iszero(ok) { revert(0, 0) }
+        for (uint256 i = 0; i < n; i++) {
+            out[i] = src[start + i];
         }
     }
 
