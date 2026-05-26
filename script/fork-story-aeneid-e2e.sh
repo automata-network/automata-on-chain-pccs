@@ -37,6 +37,33 @@ SECOND_TCB_INFO_SIGNATURE_HEX="${SECOND_TCB_INFO_SIGNATURE_HEX:-}"
 SECOND_TCB_INFO_SIGNATURE_HEX_FILE="${SECOND_TCB_INFO_SIGNATURE_HEX_FILE:-}"
 DAO_JSON_KEY="AutomataFmspcTcbDaoVersionedV2_tcbeval_${TCB_EVAL}"
 QPL_FUNC="upsert_tcb_fmspc_async"
+
+# Resolve repo paths relative to this script (pccs-async-upsert-project/automata-on-chain-pccs/script/).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PCCS_REPO="${PCCS_REPO:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+PROJECT_DIR="$(cd "$PCCS_REPO/.." && pwd)"
+DCAP_REPO="${DCAP_REPO:-$PROJECT_DIR/automata-dcap-attestation}"
+QPL_REPO="${QPL_REPO:-$PROJECT_DIR/automata-dcap-qpl/automata-dcap-qpl-tool}"
+ANVIL_LOG="/tmp/story-aeneid-anvil.log"
+
+resolve_local_path() {
+  local value="$1"
+  if [[ -z "$value" || "$value" == /* ]]; then
+    printf '%s' "$value"
+  elif [[ -e "$PCCS_REPO/$value" ]]; then
+    printf '%s' "$PCCS_REPO/$value"
+  elif [[ -e "$PROJECT_DIR/$value" ]]; then
+    printf '%s' "$PROJECT_DIR/$value"
+  else
+    printf '%s' "$value"
+  fi
+}
+
+DEFAULT_QUOTE_FILE="test/e2e/quotes/sgx_raw_quote.hex"
+if [[ "$TCB_TYPE" == "1" ]]; then
+  DEFAULT_QUOTE_FILE="test/e2e/quotes/tdx_raw_quote.hex"
+fi
+
 extract_quote_from_tx() {
   local tx_hash="$1"
   local tx_input
@@ -58,21 +85,17 @@ extract_quote_from_tx() {
     exit 1;
   ' "$tx_input"
 }
-if [[ -n "$QUOTE_FILE" ]]; then
+if [[ "$QUOTE_FILE" == "tx" || "$QUOTE_FILE" == "__tx__" ]]; then
+  QUOTE_HEX="$(extract_quote_from_tx "$QUOTE_TX_HASH")"
+elif [[ -n "$QUOTE_FILE" ]]; then
+  QUOTE_FILE="$(resolve_local_path "$QUOTE_FILE")"
   QUOTE_HEX="$(tr -d '\n\r' < "$QUOTE_FILE")"
 elif [[ -n "${QUOTE_HEX:-}" ]]; then
   QUOTE_HEX="$QUOTE_HEX"
 else
-  QUOTE_HEX="$(extract_quote_from_tx "$QUOTE_TX_HASH")"
+  QUOTE_FILE="$(resolve_local_path "$DEFAULT_QUOTE_FILE")"
+  QUOTE_HEX="$(tr -d '\n\r' < "$QUOTE_FILE")"
 fi
-
-# Resolve repo paths relative to this script (pccs-async-upsert-project/automata-on-chain-pccs/script/).
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PCCS_REPO="${PCCS_REPO:-$(cd "$SCRIPT_DIR/.." && pwd)}"
-PROJECT_DIR="$(cd "$PCCS_REPO/.." && pwd)"
-DCAP_REPO="${DCAP_REPO:-$PROJECT_DIR/automata-dcap-attestation}"
-QPL_REPO="${QPL_REPO:-$PROJECT_DIR/automata-dcap-qpl/automata-dcap-qpl-tool}"
-ANVIL_LOG="/tmp/story-aeneid-anvil.log"
 
 cleanup() {
   if [[ -n "${ANVIL_PID:-}" ]]; then
@@ -149,19 +172,6 @@ if [[ "$TCB_TYPE" == "1" ]]; then
   # which has the wrong shape (no tdxModuleIdentities, wrong tcb_type in DAO).
   QPL_PCK_CA="tdx"
 fi
-
-resolve_local_path() {
-  local value="$1"
-  if [[ -z "$value" || "$value" == /* ]]; then
-    printf '%s' "$value"
-  elif [[ -e "$PCCS_REPO/$value" ]]; then
-    printf '%s' "$PCCS_REPO/$value"
-  elif [[ -e "$PROJECT_DIR/$value" ]]; then
-    printf '%s' "$PROJECT_DIR/$value"
-  else
-    printf '%s' "$value"
-  fi
-}
 
 FIRST_TCB_INFO_JSON_FILE="$(resolve_local_path "$FIRST_TCB_INFO_JSON_FILE")"
 FIRST_TCB_INFO_SIGNATURE_HEX_FILE="$(resolve_local_path "$FIRST_TCB_INFO_SIGNATURE_HEX_FILE")"

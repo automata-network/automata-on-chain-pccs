@@ -202,23 +202,19 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         if (start != state.parsedLevels) revert Async_Upsert_Invalid_Range();
         if (itemCount == 0) revert Async_Upsert_Invalid_Range();
 
-        FmspcTcbHelperV2.AsyncBuiltItem[] memory items =
-            FmspcTcbLibV2.buildAsyncTcbLevelsBatch(state.basic.version, payload, itemCount);
-        if (items.length != itemCount) revert TCBInfo_Invalid();
+        if (start + itemCount > state.totalLevels) revert Async_Upsert_Invalid_Range();
+        FmspcTcbHelperV2.AsyncBuiltBatch memory batch =
+            FmspcTcbLibV2.buildAsyncTcbLevelsBatch(state.basic.version, payload, itemCount, start > 0);
         AutomataDaoStorageV2 storageV2 = _storageV2();
-        for (uint256 i = 0; i < itemCount; i++) {
-            uint256 globalIndex = start + i;
-            state.levelsStreamCursor = _writeBuiltItem(
-                storageV2,
-                state.refs.raw,
-                state.refs.levels,
-                state.levelsStreamCursor,
-                items[i],
-                globalIndex,
-                state.ranges.tcbLevelsArrayEnd
-            );
-            state.parsedLevels++;
-        }
+        state.levelsStreamCursor = _writeBuiltBatch(
+            storageV2,
+            state.refs.raw,
+            state.refs.levels,
+            state.levelsStreamCursor,
+            batch,
+            state.ranges.tcbLevelsArrayEnd
+        );
+        state.parsedLevels = uint32(start + itemCount);
 
         parsed = itemCount;
         total = state.totalLevels;
@@ -235,23 +231,19 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         if (start != state.parsedModuleIdentities) revert Async_Upsert_Invalid_Range();
         if (itemCount == 0) revert Async_Upsert_Invalid_Range();
 
-        FmspcTcbHelperV2.AsyncBuiltItem[] memory items =
-            FmspcTcbLibV2.buildAsyncTdxModuleIdentitiesBatch(payload, itemCount);
-        if (items.length != itemCount) revert TCBInfo_Invalid();
+        if (start + itemCount > state.totalModuleIdentities) revert Async_Upsert_Invalid_Range();
+        FmspcTcbHelperV2.AsyncBuiltBatch memory batch =
+            FmspcTcbLibV2.buildAsyncTdxModuleIdentitiesBatch(payload, itemCount, start > 0);
         AutomataDaoStorageV2 storageV2 = _storageV2();
-        for (uint256 i = 0; i < itemCount; i++) {
-            uint256 globalIndex = start + i;
-            state.identitiesStreamCursor = _writeBuiltItem(
-                storageV2,
-                state.refs.raw,
-                state.refs.identities,
-                state.identitiesStreamCursor,
-                items[i],
-                globalIndex,
-                state.ranges.tdxIdentitiesArrayEnd
-            );
-            state.parsedModuleIdentities++;
-        }
+        state.identitiesStreamCursor = _writeBuiltBatch(
+            storageV2,
+            state.refs.raw,
+            state.refs.identities,
+            state.identitiesStreamCursor,
+            batch,
+            state.ranges.tdxIdentitiesArrayEnd
+        );
+        state.parsedModuleIdentities = uint32(start + itemCount);
 
         parsed = itemCount;
         total = state.totalModuleIdentities;
@@ -507,28 +499,22 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         storageV2.writeAttestation(state.refs.raw, offset, segment);
     }
 
-    function _writeBuiltItem(
+    function _writeBuiltBatch(
         AutomataDaoStorageV2 storageV2,
         bytes32 rawRef,
         bytes32 streamRef,
         uint256 streamCursor,
-        FmspcTcbHelperV2.AsyncBuiltItem memory item,
-        uint256 globalIndex,
+        FmspcTcbHelperV2.AsyncBuiltBatch memory batch,
         uint32 arrayEnd
     ) private returns (uint256 nextStreamCursor) {
-        if (item.byteEnd <= item.byteStart || item.byteEnd > arrayEnd - 1) {
-            revert Async_Upsert_Invalid_Range();
+        if (batch.rawJson.length == 0 || batch.packedStream.length == 0) {
+            revert Async_Upsert_Invalid_Length();
         }
-        if (item.rawJson.length != item.byteEnd - item.byteStart) revert Async_Upsert_Invalid_Length();
+        if (batch.rawStart + batch.rawJson.length > arrayEnd - 1) revert Async_Upsert_Invalid_Range();
 
-        if (globalIndex > 0) {
-            storageV2.writeAttestation(rawRef, item.byteStart - 1, bytes(","));
-        }
-        storageV2.writeAttestation(rawRef, item.byteStart, item.rawJson);
-
-        bytes memory streamItem = abi.encodePacked(uint32(item.packed.length), item.packed);
-        storageV2.writeAttestation(streamRef, streamCursor, streamItem);
-        nextStreamCursor = streamCursor + streamItem.length;
+        storageV2.writeAttestation(rawRef, batch.rawStart, batch.rawJson);
+        storageV2.writeAttestation(streamRef, streamCursor, batch.packedStream);
+        nextStreamCursor = streamCursor + batch.packedStream.length;
     }
 
     function _buildTdxModuleSegment(
@@ -754,10 +740,30 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
     }
 
     function _sliceBytes(bytes memory src, uint256 start, uint256 end) private pure returns (bytes memory out) {
+        if (end < start || end > src.length) revert Async_Upsert_Invalid_Range();
         uint256 n = end - start;
         out = new bytes(n);
-        for (uint256 i = 0; i < n; i++) {
-            out[i] = src[start + i];
+        if (n == 0) {
+            return out;
+        }
+        assembly {
+            let srcPtr := add(add(src, 0x20), start)
+            let dstPtr := add(out, 0x20)
+            let endPtr := add(dstPtr, n)
+
+            for {} lt(dstPtr, endPtr) {
+                srcPtr := add(srcPtr, 0x20)
+                dstPtr := add(dstPtr, 0x20)
+            } {
+                mstore(dstPtr, mload(srcPtr))
+            }
+
+            let rem := mod(n, 0x20)
+            if rem {
+                let lastPtr := sub(endPtr, rem)
+                let mask := not(sub(shl(mul(sub(0x20, rem), 8), 1), 1))
+                mstore(lastPtr, and(mload(lastPtr), mask))
+            }
         }
     }
 

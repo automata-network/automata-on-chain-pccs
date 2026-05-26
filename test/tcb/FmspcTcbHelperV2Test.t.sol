@@ -18,7 +18,7 @@ contract FmspcTcbHelperV2Test is Test {
         bytes memory payload = abi.encodePacked(
             uint8(0),
             uint32(1),
-            uint32(294),
+            uint32(398),
             bytes4(hex"01020300"),
             bytes3(0),
             uint8(0),
@@ -29,13 +29,11 @@ contract FmspcTcbHelperV2Test is Test {
             uint32(0)
         );
 
-        FmspcTcbHelperV2.AsyncBuiltItem[] memory items = helper.buildAsyncTcbLevelsBatch(2, payload, 1);
-        assertEq(items.length, 1);
-        assertEq(items[0].byteStart, 1);
-        assertEq(items[0].byteEnd, 294);
-        assertEq(items[0].packed.length, 64);
+        FmspcTcbHelperV2.AsyncBuiltBatch memory batch = helper.buildAsyncTcbLevelsBatch(2, payload, 1, false);
+        assertEq(batch.rawStart, 1);
+        assertEq(batch.packedStream.length, 68);
         assertEq(
-            string(items[0].rawJson),
+            string(batch.rawJson),
             string(
                 abi.encodePacked(
                     '{"tcb":{"sgxtcbcomp01svn":1,"sgxtcbcomp02svn":1,"sgxtcbcomp03svn":1,',

@@ -28,7 +28,6 @@ contract AutomataDaoStorageV2 is AutomataTCBManager, IDaoAttestationResolver, Pa
     event SetFallbackResolver(address fallbackResolver);
     event AsyncStarted(bytes32 indexed refId);
     event AsyncAppended(bytes32 indexed refId, uint256 length, uint256 totalLength);
-    event AsyncWritten(bytes32 indexed refId, uint256 offset, uint256 length);
     event AsyncFinalized(bytes32 indexed attestationId, bytes32 indexed refId);
 
     modifier onlyDao(address dao) {
@@ -134,7 +133,6 @@ contract AutomataDaoStorageV2 is AutomataTCBManager, IDaoAttestationResolver, Pa
         }
 
         emit AsyncStarted(refId);
-        emit AsyncWritten(refId, 0, length);
     }
 
     function appendAttestation(bytes32 refId, bytes calldata chunk) external onlyDao(msg.sender) {
@@ -153,7 +151,6 @@ contract AutomataDaoStorageV2 is AutomataTCBManager, IDaoAttestationResolver, Pa
         require(offset + chunk.length <= collateral.length, "WRITE_OOB");
 
         _writeBytes(collateral, offset, chunk);
-        emit AsyncWritten(refId, offset, chunk.length);
     }
 
     function finalizeAsync(bytes32 attestationId, bytes32 refId) external onlyDao(msg.sender) {

@@ -38,11 +38,10 @@ contract FmspcTcbHelperV2 {
     error TCBInfo_Invalid();
     error Async_Upsert_Invalid_Order();
 
-    struct AsyncBuiltItem {
-        uint32 byteStart;
-        uint32 byteEnd;
+    struct AsyncBuiltBatch {
+        uint32 rawStart;
         bytes rawJson;
-        bytes packed;
+        bytes packedStream;
     }
 
     struct ComponentDescriptor {
@@ -89,11 +88,12 @@ contract FmspcTcbHelperV2 {
         IdentityNestedLevel[] nestedLevels;
     }
 
-    function buildAsyncTcbLevelsBatch(uint32 schemaVersion, bytes calldata payload, uint256 itemCount)
-        external
-        pure
-        returns (AsyncBuiltItem[] memory items)
-    {
+    function buildAsyncTcbLevelsBatch(
+        uint32 schemaVersion,
+        bytes calldata payload,
+        uint256 itemCount,
+        bool includeLeadingComma
+    ) external pure returns (AsyncBuiltBatch memory batch) {
         uint256 cursor;
         bool hasTdxComponents = _readU8(payload, cursor) != 0;
         cursor++;
@@ -107,37 +107,42 @@ contract FmspcTcbHelperV2 {
             }
         }
 
-        items = new AsyncBuiltItem[](itemCount);
+        uint32 previousEnd;
         for (uint256 i = 0; i < itemCount; i++) {
             LevelInput memory input;
             (input, cursor) = _decodeLevelInput(payload, cursor, schemaVersion >= 3, hasTdxComponents);
             ComponentDescriptor[] memory sgx = input.sgxLayoutOverride.length > 0 ? input.sgxLayoutOverride : sgxLayout;
             ComponentDescriptor[] memory tdx = input.tdxLayoutOverride.length > 0 ? input.tdxLayoutOverride : tdxLayout;
             bytes memory rawLevel = _buildTcbLevelJson(schemaVersion, input, sgx, tdx, hasTdxComponents);
-            items[i] = AsyncBuiltItem({
-                byteStart: input.byteStart,
-                byteEnd: input.byteEnd,
-                rawJson: rawLevel,
-                packed: _packTcbLevel(input, hasTdxComponents)
-            });
+            bytes memory packedLevel = _packTcbLevel(input, hasTdxComponents);
+            (batch, previousEnd) = _appendBuiltItem(
+                batch, previousEnd, i, includeLeadingComma, input.byteStart, input.byteEnd, rawLevel, packedLevel
+            );
         }
         if (cursor != payload.length) revert TCBInfo_Invalid();
     }
 
-    function buildAsyncTdxModuleIdentitiesBatch(bytes calldata payload, uint256 itemCount)
+    function buildAsyncTdxModuleIdentitiesBatch(bytes calldata payload, uint256 itemCount, bool includeLeadingComma)
         external
         pure
-        returns (AsyncBuiltItem[] memory items)
+        returns (AsyncBuiltBatch memory batch)
     {
         uint256 cursor;
-        items = new AsyncBuiltItem[](itemCount);
+        uint32 previousEnd;
         for (uint256 i = 0; i < itemCount; i++) {
             IdentityInput memory input;
             (input, cursor) = _decodeIdentityInput(payload, cursor);
             bytes memory rawIdentity = _buildIdentityJson(input);
-            items[i] = AsyncBuiltItem({
-                byteStart: input.byteStart, byteEnd: input.byteEnd, rawJson: rawIdentity, packed: _packIdentity(input)
-            });
+            (batch, previousEnd) = _appendBuiltItem(
+                batch,
+                previousEnd,
+                i,
+                includeLeadingComma,
+                input.byteStart,
+                input.byteEnd,
+                rawIdentity,
+                _packIdentity(input)
+            );
         }
         if (cursor != payload.length) revert TCBInfo_Invalid();
     }
@@ -375,6 +380,39 @@ contract FmspcTcbHelperV2 {
             uint256 slot = uint256(level.isvsvn) << 128 | uint256(_parseIso(level.tcbDateRaw)) << 64 | level.status;
             _storeWord(packed, 128 + i * 32, bytes32(slot));
         }
+    }
+
+    function _appendBuiltItem(
+        AsyncBuiltBatch memory batch,
+        uint32 previousEnd,
+        uint256 index,
+        bool includeLeadingComma,
+        uint32 byteStart,
+        uint32 byteEnd,
+        bytes memory rawJson,
+        bytes memory packed
+    ) private pure returns (AsyncBuiltBatch memory nextBatch, uint32 nextEnd) {
+        if (byteEnd <= byteStart) revert TCBInfo_Invalid();
+        if (rawJson.length != byteEnd - byteStart) revert TCBInfo_Invalid();
+
+        if (index == 0) {
+            if (includeLeadingComma) {
+                if (byteStart == 0) revert TCBInfo_Invalid();
+                batch.rawStart = byteStart - 1;
+                batch.rawJson = abi.encodePacked(bytes(","), rawJson);
+            } else {
+                batch.rawStart = byteStart;
+                batch.rawJson = rawJson;
+            }
+        } else {
+            if (byteStart != previousEnd + 1) revert TCBInfo_Invalid();
+            batch.rawJson = abi.encodePacked(batch.rawJson, bytes(","), rawJson);
+        }
+
+        batch.packedStream = abi.encodePacked(batch.packedStream, uint32(packed.length), packed);
+        if (batch.rawJson.length != byteEnd - batch.rawStart) revert TCBInfo_Invalid();
+        nextBatch = batch;
+        nextEnd = byteEnd;
     }
 
     function _readComponentLayout(bytes calldata data, uint256 cursor)

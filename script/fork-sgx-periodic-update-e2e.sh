@@ -6,21 +6,21 @@
 #   3. Fetch Intel PCS for SGX fmspc 00606A000000 → snapshot-1
 #   4. async upsert from snapshot-1
 #   5. Read TCB info back from chain, validate it matches snapshot-1 byte-for-byte
-#   6. verifyAndAttestOnChain(sgx_raw_quote.hex)  — expect success
+#   6. verifyAndAttestOnChain(test/e2e/quotes/sgx_raw_quote.hex)  — expect success
 #   7. Sleep ${PERIODIC_SLEEP_SECS:-600}  (default 10 minutes)
 #   8. Fetch Intel PCS again → snapshot-2
 #      - If snapshot-2 == snapshot-1 (Intel didn't rotate), skip step 9-10 and report
 #        that the duplicate-collateral guard would correctly reject a re-upsert.
 #   9. async upsert from snapshot-2 (same fmspc / same DAO slot) — must succeed
 #  10. Read TCB info back, validate it matches snapshot-2 AND differs from snapshot-1
-#  11. verifyAndAttestOnChain(sgx_raw_quote.hex) again — expect success
+#  11. verifyAndAttestOnChain(test/e2e/quotes/sgx_raw_quote.hex) again — expect success
 #  12. Summary
 #
 # Inputs (all default OK for the standard SGX e2e fixture):
 #   STORY_RPC_URL  – Alchemy Story Aeneid
 #   FMSPC          – default 00606a000000
 #   TCB_EVAL       – default 19
-#   QUOTE_FILE     – default sgx_raw_quote.hex (relative to PCCS_REPO)
+#   QUOTE_FILE     – default test/e2e/quotes/sgx_raw_quote.hex (relative to PCCS_REPO)
 #   PERIODIC_SLEEP_SECS – default 600 (10 min)
 
 set -euo pipefail
@@ -31,7 +31,7 @@ export no_proxy="${no_proxy:-127.0.0.1,localhost}"
 STORY_RPC_URL="${STORY_RPC_URL:?missing STORY_RPC_URL}"
 FMSPC="${FMSPC:-00606a000000}"          # lower-case hex
 TCB_EVAL="${TCB_EVAL:-19}"
-QUOTE_FILE="${QUOTE_FILE:-sgx_raw_quote.hex}"
+QUOTE_FILE="${QUOTE_FILE:-test/e2e/quotes/sgx_raw_quote.hex}"
 PERIODIC_SLEEP_SECS="${PERIODIC_SLEEP_SECS:-600}"
 OWNER_ADDR="${OWNER_ADDR:-0xDf841B239bE7a6b37366005107069b7410da4Ff9}"
 ATTESTER_ADDR="${ATTESTER_ADDR:-0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266}"
@@ -207,7 +207,11 @@ run_verify() {
   local label="$1"
   banner "VERIFY ($label) — verifyAndAttestOnChain"
   local quote_hex
-  quote_hex="$(tr -d '\n\r' < "$PCCS_REPO/$QUOTE_FILE")"
+  local quote_path="$QUOTE_FILE"
+  if [[ "$quote_path" != /* ]]; then
+    quote_path="$PCCS_REPO/$quote_path"
+  fi
+  quote_hex="$(tr -d '\n\r' < "$quote_path")"
   local selector
   selector=$(cast calldata "verifyAndAttestOnChain(bytes,uint32)" "$quote_hex" "$TCB_EVAL")
   local resp
