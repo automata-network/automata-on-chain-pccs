@@ -151,6 +151,7 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
 
     function startAsyncUpsert(bytes32 refId, bytes calldata signature, uint32 rawLength) external virtual {
         _authorizeAsyncUpsert();
+        if (refId == bytes32(0)) revert Async_Upsert_Invalid_Range();
         if (signature.length == 0) revert Async_Upsert_Missing_Signature();
         if (rawLength <= 31) revert Async_Upsert_Invalid_Length();
 

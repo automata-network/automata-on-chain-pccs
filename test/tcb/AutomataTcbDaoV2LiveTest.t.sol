@@ -6,6 +6,7 @@ import {AutomataDaoStorage} from "../../src/automata_pccs/shared/AutomataDaoStor
 import {AutomataDaoStorageV2} from "../../src/automata_pccs/shared/AutomataDaoStorageV2.sol";
 import {AutomataPcsDao} from "../../src/automata_pccs/AutomataPcsDao.sol";
 import {AutomataFmspcTcbDaoVersionedV2} from "../../src/automata_pccs/versioned/AutomataFmspcTcbDaoVersionedV2.sol";
+import {FmspcTcbDaoV2} from "../../src/bases/FmspcTcbDaoV2.sol";
 import {FmspcTcbHelperV2} from "../../src/helpers/FmspcTcbHelperV2.sol";
 import {TcbId} from "../../src/helpers/FmspcTcbHelper.sol";
 import {AlwaysTrueP256Verifier} from "../mock/AlwaysTrueP256Verifier.sol";
@@ -64,6 +65,7 @@ contract AutomataTcbDaoV2LiveTest is PCSSetupBase {
     uint8 internal constant FIELD_ID = 0;
     uint8 internal constant FIELD_VERSION = 1;
     uint8 internal constant FIELD_TCB_LEVELS = 10;
+    address internal asyncAttester = address(0x69);
 
     AutomataDaoStorage storageAsyncFallback;
     AutomataDaoStorageV2 storageV2;
@@ -95,12 +97,19 @@ contract AutomataTcbDaoV2LiveTest is PCSSetupBase {
             admin,
             TEST_EVAL
         );
+        daoV2.grantRoles(asyncAttester, daoV2.ATTESTER_ROLE());
 
         vm.stopPrank();
     }
 
     function testLive_V2_UsesOptimizedAsyncProtocol() public {
         assertEq(daoV2.asyncUpsertProtocolVersion(), 2);
+    }
+
+    function testV2_StartAsyncUpsertRejectsZeroRefId() public {
+        vm.expectRevert(FmspcTcbDaoV2.Async_Upsert_Invalid_Range.selector);
+        vm.prank(asyncAttester);
+        daoV2.startAsyncUpsert(bytes32(0), hex"01", 32);
     }
 
     function testV2_ParseCompleteRequiresLevelsStreamToReachExpectedLength() public {
