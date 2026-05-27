@@ -289,27 +289,51 @@ fi
 echo "[7/8] Verify quote through attestation entrypoint"
 # verifyAndAttestOnChain does cert chain + signature + TCB lookups on a fork — slow under
 # anvil's lazy state fetch. cast call/cast send both hit a ~30s HTTP timeout that's too tight.
-# Use a raw curl eth_call with a generous timeout instead.
+# Use a raw curl eth_call with a generous timeout by default. Set VERIFY_SEND=true when
+# measuring charged transaction gas for the same verification path.
 VERIFY_TARGET=0xB8621Da79b42A62E576408995155D48E9f856489
 VERIFY_SELECTOR=$(cast calldata "verifyAndAttestOnChain(bytes,uint32)" "$QUOTE_HEX" "$TCB_EVAL")
-VERIFY_RESPONSE=$(curl -sS --max-time 600 -X POST "$LOCAL_RPC_URL" \
-  -H 'content-type: application/json' \
-  --data "{\"jsonrpc\":\"2.0\",\"method\":\"eth_call\",\"params\":[{\"from\":\"$ATTESTER_ADDR\",\"to\":\"$VERIFY_TARGET\",\"data\":\"$VERIFY_SELECTOR\"},\"latest\"],\"id\":1}")
-echo "verifyAndAttestOnChain raw response:"
-echo "$VERIFY_RESPONSE"
-# (bool success, bytes output) is the return. Decode the boolean: first 32 bytes after 0x of `result`.
-VERIFY_RESULT_HEX=$(echo "$VERIFY_RESPONSE" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r.get('result','0x'))")
-if [[ "$VERIFY_RESULT_HEX" == "0x" || -z "$VERIFY_RESULT_HEX" ]]; then
-  echo "verifyAndAttestOnChain reverted or empty: $VERIFY_RESPONSE" >&2
-  exit 1
-fi
-# bool is at bytes [0..32] of the ABI-encoded (bool,bytes) tuple → first 32 bytes = 0x000...001 for true.
-SUCCESS_FLAG=${VERIFY_RESULT_HEX:0:66}
-if [[ "$SUCCESS_FLAG" =~ ^0x0+1$ ]]; then
-  echo "verifyAndAttestOnChain returned success=true"
+if [[ "$VERIFY_SEND" == "true" ]]; then
+  VERIFY_TX_JSON=$(cast send "$VERIFY_TARGET" \
+    "verifyAndAttestOnChain(bytes,uint32)(bool,bytes)" \
+    "$QUOTE_HEX" "$TCB_EVAL" \
+    --rpc-url "$LOCAL_RPC_URL" \
+    --private-key "$ATTESTER_PRIVATE_KEY" \
+    --gas-limit "${VERIFY_GAS_LIMIT:-30000000}" \
+    --rpc-timeout 600 \
+    --timeout 600 \
+    --json)
+  VERIFY_TX_HASH=$(echo "$VERIFY_TX_JSON" | jq -r '.transactionHash // .hash')
+  echo "verifyAndAttestOnChain tx hash: $VERIFY_TX_HASH"
+  VERIFY_RECEIPT=$(cast receipt "$VERIFY_TX_HASH" --rpc-url "$LOCAL_RPC_URL" --rpc-timeout 600)
+  echo "$VERIFY_RECEIPT"
+  VERIFY_STATUS=$(echo "$VERIFY_RECEIPT" | awk '/^status[[:space:]]/ {print $2; exit}')
+  VERIFY_GAS_USED=$(echo "$VERIFY_RECEIPT" | awk '/^gasUsed[[:space:]]/ {print $2; exit}')
+  if [[ "$VERIFY_STATUS" != "1" ]]; then
+    echo "verifyAndAttestOnChain transaction failed with status=$VERIFY_STATUS" >&2
+    exit 1
+  fi
+  echo "verifyAndAttestOnChain tx gasUsed: $VERIFY_GAS_USED"
 else
-  echo "verifyAndAttestOnChain returned success=false (raw: $SUCCESS_FLAG)" >&2
-  exit 1
+  VERIFY_RESPONSE=$(curl -sS --max-time 600 -X POST "$LOCAL_RPC_URL" \
+    -H 'content-type: application/json' \
+    --data "{\"jsonrpc\":\"2.0\",\"method\":\"eth_call\",\"params\":[{\"from\":\"$ATTESTER_ADDR\",\"to\":\"$VERIFY_TARGET\",\"data\":\"$VERIFY_SELECTOR\"},\"latest\"],\"id\":1}")
+  echo "verifyAndAttestOnChain raw response:"
+  echo "$VERIFY_RESPONSE"
+  # (bool success, bytes output) is the return. Decode the boolean: first 32 bytes after 0x of `result`.
+  VERIFY_RESULT_HEX=$(echo "$VERIFY_RESPONSE" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r.get('result','0x'))")
+  if [[ "$VERIFY_RESULT_HEX" == "0x" || -z "$VERIFY_RESULT_HEX" ]]; then
+    echo "verifyAndAttestOnChain reverted or empty: $VERIFY_RESPONSE" >&2
+    exit 1
+  fi
+  # bool is at bytes [0..32] of the ABI-encoded (bool,bytes) tuple → first 32 bytes = 0x000...001 for true.
+  SUCCESS_FLAG=${VERIFY_RESULT_HEX:0:66}
+  if [[ "$SUCCESS_FLAG" =~ ^0x0+1$ ]]; then
+    echo "verifyAndAttestOnChain returned success=true"
+  else
+    echo "verifyAndAttestOnChain returned success=false (raw: $SUCCESS_FLAG)" >&2
+    exit 1
+  fi
 fi
 
 echo "[8/8] Complete"

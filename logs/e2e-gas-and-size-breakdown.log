@@ -1,9 +1,9 @@
 PCCS optimized async upsert V2 E2E gas and runtime-size record
-Recorded: 2026-05-26
+Recorded: 2026-05-27
 
 Scope note:
-- Targeted SGX/TDX double-upsert E2E and on-chain PCCS runtime sizes were refreshed after the latest gas optimization.
-- Full FMSPC regression was rerun on 2026-05-26 with TCB_EVALS=19,20,21; 151 of 153 rows passed and the two failures are Intel PCS 404 responses for eval=19 FMSPC 20A06E050000.
+- Targeted SGX/TDX double-upsert E2E and on-chain PCCS runtime sizes were refreshed after the async stream completeness guard.
+- Full FMSPC regression was not rerun for this targeted refresh; the preserved section below is still the 2026-05-26 run with TCB_EVALS=19,20,21.
 
 Sources:
 - SGX double-upsert E2E: logs/sgx-e2e.log
@@ -13,9 +13,19 @@ Sources:
 - Runtime sizes: forge build --sizes in automata-on-chain-pccs and automata-dcap-attestation/evm
 
 Notes:
-- Dedicated SGX/TDX E2E sections list every charged transaction individually; Full FMSPC regression also records per-row total gas derived from those tx gas values.
+- Dedicated SGX/TDX E2E sections list every charged transaction individually; Full FMSPC regression also records per-row gas derived from those tx gas values.
 - Quote verification is executed through eth_call in these E2E runs, so it has no charged transaction gas.
 - EIP-170 runtime code size limit: 24,576 bytes.
+
+Dedicated E2E gas delta vs previous record
+
+| Case | Previous gas | Current gas | Delta |
+| --- | ---: | ---: | ---: |
+| Deploy/router config | 9,894,247 | 9,943,977 | +49,730 |
+| SGX first/local async upsert | 16,452,878 | 16,461,005 | +8,127 |
+| SGX second/current async upsert | 16,387,581 | 16,395,009 | +7,428 |
+| TDX first/local async upsert | 11,546,986 | 11,555,087 | +8,101 |
+| TDX second/current async upsert | 11,495,920 | 11,490,818 | -5,102 |
 
 SGX deploy and router config transactions
 
@@ -24,7 +34,7 @@ SGX deploy and router config transactions
 | Deploy helper | FmspcTcbHelperV2 create | 0x3a3b06e0ecc00c558a6aedafe3a46cc62092d49eb0cbda60f90cf0c62d256b3f | 2,720,936 |
 | Deploy storage | AutomataDaoStorageV2 create | 0xe114b5e9194b0c963d13953d7caf08aedac16a8413190b226f047d9b3d29be1a | 1,630,196 |
 | Deploy storage | AutomataDaoStorageV2 grantDao(address) | 0x7e2c2d2117919963b85a5b6445dac914f38bb6956757fab554f8d853bbb87464 | 47,277 |
-| Deploy DAO | AutomataFmspcTcbDaoVersionedV2 create | 0x19703602eac6ad6a4e61475b92f31ec7d97ed1baa884a03ed9c32f1abcfa76eb | 5,259,811 |
+| Deploy DAO | AutomataFmspcTcbDaoVersionedV2 create | 0xf34d2488b753d6c67c03ab714b6c6a2e31b247318d0aa2015c7ab1eb16f07a00 | 5,309,541 |
 | Config | StorageV2 grant DAO writer | 0x9ac1eca75eaa78d91afda5e48bbc388022b720aa0138aeea3dd71e11df967209 | 47,353 |
 | Config | DAO grant attester role | 0x6235f1e07e80d8b49524802838a04286bc3058e0f072dc2f87b6e5bc5fb209d6 | 47,703 |
 | Router config | authorize PCCS Storage | 0xf9c409a85181f9ad71767ba0ecc431a920d91a55929af60bd9abdb1cba34b85a | 27,643 |
@@ -36,34 +46,34 @@ SGX async upsert transactions - first/local snapshot
 
 | Function | Tx hash | Gas |
 | --- | --- | ---: |
-| start_async_upsert | 0xaab26b3924fab6bef966e89e63c122e00f481ccbdab3614fa9916e2362c6b6c8 | 405,004 |
-| upload_basic_info | 0x5a55609d46711279136c2779252e6a035e66e18a690ede7d5860870851348a80 | 456,788 |
-| upload_tcb_levels_batch_0_3 | 0x70f75ee420f31a59f1c210f51b820d1bf099c37c9170b0d3eaac409c140dfd97 | 2,258,547 |
-| upload_tcb_levels_batch_3_6 | 0x464180924962ebd16391b43902fdbd87e05c21da27bf1859cd4c7085682f5932 | 2,431,879 |
-| upload_tcb_levels_batch_6_9 | 0x10c1e498857d5204c5354762cac6848bb015ab7132cc83d82efa3b90aad788cd | 2,651,789 |
-| upload_tcb_levels_batch_9_12 | 0x3a9dc0b70ae604386039af457fc5a2221c73079bdf88f7ad6906c9c29e6533d4 | 2,891,966 |
-| upload_tcb_levels_batch_12_15 | 0x5123d024a847f64ba1ff79b6fc39a18bc2932cbbf317df8c513a7eae959ff546 | 3,529,052 |
-| finalize_async_upsert | 0x9c5a14be75f32eccaf67dbc170fa49ec6442b3c94785cd3967dd457c57c9cb1d | 1,827,853 |
+| start_async_upsert | 0xde0675cf7b403bcee78da11896e7e06b10e8cec8931fff65fb6e0fe6ba813734 | 405,004 |
+| upload_basic_info | 0x9f14c914cbd763b0de6d5eeb55b08a15598dd52318318a98f803266a4cbf48a3 | 457,383 |
+| upload_tcb_levels_batch_0_3 | 0x6e2b9e2e987bec0c080fdca8748a672fc823b816cbdee8802e17912c32085c16 | 2,258,628 |
+| upload_tcb_levels_batch_3_6 | 0xac76eca4f94f7d03ef252cd6c9c6c4d8def2919b689d6cb4f8c0e98f6b6df93f | 2,431,960 |
+| upload_tcb_levels_batch_6_9 | 0xa06ced060e07f6f9f4947d06cefaaf602398238d4a221221f0eec6dd2219f345 | 2,651,870 |
+| upload_tcb_levels_batch_9_12 | 0x1cc1b38ff6e1a5b941ba4e351cf2d051154796ab638e0f70e43354df4370ee31 | 2,892,047 |
+| upload_tcb_levels_batch_12_15 | 0xe7abd2cd7cff90497ba41b7281e7b5fe5b6b70b0ff05ebf95824dd59079d3d73 | 3,531,656 |
+| finalize_async_upsert | 0x5a1b9d47dc7810b0b367e772c161ee27000a74138ad8ffafd2c1ed91bf6566ae | 1,832,457 |
 
 SGX async upsert transactions - second/current Intel PCS
 
 | Function | Tx hash | Gas |
 | --- | --- | ---: |
-| start_async_upsert | 0x1e1fad4e4310ddc1064ddb34ab011f5a2045747ac3adbcbac59530e9f49ec5e7 | 404,992 |
-| upload_basic_info | 0xdbc57b0cfade5874b7e15adef1f0047853fb44ee09df47f890b78dd539efa69e | 456,776 |
-| upload_tcb_levels_batch_0_3 | 0xa25c4cf621c75e0e82f55aa3ef70d0a6af929ff2d631cb7ac7058f6f77b4a8c5 | 2,258,535 |
-| upload_tcb_levels_batch_3_6 | 0xcb4c23e17517ff0f0ff778a12c4f59d45c375c737265a947d992b3bb4d48f68d | 2,431,867 |
-| upload_tcb_levels_batch_6_9 | 0x828e96a2fb93d8e045e3a08206c78f00506caf5f1447234835fb0d8d37ecca09 | 2,651,777 |
-| upload_tcb_levels_batch_9_12 | 0x2cc9421bffbda50fb8e1caf763d746f1a79f863479120cc3c7bb5b0cd64a202e | 2,891,954 |
-| upload_tcb_levels_batch_12_15 | 0xf623182099b0cfd735ceb6282d347a4c37fcab24d64e0e7f09a49ca486bc79ab | 3,529,040 |
-| finalize_async_upsert | 0x3f25860afc6e68d739959ebb5cbe07880251e178c4d888380b06ac766faf3bd7 | 1,762,640 |
+| start_async_upsert | 0x9cc237e775efab2c89e3a5e5cc101b21f17db2bc9b5601e1d2c403b93b293b8d | 404,992 |
+| upload_basic_info | 0x8c16f25bc980991ae1cd823ecd5f112b0ad6366b26eff0614623dd34f3bd7070 | 457,383 |
+| upload_tcb_levels_batch_0_3 | 0x92e6c62c4d531c0ef9eeeb357d320f73f416323e569ee4efb7bc822034315815 | 2,258,628 |
+| upload_tcb_levels_batch_3_6 | 0x65c53d918b9cd23c40e1fe9e6f3d2796d7461728d5c9d0d15790b812769d644e | 2,431,960 |
+| upload_tcb_levels_batch_6_9 | 0xbaec6c47db68bfb2b8666fdab19371328cdc998c04398c5608da135d7ba2ce48 | 2,651,870 |
+| upload_tcb_levels_batch_9_12 | 0x2c4005b0da8cefc2fb7c95abd20fb54ded552fc65cc8629bdcab89b7615a66d1 | 2,892,047 |
+| upload_tcb_levels_batch_12_15 | 0xe3ff6df97293c7f0c23eb2185ba4a69e8ace468c8deb987d5864c8e339866461 | 3,531,656 |
+| finalize_async_upsert | 0x3767623f9f8984ffa3226a9b7b1127b1f9daf95af199ba62b827050e67c1aa2c | 1,766,473 |
 
 SGX double-upsert result
 
 | Check | Value |
 | --- | --- |
 | First raw hash | 0xfc00320cde98fc0abadebb7906c94ac5715aeeab621d0b1c3d0096cd7ca4f7fb |
-| Second raw hash | 0x65460c5fa7b4113018d26c58ac3fb7c3292fef74d9a02179fbf549233c4db5e2 |
+| Second raw hash | 0x0ecc223354357de2dc9db3ac7c01cd29bb96700502a1e11e2a801ab6ac40d668 |
 | Overwrite check | Second async upsert overwrote the first result |
 | Router-served content hash | 0x2f41e997bed8656b1004b828f85ff4b865e147363f0bc0623195d878927d3c3e |
 | Quote verification | verifyAndAttestOnChain returned success=true |
@@ -75,7 +85,7 @@ TDX deploy and router config transactions
 | Deploy helper | FmspcTcbHelperV2 create | 0x3a3b06e0ecc00c558a6aedafe3a46cc62092d49eb0cbda60f90cf0c62d256b3f | 2,720,936 |
 | Deploy storage | AutomataDaoStorageV2 create | 0xe114b5e9194b0c963d13953d7caf08aedac16a8413190b226f047d9b3d29be1a | 1,630,196 |
 | Deploy storage | AutomataDaoStorageV2 grantDao(address) | 0x7e2c2d2117919963b85a5b6445dac914f38bb6956757fab554f8d853bbb87464 | 47,277 |
-| Deploy DAO | AutomataFmspcTcbDaoVersionedV2 create | 0x19703602eac6ad6a4e61475b92f31ec7d97ed1baa884a03ed9c32f1abcfa76eb | 5,259,811 |
+| Deploy DAO | AutomataFmspcTcbDaoVersionedV2 create | 0xf34d2488b753d6c67c03ab714b6c6a2e31b247318d0aa2015c7ab1eb16f07a00 | 5,309,541 |
 | Config | StorageV2 grant DAO writer | 0x9ac1eca75eaa78d91afda5e48bbc388022b720aa0138aeea3dd71e11df967209 | 47,353 |
 | Config | DAO grant attester role | 0x6235f1e07e80d8b49524802838a04286bc3058e0f072dc2f87b6e5bc5fb209d6 | 47,703 |
 | Router config | authorize PCCS Storage | 0xf9c409a85181f9ad71767ba0ecc431a920d91a55929af60bd9abdb1cba34b85a | 27,643 |
@@ -87,34 +97,33 @@ TDX async upsert transactions - first/local snapshot
 
 | Function | Tx hash | Gas |
 | --- | --- | ---: |
-| start_async_upsert | 0xbc145d4bbc9ee9393df0e5b7b2c0f0767afd91c4adc20eb7ba4d31a61f2cbe31 | 405,004 |
-| upload_basic_info | 0xffb22ac8b8b74453aecf92fc3608d5f03e79763fd5ec6c993958f10089ffd216 | 855,733 |
-| upload_tcb_levels_batch_0_3 | 0xfdb87c60ac3a72df12a669a7bb84b3dbbd4ff3c9313fde47b64c7ba37f3ae8f8 | 4,055,373 |
-| upload_tcb_levels_batch_3_5 | 0xd208024005e6d50921593c9472917c9cb7bd721d32c639a18e0982d511d1c3d8 | 3,438,787 |
-| upload_tdx_module_identities_batch_0_2 | 0x080f5f6b57648a3df536a24fe4d5b0ed60ef55af9777d131a8024e826695ca93 | 1,199,702 |
-| finalize_async_upsert | 0x51e337883e02d5b317ee44f2a843159f4737a2971db43ba7db62591d807281ee | 1,592,387 |
+| start_async_upsert | 0x906cc0892f7324c94e65b655b534bbf1a92e7096ef9eb39056001154dc9a91c3 | 405,004 |
+| upload_basic_info | 0x20acd44f68f4a324828fe68ce1a5a6febd4dd1d6ecd9940536ce68981aaea786 | 856,328 |
+| upload_tcb_levels_batch_0_3 | 0x085f0ff8ded02b1b2a3b7009f6d3f4a40cfb55d232f8ae23764f54be1a085215 | 4,055,454 |
+| upload_tcb_levels_batch_3_5 | 0x563b3dd83ee4571fec65ef8aecd7815713b4f0091f100a51a262bb54d7754b4f | 3,439,156 |
+| upload_tdx_module_identities_batch_0_2 | 0x413d72486ad038989036ebdec497e40541524b7ca3d926707aab6fbfab5b436e | 1,202,230 |
+| finalize_async_upsert | 0x18f6cb849ce190ef8b0923c7c301819c5b1e2809267edace8cdc5e538e3e1e21 | 1,596,915 |
 
 TDX async upsert transactions - second/current Intel PCS
 
 | Function | Tx hash | Gas |
 | --- | --- | ---: |
-| start_async_upsert | 0x1b44516ed4e33621ca3de2baaf0e3bdb9bfb7f6e9bcc1266c075bbf6860df687 | 405,004 |
-| upload_basic_info | 0x28d530b8075347278468cebc5a3f8e3c5f2bc77720d8078fbd7882ae662a77e3 | 855,806 |
-| upload_tcb_levels_batch_0_3 | 0xf13a129ce01b7196ec9edb86844dd87fb77e7a821b6b22e1821b458eb95b9d0c | 4,055,373 |
-| upload_tcb_levels_batch_3_5 | 0xb892202566ec5f2ab2e7044d797e844cf4eef679330b759be173553c08b4474e | 3,438,787 |
-| upload_tdx_module_identities_batch_0_2 | 0x027643c2f6e9c79b8c34707df55b563bb1b5523f08e0029867a7bf1dac764edf | 1,199,702 |
-| finalize_async_upsert | 0x6781dd662304705fedd5f7f685fe911fc64293089792a2037c5f5d5c9e27724d | 1,541,248 |
+| start_async_upsert | 0x90a307cc375585f4848164b4856565836750c2b5315ad7960cd77ea2aa3944be | 405,004 |
+| upload_basic_info | 0x71a38fc2b6d7e9e0ee9ab7196b4ad5bb7c16a6c8ab84aab82e521b03c734f040 | 856,401 |
+| upload_tcb_levels_batch_0_3 | 0xf96d3c4768cb00bb87218ce97330fce7a48a2ace10541b2384c78b6137ad20f0 | 4,055,454 |
+| upload_tcb_levels_batch_3_5 | 0x9875ca688c464e81e42f84fafce160a434f5444ded3fd8706ece6b1fa3c64d14 | 3,439,156 |
+| upload_tdx_module_identities_batch_0_2 | 0x5227b78ab28838d86b33dae5bf386bf8d3267ee672e8569bbe3af82a7e6cb34a | 1,202,230 |
+| finalize_async_upsert | 0x4631d980942e3085d28cb8d1f5aca349e07527976d90206076c1953de84036f2 | 1,532,573 |
 
 TDX double-upsert result
 
 | Check | Value |
 | --- | --- |
 | First raw hash | 0xea5e36a2e1810f6f3b812609a35355e6ba3c7a67adc609886269a8411e0a96ce |
-| Second raw hash | 0xfe0f42d61367a9a7900b8b59c4f0f751cebba15d831c490d4a4991e1b41f88fa |
+| Second raw hash | 0x2ded3d5b05eea77ec5d0440613bdd278fd118e2fb519be1376940e57c02d459e |
 | Overwrite check | Second async upsert overwrote the first result |
 | Router-served content hash | 0x8a7e1c81df438b468a48e5d9c0cf3db240fa28aa940d6633cc51ca00a54851f5 |
 | Quote verification | verifyAndAttestOnChain returned success=true |
-
 Full FMSPC regression
 
 | Item | Value |
@@ -296,7 +305,7 @@ Runtime code size check
 | --- | --- | ---: | ---: | --- |
 | automata-on-chain-pccs | FmspcTcbHelperV2 | 12,340 | 12,236 | OK |
 | automata-on-chain-pccs | AutomataDaoStorageV2 | 6,938 | 17,638 | OK |
-| automata-on-chain-pccs | AutomataFmspcTcbDaoVersionedV2 | 23,451 | 1,125 | OK |
+| automata-on-chain-pccs | AutomataFmspcTcbDaoVersionedV2 | 23,681 | 895 | OK |
 | automata-dcap-attestation/evm | PCCSRouter | 13,475 | 11,101 | OK |
 | automata-dcap-attestation/evm | AutomataDcapAttestationFee | 9,263 | 15,313 | OK |
 | automata-dcap-attestation/evm | V3QuoteVerifier | 17,844 | 6,732 | OK |
@@ -305,5 +314,5 @@ Runtime code size check
 
 Size check result:
 - All listed runtime code sizes are below 24,576 bytes.
-- AutomataFmspcTcbDaoVersionedV2 has 1,125 bytes of runtime margin.
+- AutomataFmspcTcbDaoVersionedV2 has 895 bytes of runtime margin.
 - V5QuoteVerifier has 417 bytes of runtime margin.

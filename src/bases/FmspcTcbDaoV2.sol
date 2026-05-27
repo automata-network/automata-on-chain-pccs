@@ -85,6 +85,8 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         uint32 parsedLevels;
         uint32 totalModuleIdentities;
         uint32 parsedModuleIdentities;
+        uint32 levelsStreamLength;
+        uint32 identitiesStreamLength;
         uint256 levelsStreamCursor;
         uint256 identitiesStreamCursor;
         TcbInfoBasic basic;
@@ -402,6 +404,8 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
 
         state.totalLevels = input.tcbLevelsCount;
         state.totalModuleIdentities = input.tdxIdentitiesCount;
+        state.levelsStreamLength = input.levelsStreamLength;
+        state.identitiesStreamLength = input.identitiesStreamLength;
         state.ranges = RawRanges({
             tcbLevelsArrayStart: input.tcbLevelsArrayStart,
             tcbLevelsArrayEnd: input.tcbLevelsArrayEnd,
@@ -655,8 +659,19 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
     }
 
     function _parseComplete(AsyncUpsertState storage state) internal view returns (bool) {
-        return state.basicUploaded && state.parsedLevels == state.totalLevels
-            && (state.basic.id != TcbId.TDX || state.parsedModuleIdentities == state.totalModuleIdentities);
+        if (
+            !state.basicUploaded || state.parsedLevels != state.totalLevels
+                || state.levelsStreamCursor != state.levelsStreamLength
+        ) {
+            return false;
+        }
+
+        if (state.basic.id == TcbId.TDX) {
+            return state.parsedModuleIdentities == state.totalModuleIdentities
+                && state.identitiesStreamCursor == state.identitiesStreamLength;
+        }
+
+        return state.identitiesStreamLength == 0 && state.identitiesStreamCursor == 0;
     }
 
     function _enterAsync(bytes32 refId) internal view returns (AsyncUpsertState storage state) {
