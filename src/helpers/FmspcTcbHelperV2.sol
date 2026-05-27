@@ -35,8 +35,14 @@ contract FmspcTcbHelperV2 {
     uint8 private constant IDENTITY_FIELD_ATTRIBUTES_MASK = 3;
     uint8 private constant IDENTITY_FIELD_LEVELS = 4;
 
+    uint8 private constant TOP_FIELD_ID = 0;
+    uint8 private constant TOP_FIELD_TDX_MODULE = 8;
+    uint8 private constant TOP_FIELD_TDX_IDENTITIES = 9;
+    uint8 private constant TOP_FIELD_TCB_LEVELS = 10;
+
     error TCBInfo_Invalid();
     error Async_Upsert_Invalid_Order();
+    error Async_Upsert_Invalid_Range();
 
     struct AsyncBuiltBatch {
         uint32 rawStart;
@@ -147,6 +153,67 @@ contract FmspcTcbHelperV2 {
         if (cursor != payload.length) revert TCBInfo_Invalid();
     }
 
+    function buildAsyncTdxModuleSegment(
+        bytes calldata order,
+        bytes calldata mrsignerHex,
+        bytes calldata attributesHex,
+        bytes calldata attributesMaskHex
+    ) external pure returns (bytes memory) {
+        bytes[] memory fields = new bytes[](3);
+        fields[0] = _kvQuoted("mrsigner", mrsignerHex);
+        fields[1] = _kvQuoted("attributes", attributesHex);
+        fields[2] = _kvQuoted("attributesMask", attributesMaskHex);
+        return abi.encodePacked('"tdxModule":', _orderedObject(fields, order));
+    }
+
+    function requireBasicTopOrder(
+        bytes calldata order,
+        uint8 id,
+        uint32 version,
+        bool hasTdxModule,
+        bytes20 issueDateRaw,
+        bytes20 nextUpdateRaw
+    ) external pure {
+        _requireOrder(order);
+        if (id > 1) revert Async_Upsert_Invalid_Order();
+        if (version < 3 && uint8(order[TOP_FIELD_ID]) != 0) revert Async_Upsert_Invalid_Order();
+        if (version < 3 && id != 0) revert Async_Upsert_Invalid_Order();
+        if ((id == 1) != hasTdxModule) revert Async_Upsert_Invalid_Order();
+        if (hasTdxModule) {
+            if (uint8(order[TOP_FIELD_TDX_MODULE]) == 0 || uint8(order[TOP_FIELD_TDX_IDENTITIES]) == 0) {
+                revert Async_Upsert_Invalid_Order();
+            }
+        } else if (uint8(order[TOP_FIELD_TDX_MODULE]) != 0 || uint8(order[TOP_FIELD_TDX_IDENTITIES]) != 0) {
+            revert Async_Upsert_Invalid_Order();
+        }
+        if (uint8(order[TOP_FIELD_TCB_LEVELS]) == 0) revert Async_Upsert_Invalid_Order();
+        _requireIsoString(issueDateRaw);
+        _requireIsoString(nextUpdateRaw);
+    }
+
+    function requireTopLevelLayout(
+        uint32[11] calldata offsets,
+        uint32[11] calldata ends,
+        bytes calldata order,
+        uint32 rawLength
+    ) external pure {
+        bool wrote;
+        uint32 prevEnd;
+        for (uint8 pos = 1; pos <= order.length; pos++) {
+            for (uint8 i = 0; i < order.length; i++) {
+                if (uint8(order[i]) != pos) continue;
+                uint32 expected = wrote ? prevEnd + 1 : 1;
+                if (offsets[i] != expected || ends[i] <= offsets[i] || ends[i] > rawLength) {
+                    revert Async_Upsert_Invalid_Range();
+                }
+                prevEnd = ends[i];
+                wrote = true;
+                break;
+            }
+        }
+        if (!wrote || prevEnd != rawLength - 1) revert Async_Upsert_Invalid_Range();
+    }
+
     function buildFinalPayload(
         TcbInfoBasic memory basic,
         TDXModule memory mod,
@@ -197,6 +264,9 @@ contract FmspcTcbHelperV2 {
         input.status = _readU8(data, cursor);
         cursor++;
         (input.advisoryIds, cursor) = _readBytesArray(data, cursor);
+        if ((input.flags & LEVEL_FLAG_HAS_ADVISORY_FIELD) == 0 && input.advisoryIds.length != 0) {
+            revert TCBInfo_Invalid();
+        }
 
         if (usesComponentArrays && (input.flags & LEVEL_FLAG_SGX_LAYOUT_OVERRIDE) != 0) {
             (input.sgxLayoutOverride, cursor) = _readComponentLayout(data, cursor);
@@ -217,6 +287,7 @@ contract FmspcTcbHelperV2 {
         input.identityOrder = data[cursor:cursor + 5];
         cursor += 5;
         (input.idRaw, cursor) = _readBytesU8(data, cursor);
+        if (input.idRaw.length > 31) revert TCBInfo_Invalid();
         input.mrsignerHex = data[cursor:cursor + 96];
         cursor += 96;
         input.attributesHex = data[cursor:cursor + 16];
@@ -238,6 +309,12 @@ contract FmspcTcbHelperV2 {
             input.nestedLevels[i].status = _readU8(data, cursor);
             cursor++;
             (input.nestedLevels[i].advisoryIds, cursor) = _readBytesArray(data, cursor);
+            if (
+                (input.nestedLevels[i].flags & LEVEL_FLAG_HAS_ADVISORY_FIELD) == 0
+                    && input.nestedLevels[i].advisoryIds.length != 0
+            ) {
+                revert TCBInfo_Invalid();
+            }
         }
         nextCursor = cursor;
     }
@@ -495,7 +572,7 @@ contract FmspcTcbHelperV2 {
     }
 
     function _orderedObject(bytes[] memory fields, bytes memory order) private pure returns (bytes memory out) {
-        _requireOrder(order);
+        _requireOrder(fields, order);
         out = bytes("{");
         bool wrote;
         for (uint8 pos = 1; pos <= fields.length; pos++) {
@@ -511,7 +588,24 @@ contract FmspcTcbHelperV2 {
         out = abi.encodePacked(out, bytes("}"));
     }
 
-    function _requireOrder(bytes memory order) private pure {
+    function _requireOrder(bytes[] memory fields, bytes memory order) private pure {
+        if (order.length != fields.length) revert Async_Upsert_Invalid_Order();
+        uint256 seen;
+        for (uint256 i = 0; i < order.length; i++) {
+            uint8 pos = uint8(order[i]);
+            bool fieldPresent = fields[i].length != 0;
+            if (pos == 0) {
+                if (fieldPresent) revert Async_Upsert_Invalid_Order();
+                continue;
+            }
+            if (!fieldPresent || pos > order.length) revert Async_Upsert_Invalid_Order();
+            uint256 bit = uint256(1) << pos;
+            if ((seen & bit) != 0) revert Async_Upsert_Invalid_Order();
+            seen |= bit;
+        }
+    }
+
+    function _requireOrder(bytes calldata order) private pure {
         uint256 seen;
         for (uint256 i = 0; i < order.length; i++) {
             uint8 pos = uint8(order[i]);
@@ -527,12 +621,14 @@ contract FmspcTcbHelperV2 {
         out = bytes("[");
         for (uint256 i = 0; i < values.length; i++) {
             if (i > 0) out = abi.encodePacked(out, bytes(","));
+            _requireJsonStringSafe(values[i]);
             out = abi.encodePacked(out, bytes('"'), values[i], bytes('"'));
         }
         out = abi.encodePacked(out, bytes("]"));
     }
 
     function _kvQuoted(string memory key, bytes memory value) private pure returns (bytes memory) {
+        _requireJsonStringSafe(value);
         return abi.encodePacked(bytes('"'), bytes(key), bytes('":"'), value, bytes('"'));
     }
 
@@ -560,8 +656,33 @@ contract FmspcTcbHelperV2 {
         }
     }
 
+    function _requireJsonStringSafe(bytes memory value) private pure {
+        for (uint256 i = 0; i < value.length; i++) {
+            uint8 c = uint8(value[i]);
+            if (c == 0x22 || c == 0x5c || c < 0x20) revert TCBInfo_Invalid();
+        }
+    }
+
     function _parseIso(bytes20 raw) private pure returns (uint64) {
+        _requireIsoString(raw);
         return uint64(DateTimeUtils.fromISOToTimestamp(string(abi.encodePacked(raw))));
+    }
+
+    function _requireIsoString(bytes20 raw) private pure {
+        for (uint256 i = 0; i < 20; i++) {
+            uint8 c = uint8(raw[i]);
+            if (i == 4 || i == 7) {
+                if (c != 0x2d) revert TCBInfo_Invalid();
+            } else if (i == 10) {
+                if (c != 0x54) revert TCBInfo_Invalid();
+            } else if (i == 13 || i == 16) {
+                if (c != 0x3a) revert TCBInfo_Invalid();
+            } else if (i == 19) {
+                if (c != 0x5a) revert TCBInfo_Invalid();
+            } else if (c < 0x30 || c > 0x39) {
+                revert TCBInfo_Invalid();
+            }
+        }
     }
 
     function _parseHex(bytes memory raw) private pure returns (uint256 value) {

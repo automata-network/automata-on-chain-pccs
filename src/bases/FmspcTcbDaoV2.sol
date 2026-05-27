@@ -43,6 +43,7 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
     uint8 private constant FIELD_TDX_IDENTITIES = 9;
     uint8 private constant FIELD_TCB_LEVELS = 10;
     uint8 private constant TOP_FIELD_COUNT = 11;
+    uint32 private constant TDX_MODULE_VALUE_OFFSET = 12;
 
     error Use_Async_Upsert();
     error Async_Upsert_Not_Started();
@@ -87,6 +88,8 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         uint32 parsedModuleIdentities;
         uint32 levelsStreamLength;
         uint32 identitiesStreamLength;
+        uint32 levelsRawCursor;
+        uint32 identitiesRawCursor;
         uint256 levelsStreamCursor;
         uint256 identitiesStreamCursor;
         TcbInfoBasic basic;
@@ -208,11 +211,12 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         FmspcTcbHelperV2.AsyncBuiltBatch memory batch =
             FmspcTcbLibV2.buildAsyncTcbLevelsBatch(state.basic.version, payload, itemCount, start > 0);
         AutomataDaoStorageV2 storageV2 = _storageV2();
-        state.levelsStreamCursor = _writeBuiltBatch(
+        (state.levelsStreamCursor, state.levelsRawCursor) = _writeBuiltBatch(
             storageV2,
             state.refs.raw,
             state.refs.levels,
             state.levelsStreamCursor,
+            state.levelsRawCursor,
             batch,
             state.ranges.tcbLevelsArrayEnd
         );
@@ -237,11 +241,12 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         FmspcTcbHelperV2.AsyncBuiltBatch memory batch =
             FmspcTcbLibV2.buildAsyncTdxModuleIdentitiesBatch(payload, itemCount, start > 0);
         AutomataDaoStorageV2 storageV2 = _storageV2();
-        state.identitiesStreamCursor = _writeBuiltBatch(
+        (state.identitiesStreamCursor, state.identitiesRawCursor) = _writeBuiltBatch(
             storageV2,
             state.refs.raw,
             state.refs.identities,
             state.identitiesStreamCursor,
+            state.identitiesRawCursor,
             batch,
             state.ranges.tdxIdentitiesArrayEnd
         );
@@ -376,19 +381,18 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         if (cursor != data.length) revert TCBInfo_Invalid();
     }
 
-    function _validateTopOrder(BasicInput memory input, bytes calldata order) private pure {
-        _requireOrder(order);
-        if (input.version < 3 && uint8(order[FIELD_ID]) != 0) revert Async_Upsert_Invalid_Order();
-        if (input.hasTdxModule) {
-            if (uint8(order[FIELD_TDX_MODULE]) == 0 || uint8(order[FIELD_TDX_IDENTITIES]) == 0) {
-                revert Async_Upsert_Invalid_Order();
-            }
-        } else {
-            if (uint8(order[FIELD_TDX_MODULE]) != 0 || uint8(order[FIELD_TDX_IDENTITIES]) != 0) {
-                revert Async_Upsert_Invalid_Order();
+    function _validateTopOrder(BasicInput memory input, bytes calldata order) private view {
+        FmspcTcbLibV2.requireBasicTopOrder(
+            order, input.id, input.version, input.hasTdxModule, input.issueDateRaw, input.nextUpdateRaw
+        );
+        if (!input.hasTdxModule) {
+            if (
+                input.tdxIdentitiesCount != 0 || input.identitiesStreamLength != 0 || input.tdxIdentitiesArrayStart != 0
+                    || input.tdxIdentitiesArrayEnd != 0 || input.tdxModuleObjStart != 0 || input.tdxModuleObjEnd != 0
+            ) {
+                revert Async_Upsert_Invalid_Range();
             }
         }
-        if (uint8(order[FIELD_TCB_LEVELS]) == 0) revert Async_Upsert_Invalid_Order();
     }
 
     function _storeBasicState(AsyncUpsertState storage state, BasicInput memory input) private {
@@ -406,6 +410,8 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         state.totalModuleIdentities = input.tdxIdentitiesCount;
         state.levelsStreamLength = input.levelsStreamLength;
         state.identitiesStreamLength = input.identitiesStreamLength;
+        state.levelsRawCursor = input.tcbLevelsArrayStart + 1;
+        state.identitiesRawCursor = input.hasTdxModule ? input.tdxIdentitiesArrayStart + 1 : 0;
         state.ranges = RawRanges({
             tcbLevelsArrayStart: input.tcbLevelsArrayStart,
             tcbLevelsArrayEnd: input.tcbLevelsArrayEnd,
@@ -426,43 +432,45 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
 
     function _writeBasicRaw(AsyncUpsertState storage state, BasicInput memory input, bytes calldata order) private {
         AutomataDaoStorageV2 storageV2 = _storageV2();
+        uint32[TOP_FIELD_COUNT] memory ends;
         storageV2.writeAttestation(state.refs.raw, 0, bytes("{"));
         storageV2.writeAttestation(state.refs.raw, state.rawLength - 1, bytes("}"));
 
         if (input.version >= 3) {
-            _writeTopSegment(state, input.offsets[FIELD_ID], uint8(order[FIELD_ID]), _idSegment(state.basic.id));
+            ends[FIELD_ID] =
+                _writeTopSegment(state, input.offsets[FIELD_ID], uint8(order[FIELD_ID]), _idSegment(state.basic.id));
         }
-        _writeTopSegment(
+        ends[FIELD_VERSION] = _writeTopSegment(
             state, input.offsets[FIELD_VERSION], uint8(order[FIELD_VERSION]), _kvUint("version", input.version)
         );
-        _writeTopSegment(
+        ends[FIELD_ISSUE_DATE] = _writeTopSegment(
             state,
             input.offsets[FIELD_ISSUE_DATE],
             uint8(order[FIELD_ISSUE_DATE]),
             _kvQuoted("issueDate", abi.encodePacked(input.issueDateRaw))
         );
-        _writeTopSegment(
+        ends[FIELD_NEXT_UPDATE] = _writeTopSegment(
             state,
             input.offsets[FIELD_NEXT_UPDATE],
             uint8(order[FIELD_NEXT_UPDATE]),
             _kvQuoted("nextUpdate", abi.encodePacked(input.nextUpdateRaw))
         );
-        _writeTopSegment(
+        ends[FIELD_FMSPC] = _writeTopSegment(
             state,
             input.offsets[FIELD_FMSPC],
             uint8(order[FIELD_FMSPC]),
             _kvQuoted("fmspc", abi.encodePacked(input.fmspcHex))
         );
-        _writeTopSegment(
+        ends[FIELD_PCEID] = _writeTopSegment(
             state,
             input.offsets[FIELD_PCEID],
             uint8(order[FIELD_PCEID]),
             _kvQuoted("pceId", abi.encodePacked(input.pceidHex))
         );
-        _writeTopSegment(
+        ends[FIELD_TCB_TYPE] = _writeTopSegment(
             state, input.offsets[FIELD_TCB_TYPE], uint8(order[FIELD_TCB_TYPE]), _kvUint("tcbType", input.tcbType)
         );
-        _writeTopSegment(
+        ends[FIELD_EVAL_NUMBER] = _writeTopSegment(
             state,
             input.offsets[FIELD_EVAL_NUMBER],
             uint8(order[FIELD_EVAL_NUMBER]),
@@ -470,29 +478,47 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         );
 
         if (input.hasTdxModule) {
-            _writeTopSegment(
-                state,
-                input.offsets[FIELD_TDX_MODULE],
-                uint8(order[FIELD_TDX_MODULE]),
-                _buildTdxModuleSegment(
-                    input.moduleOrder, input.moduleMrsignerHex, input.moduleAttributesHex, input.moduleAttributesMaskHex
-                )
+            bytes memory moduleSegment = FmspcTcbLibV2.buildAsyncTdxModuleSegment(
+                input.moduleOrder, input.moduleMrsignerHex, input.moduleAttributesHex, input.moduleAttributesMaskHex
             );
-            _writeTopSegment(
+            ends[FIELD_TDX_MODULE] =
+                _writeTopSegment(state, input.offsets[FIELD_TDX_MODULE], uint8(order[FIELD_TDX_MODULE]), moduleSegment);
+            if (
+                input.tdxModuleObjStart != input.offsets[FIELD_TDX_MODULE] + TDX_MODULE_VALUE_OFFSET
+                    || input.tdxModuleObjEnd != ends[FIELD_TDX_MODULE]
+            ) {
+                revert Async_Upsert_Invalid_Range();
+            }
+            uint32 identitiesStartEnd = _writeTopSegment(
                 state,
                 input.offsets[FIELD_TDX_IDENTITIES],
                 uint8(order[FIELD_TDX_IDENTITIES]),
                 bytes('"tdxModuleIdentities":[')
             );
+            if (
+                identitiesStartEnd != input.tdxIdentitiesArrayStart + 1
+                    || input.tdxIdentitiesArrayEnd <= identitiesStartEnd
+            ) {
+                revert Async_Upsert_Invalid_Range();
+            }
+            ends[FIELD_TDX_IDENTITIES] = input.tdxIdentitiesArrayEnd;
             storageV2.writeAttestation(state.refs.raw, input.tdxIdentitiesArrayEnd - 1, bytes("]"));
         }
 
-        _writeTopSegment(state, input.offsets[FIELD_TCB_LEVELS], uint8(order[FIELD_TCB_LEVELS]), bytes('"tcbLevels":['));
+        uint32 levelsStartEnd = _writeTopSegment(
+            state, input.offsets[FIELD_TCB_LEVELS], uint8(order[FIELD_TCB_LEVELS]), bytes('"tcbLevels":[')
+        );
+        if (levelsStartEnd != input.tcbLevelsArrayStart + 1 || input.tcbLevelsArrayEnd <= levelsStartEnd) {
+            revert Async_Upsert_Invalid_Range();
+        }
+        ends[FIELD_TCB_LEVELS] = input.tcbLevelsArrayEnd;
         storageV2.writeAttestation(state.refs.raw, input.tcbLevelsArrayEnd - 1, bytes("]"));
+        FmspcTcbLibV2.requireTopLevelLayout(input.offsets, ends, order, state.rawLength);
     }
 
     function _writeTopSegment(AsyncUpsertState storage state, uint32 offset, uint8 order, bytes memory segment)
         private
+        returns (uint32 end)
     {
         if (order == 0) revert Async_Upsert_Invalid_Order();
         if (offset == 0 || offset + segment.length > state.rawLength) revert Async_Upsert_Invalid_Range();
@@ -501,6 +527,7 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
             storageV2.writeAttestation(state.refs.raw, offset - 1, bytes(","));
         }
         storageV2.writeAttestation(state.refs.raw, offset, segment);
+        end = uint32(offset + segment.length);
     }
 
     function _writeBuiltBatch(
@@ -508,47 +535,21 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         bytes32 rawRef,
         bytes32 streamRef,
         uint256 streamCursor,
+        uint32 rawCursor,
         FmspcTcbHelperV2.AsyncBuiltBatch memory batch,
         uint32 arrayEnd
-    ) private returns (uint256 nextStreamCursor) {
+    ) private returns (uint256 nextStreamCursor, uint32 nextRawCursor) {
         if (batch.rawJson.length == 0 || batch.packedStream.length == 0) {
             revert Async_Upsert_Invalid_Length();
         }
-        if (batch.rawStart + batch.rawJson.length > arrayEnd - 1) revert Async_Upsert_Invalid_Range();
+        if (batch.rawStart != rawCursor) revert Async_Upsert_Invalid_Range();
+        uint256 rawEnd = uint256(batch.rawStart) + batch.rawJson.length;
+        if (rawEnd > arrayEnd - 1) revert Async_Upsert_Invalid_Range();
 
         storageV2.writeAttestation(rawRef, batch.rawStart, batch.rawJson);
         storageV2.writeAttestation(streamRef, streamCursor, batch.packedStream);
         nextStreamCursor = streamCursor + batch.packedStream.length;
-    }
-
-    function _buildTdxModuleSegment(
-        bytes memory order,
-        bytes memory mrsignerHex,
-        bytes memory attributesHex,
-        bytes memory attributesMaskHex
-    ) private pure returns (bytes memory) {
-        bytes[] memory fields = new bytes[](3);
-        fields[0] = _kvQuoted("mrsigner", mrsignerHex);
-        fields[1] = _kvQuoted("attributes", attributesHex);
-        fields[2] = _kvQuoted("attributesMask", attributesMaskHex);
-        return abi.encodePacked('"tdxModule":', _orderedObject(fields, order));
-    }
-
-    function _orderedObject(bytes[] memory fields, bytes memory order) private pure returns (bytes memory out) {
-        _requireOrder(order);
-        out = bytes("{");
-        bool wrote;
-        for (uint8 pos = 1; pos <= fields.length; pos++) {
-            for (uint256 i = 0; i < fields.length; i++) {
-                if (uint8(order[i]) == pos) {
-                    if (fields[i].length == 0) revert Async_Upsert_Invalid_Order();
-                    if (wrote) out = abi.encodePacked(out, bytes(","));
-                    out = abi.encodePacked(out, fields[i]);
-                    wrote = true;
-                }
-            }
-        }
-        out = abi.encodePacked(out, bytes("}"));
+        nextRawCursor = uint32(rawEnd);
     }
 
     function _loadParseInputsFromRaw(bytes memory raw, AsyncUpsertState storage state)
@@ -662,13 +663,15 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         if (
             !state.basicUploaded || state.parsedLevels != state.totalLevels
                 || state.levelsStreamCursor != state.levelsStreamLength
+                || state.levelsRawCursor != state.ranges.tcbLevelsArrayEnd - 1
         ) {
             return false;
         }
 
         if (state.basic.id == TcbId.TDX) {
             return state.parsedModuleIdentities == state.totalModuleIdentities
-                && state.identitiesStreamCursor == state.identitiesStreamLength;
+                && state.identitiesStreamCursor == state.identitiesStreamLength
+                && state.identitiesRawCursor == state.ranges.tdxIdentitiesArrayEnd - 1;
         }
 
         return state.identitiesStreamLength == 0 && state.identitiesStreamCursor == 0;
@@ -715,18 +718,6 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         if (cursor + 4 > data.length) revert TCBInfo_Invalid();
         v = uint32(bytes4(data[cursor:cursor + 4]));
         nextCursor = cursor + 4;
-    }
-
-    function _requireOrder(bytes memory order) private pure {
-        uint256 seen;
-        for (uint256 i = 0; i < order.length; i++) {
-            uint8 pos = uint8(order[i]);
-            if (pos == 0) continue;
-            if (pos > order.length) revert Async_Upsert_Invalid_Order();
-            uint256 bit = uint256(1) << pos;
-            if ((seen & bit) != 0) revert Async_Upsert_Invalid_Order();
-            seen |= bit;
-        }
     }
 
     function _parseIso(bytes20 raw) private pure returns (uint64) {

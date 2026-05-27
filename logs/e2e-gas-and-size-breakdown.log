@@ -316,3 +316,62 @@ Size check result:
 - All listed runtime code sizes are below 24,576 bytes.
 - AutomataFmspcTcbDaoVersionedV2 has 895 bytes of runtime margin.
 - V5QuoteVerifier has 417 bytes of runtime margin.
+
+Safety hardening rerun gas delta (2026-05-27 UTC)
+
+Scope:
+- Story Aeneid forked local E2E, deploy -> async upsert -> router content hash -> verifyAndAttestOnChain.
+- SGX FMSPC 00606a000000, TCB eval 19.
+- TDX FMSPC 00806f050000, TCB eval 19.
+- Baseline is the previously tracked SGX/TDX E2E log value before the packed stream completeness and JSON/typed-data consistency hardening.
+- Previous SGX/TDX E2E logs did not send verifyAndAttestOnChain as a transaction, so verify gas has no previous delta in this table.
+
+Deploy/config gas delta:
+
+| Transaction | Previous gas | Current gas | Delta |
+| --- | ---: | ---: | ---: |
+| deploy_helper_v2 | 2720936 | 3136918 | +415982 |
+| storage_v2_deploy | 1630196 | 1630196 | +0 |
+| storage_v2_grant_old | 47277 | 47277 | +0 |
+| dao_v2_deploy | 5309541 | 5491569 | +182028 |
+| grant_dao_v2 | 47353 | 47353 | +0 |
+| configure_dao_v2_roles | 47703 | 47703 | +0 |
+| router_update_config_0 | 31354 | 31354 | +0 |
+| router_update_config_1 | 34354 | 34354 | +0 |
+
+SGX async upsert and verify gas delta:
+
+| Transaction | Previous gas | Current gas | Delta |
+| --- | ---: | ---: | ---: |
+| start_async_upsert | 404992 | 404992 | +0 |
+| upload_basic_info | 457383 | 514565 | +57182 |
+| upload_tcb_levels_batch_0_3 | 2258628 | 2428799 | +170171 |
+| upload_tcb_levels_batch_3_6 | 2431960 | 2633011 | +201051 |
+| upload_tcb_levels_batch_6_9 | 2651870 | 2873830 | +221960 |
+| upload_tcb_levels_batch_9_12 | 2892047 | 3148163 | +256116 |
+| upload_tcb_levels_batch_12_15 | 3531656 | 3859329 | +327673 |
+| finalize_async_upsert | 1766473 | 1829633 | +63160 |
+| verifyAndAttestOnChain | N/A | 7863812 | N/A |
+
+TDX async upsert and verify gas delta:
+
+| Transaction | Previous gas | Current gas | Delta |
+| --- | ---: | ---: | ---: |
+| start_async_upsert | 405004 | 405004 | +0 |
+| upload_basic_info | 856401 | 973305 | +116904 |
+| upload_tcb_levels_batch_0_3 | 4055454 | 4348437 | +292983 |
+| upload_tcb_levels_batch_3_5 | 3439156 | 3722046 | +282890 |
+| upload_tdx_module_identities_batch_0_2 | 1202230 | 1349417 | +147187 |
+| finalize_async_upsert | 1532573 | 1609524 | +76951 |
+| verifyAndAttestOnChain | N/A | 6795427 | N/A |
+
+Updated runtime code size check:
+
+| Contract | Runtime Size (B) | Runtime Margin (B) | Status |
+| --- | ---: | ---: | --- |
+| FmspcTcbHelperV2 | 14264 | 10312 | OK |
+| AutomataFmspcTcbDaoVersionedV2 | 24523 | 53 | OK |
+
+Size check note:
+- Production contracts remain under the 24576-byte EIP-170 runtime limit.
+- forge build --sizes exits non-zero because the test-only FmspcTcbDaoV2CompletenessHarness is 25209 bytes, which is expected for the harness and is not deployed.

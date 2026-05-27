@@ -13,15 +13,7 @@ import {AlwaysTrueP256Verifier} from "../mock/AlwaysTrueP256Verifier.sol";
 contract FmspcTcbDaoV2CompletenessHarness is AutomataFmspcTcbDaoVersionedV2 {
     constructor()
         AutomataFmspcTcbDaoVersionedV2(
-            address(1),
-            address(2),
-            address(3),
-            address(4),
-            address(5),
-            address(6),
-            address(7),
-            address(this),
-            19
+            address(1), address(2), address(3), address(4), address(5), address(6), address(7), address(this), 19
         )
     {}
 
@@ -32,10 +24,14 @@ contract FmspcTcbDaoV2CompletenessHarness is AutomataFmspcTcbDaoVersionedV2 {
         uint32 parsedLevels,
         uint32 levelsStreamLength,
         uint256 levelsStreamCursor,
+        uint32 levelsRawEnd,
+        uint32 levelsRawCursor,
         uint32 totalIdentities,
         uint32 parsedIdentities,
         uint32 identitiesStreamLength,
-        uint256 identitiesStreamCursor
+        uint256 identitiesStreamCursor,
+        uint32 identitiesRawEnd,
+        uint32 identitiesRawCursor
     ) external {
         AsyncUpsertState storage state = _asyncUpserts[refId];
         state.basicUploaded = true;
@@ -44,10 +40,14 @@ contract FmspcTcbDaoV2CompletenessHarness is AutomataFmspcTcbDaoVersionedV2 {
         state.parsedLevels = parsedLevels;
         state.levelsStreamLength = levelsStreamLength;
         state.levelsStreamCursor = levelsStreamCursor;
+        state.ranges.tcbLevelsArrayEnd = levelsRawEnd;
+        state.levelsRawCursor = levelsRawCursor;
         state.totalModuleIdentities = totalIdentities;
         state.parsedModuleIdentities = parsedIdentities;
         state.identitiesStreamLength = identitiesStreamLength;
         state.identitiesStreamCursor = identitiesStreamCursor;
+        state.ranges.tdxIdentitiesArrayEnd = identitiesRawEnd;
+        state.identitiesRawCursor = identitiesRawCursor;
     }
 
     function parseComplete(bytes32 refId) external view returns (bool) {
@@ -60,6 +60,10 @@ contract FmspcTcbDaoV2CompletenessHarness is AutomataFmspcTcbDaoVersionedV2 {
 /// chunk/commit ABI and is intentionally not kept as a compatibility path.
 contract AutomataTcbDaoV2LiveTest is PCSSetupBase {
     uint32 internal constant TEST_EVAL = 19;
+    uint8 internal constant LEVEL_FLAG_HAS_ADVISORY_FIELD = 1;
+    uint8 internal constant FIELD_ID = 0;
+    uint8 internal constant FIELD_VERSION = 1;
+    uint8 internal constant FIELD_TCB_LEVELS = 10;
 
     AutomataDaoStorage storageAsyncFallback;
     AutomataDaoStorageV2 storageV2;
@@ -103,10 +107,21 @@ contract AutomataTcbDaoV2LiveTest is PCSSetupBase {
         FmspcTcbDaoV2CompletenessHarness harness = new FmspcTcbDaoV2CompletenessHarness();
         bytes32 refId = keccak256("sgx-incomplete-level-stream");
 
-        harness.setCompletenessState(refId, TcbId.SGX, 2, 2, 96, 64, 0, 0, 0, 0);
+        harness.setCompletenessState(refId, TcbId.SGX, 2, 2, 96, 64, 100, 99, 0, 0, 0, 0, 0, 0);
         assertFalse(harness.parseComplete(refId));
 
-        harness.setCompletenessState(refId, TcbId.SGX, 2, 2, 96, 96, 0, 0, 0, 0);
+        harness.setCompletenessState(refId, TcbId.SGX, 2, 2, 96, 96, 100, 99, 0, 0, 0, 0, 0, 0);
+        assertTrue(harness.parseComplete(refId));
+    }
+
+    function testV2_ParseCompleteRequiresLevelsRawCursorToReachArrayEnd() public {
+        FmspcTcbDaoV2CompletenessHarness harness = new FmspcTcbDaoV2CompletenessHarness();
+        bytes32 refId = keccak256("sgx-incomplete-level-raw");
+
+        harness.setCompletenessState(refId, TcbId.SGX, 2, 2, 96, 96, 100, 98, 0, 0, 0, 0, 0, 0);
+        assertFalse(harness.parseComplete(refId));
+
+        harness.setCompletenessState(refId, TcbId.SGX, 2, 2, 96, 96, 100, 99, 0, 0, 0, 0, 0, 0);
         assertTrue(harness.parseComplete(refId));
     }
 
@@ -114,10 +129,131 @@ contract AutomataTcbDaoV2LiveTest is PCSSetupBase {
         FmspcTcbDaoV2CompletenessHarness harness = new FmspcTcbDaoV2CompletenessHarness();
         bytes32 refId = keccak256("tdx-incomplete-identity-stream");
 
-        harness.setCompletenessState(refId, TcbId.TDX, 2, 2, 96, 96, 1, 1, 128, 64);
+        harness.setCompletenessState(refId, TcbId.TDX, 2, 2, 96, 96, 100, 99, 1, 1, 128, 64, 200, 199);
         assertFalse(harness.parseComplete(refId));
 
-        harness.setCompletenessState(refId, TcbId.TDX, 2, 2, 96, 96, 1, 1, 128, 128);
+        harness.setCompletenessState(refId, TcbId.TDX, 2, 2, 96, 96, 100, 99, 1, 1, 128, 128, 200, 199);
         assertTrue(harness.parseComplete(refId));
+    }
+
+    function testV2_ParseCompleteRequiresTdxIdentityRawCursorToReachArrayEnd() public {
+        FmspcTcbDaoV2CompletenessHarness harness = new FmspcTcbDaoV2CompletenessHarness();
+        bytes32 refId = keccak256("tdx-incomplete-identity-raw");
+
+        harness.setCompletenessState(refId, TcbId.TDX, 2, 2, 96, 96, 100, 99, 1, 1, 128, 128, 200, 198);
+        assertFalse(harness.parseComplete(refId));
+
+        harness.setCompletenessState(refId, TcbId.TDX, 2, 2, 96, 96, 100, 99, 1, 1, 128, 128, 200, 199);
+        assertTrue(harness.parseComplete(refId));
+    }
+
+    function testV2_HelperRejectsMissingRequiredComponentSvnOrder() public {
+        bytes memory payload =
+            _singleSgxLevelPayload(_componentLayout(0, 1, 2, bytes("platform"), bytes("microcode")), 0, bytes(""));
+
+        vm.expectRevert(FmspcTcbHelperV2.Async_Upsert_Invalid_Order.selector);
+        fmspcTcbLibV2.buildAsyncTcbLevelsBatch(3, payload, 1, false);
+    }
+
+    function testV2_HelperRejectsUnsafeJsonStringValue() public {
+        bytes memory payload = _singleSgxLevelPayload(
+            _componentLayout(1, 2, 3, bytes('platform","svn":7,"type":"microcode'), bytes("microcode")), 0, bytes("")
+        );
+
+        vm.expectRevert(FmspcTcbHelperV2.TCBInfo_Invalid.selector);
+        fmspcTcbLibV2.buildAsyncTcbLevelsBatch(3, payload, 1, false);
+    }
+
+    function testV2_HelperRejectsAdvisoryIdsWithoutAdvisoryFieldFlag() public {
+        bytes memory payload = _singleSgxLevelPayload(
+            _componentLayout(1, 2, 3, bytes("platform"), bytes("microcode")), 0, bytes("INTEL-SA-00000")
+        );
+
+        vm.expectRevert(FmspcTcbHelperV2.TCBInfo_Invalid.selector);
+        fmspcTcbLibV2.buildAsyncTcbLevelsBatch(3, payload, 1, false);
+    }
+
+    function testV2_HelperRejectsVersion2ExplicitId() public {
+        bytes memory order = new bytes(11);
+        order[FIELD_ID] = bytes1(uint8(1));
+
+        vm.expectRevert(FmspcTcbHelperV2.Async_Upsert_Invalid_Order.selector);
+        fmspcTcbLibV2.requireBasicTopOrder(
+            order, 1, 2, true, bytes20("2024-01-01T00:00:00Z"), bytes20("2025-01-01T00:00:00Z")
+        );
+    }
+
+    function testV2_HelperRejectsNonContiguousTopLevelLayout() public {
+        bytes memory order = new bytes(11);
+        uint32[11] memory offsets;
+        uint32[11] memory ends;
+
+        order[FIELD_VERSION] = bytes1(uint8(1));
+        order[FIELD_TCB_LEVELS] = bytes1(uint8(2));
+        offsets[FIELD_VERSION] = 1;
+        ends[FIELD_VERSION] = 13;
+        offsets[FIELD_TCB_LEVELS] = 15;
+        ends[FIELD_TCB_LEVELS] = 29;
+
+        vm.expectRevert(FmspcTcbHelperV2.Async_Upsert_Invalid_Range.selector);
+        fmspcTcbLibV2.requireTopLevelLayout(offsets, ends, order, 30);
+    }
+
+    function testV2_HelperRejectsLongTdxModuleIdentityId() public {
+        bytes memory payload = abi.encodePacked(
+            uint32(0), uint32(1), bytes5(hex"0102030405"), bytes1(uint8(32)), bytes32("tdx-module-identity-id-too-long")
+        );
+
+        vm.expectRevert(FmspcTcbHelperV2.TCBInfo_Invalid.selector);
+        fmspcTcbLibV2.buildAsyncTdxModuleIdentitiesBatch(payload, 1, false);
+    }
+
+    function _singleSgxLevelPayload(bytes memory sgxLayout, uint8 flags, bytes memory advisory)
+        private
+        pure
+        returns (bytes memory)
+    {
+        return abi.encodePacked(
+            bytes1(uint8(0)),
+            sgxLayout,
+            uint32(0),
+            uint32(1),
+            flags == LEVEL_FLAG_HAS_ADVISORY_FIELD ? bytes4(hex"01020304") : bytes4(hex"01020300"),
+            bytes3(hex"010200"),
+            bytes1(flags),
+            bytes16(0),
+            uint32(0),
+            bytes20("2024-01-01T00:00:00Z"),
+            bytes1(uint8(0)),
+            _advisoryPayload(advisory)
+        );
+    }
+
+    function _componentLayout(
+        uint8 svnOrder,
+        uint8 categoryOrder,
+        uint8 typeOrder,
+        bytes memory category,
+        bytes memory componentType
+    ) private pure returns (bytes memory out) {
+        for (uint256 i = 0; i < 16; i++) {
+            out = abi.encodePacked(
+                out,
+                bytes1(svnOrder),
+                bytes1(categoryOrder),
+                bytes1(typeOrder),
+                uint16(category.length),
+                category,
+                uint16(componentType.length),
+                componentType
+            );
+        }
+    }
+
+    function _advisoryPayload(bytes memory advisory) private pure returns (bytes memory) {
+        if (advisory.length == 0) {
+            return abi.encodePacked(uint32(0));
+        }
+        return abi.encodePacked(uint32(1), uint16(advisory.length), advisory);
     }
 }
