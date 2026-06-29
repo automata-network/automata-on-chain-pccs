@@ -33,6 +33,7 @@ show_usage() {
     echo "Commands:"
     echo "  tcb-eval                   Configure AutomataTcbEvalDao roles"
     echo "  versioned                  Configure versioned DAO roles (EnclaveIdentity + FmspcTcb)"
+    echo "  fmspc-v2                   Configure AutomataFmspcTcbDaoVersionedV2 roles"
     echo ""
     echo "Arguments for 'tcb-eval':"
     echo "  user_address               Address to grant/revoke roles (default: derived from wallet)"
@@ -55,6 +56,8 @@ show_usage() {
     echo "Optional Environment Variables:"
     echo "  SIMULATED                  Set to 'true' for simulation mode (default: false)"
     echo "  LEGACY                     Set to 'true' for legacy transaction mode"
+    echo "  UNLOCKED                   Set to 'true' to use an unlocked sender on a local fork/anvil"
+    echo "  OWNER                      Required when UNLOCKED=true; sender/owner address for forge script"
     echo "  MULTICHAIN                 Set to 'true' to run for all chains (default: false)"
     echo ""
     echo "Role Values:"
@@ -66,6 +69,7 @@ show_usage() {
     echo "  $0 tcb-eval 0x123... 1 true                   Grant ATTESTER_ROLE to 0x123... for TcbEvalDao"
     echo "  $0 versioned 17                               Grant ATTESTER_ROLE to wallet owner for tcb-eval-data-number 17"
     echo "  $0 versioned 18 0x123... 1 true               Grant ATTESTER_ROLE to 0x123... for tcb-eval-data-number 18"
+    echo "  $0 fmspc-v2 19                                Grant ATTESTER_ROLE to wallet owner for FmspcTcbDaoVersionedV2 tcbeval 19"
 }
 
 # Check if help is requested
@@ -82,9 +86,9 @@ if [ -z "$COMMAND" ]; then
     exit 1
 fi
 
-if [ "$COMMAND" != "tcb-eval" ] && [ "$COMMAND" != "versioned" ]; then
+if [ "$COMMAND" != "tcb-eval" ] && [ "$COMMAND" != "versioned" ] && [ "$COMMAND" != "fmspc-v2" ]; then
     print_error "Invalid command: $COMMAND"
-    print_error "Valid commands: tcb-eval, versioned"
+    print_error "Valid commands: tcb-eval, versioned, fmspc-v2"
     show_usage
     exit 1
 fi
@@ -107,8 +111,16 @@ fi
 
 # Set up wallet authentication and derive OWNER
 WALLET_ARGS=""
-OWNER=""
-if [ -n "$PRIVATE_KEY" ]; then
+OWNER="${OWNER:-}"
+if [ "$UNLOCKED" = "true" ]; then
+    if [ -z "$OWNER" ]; then
+        print_error "OWNER environment variable is required when UNLOCKED=true"
+        exit 1
+    fi
+    WALLET_ARGS="--unlocked --sender $OWNER"
+    print_info "Using unlocked sender authentication"
+    print_info "Configured owner address: $OWNER"
+elif [ -n "$PRIVATE_KEY" ]; then
     OWNER=$(cast wallet address --private-key "$PRIVATE_KEY")
     WALLET_ARGS="--private-key $PRIVATE_KEY"
     print_info "Using private key authentication"
@@ -139,7 +151,7 @@ if [ "$COMMAND" = "tcb-eval" ]; then
     ROLES="${3:-1}"
     AUTHORIZE="${4:-true}"
     TCB_EVAL_DATA_NUMBER=""  # Not used for tcb-eval
-elif [ "$COMMAND" = "versioned" ]; then
+elif [ "$COMMAND" = "versioned" ] || [ "$COMMAND" = "fmspc-v2" ]; then
     TCB_EVAL_DATA_NUMBER="$2"
     USER_ADDRESS="${3:-$OWNER}"
     ROLES="${4:-1}"
@@ -250,6 +262,16 @@ elif [ "$COMMAND" = "versioned" ]; then
 
     if [ $? -ne 0 ]; then
         print_error "Failed to configure AutomataFmspcTcbDaoVersioned roles"
+        exit 1
+    fi
+elif [ "$COMMAND" = "fmspc-v2" ]; then
+    print_info "Configuring AutomataFmspcTcbDaoVersionedV2 roles (tcb-eval-data-number: $TCB_EVAL_DATA_NUMBER)..."
+    cd "$PROJECT_ROOT" && OWNER="$OWNER" forge script script/automata/versioned/ConfigAutomataDaoVersioned.s.sol:ConfigureAutomataDaoVersioned \
+        $FORGE_ARGS \
+        --sig "configureFmspcTcbDaoVersionedV2Roles(address,uint32,uint256,bool)" "$USER_ADDRESS" "$TCB_EVAL_DATA_NUMBER" "$ROLES" "$AUTHORIZE"
+
+    if [ $? -ne 0 ]; then
+        print_error "Failed to configure AutomataFmspcTcbDaoVersionedV2 roles"
         exit 1
     fi
 fi

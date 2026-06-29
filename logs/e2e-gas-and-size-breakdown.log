@@ -1,0 +1,448 @@
+PCCS optimized async upsert V2 E2E gas and runtime-size record
+Recorded: 2026-05-27
+
+Scope note:
+- Targeted SGX/TDX double-upsert E2E, full SGX/TDX FMSPC regression, and on-chain PCCS runtime sizes were refreshed after the async stream completeness guard.
+- Full FMSPC regression was rerun on 2026-05-27 with TCB_EVALS=19,20,21.
+
+Sources:
+- SGX double-upsert E2E: logs/sgx-e2e.log
+- TDX double-upsert E2E: logs/tdx-e2e.log
+- Full FMSPC regression: logs/all-available-fmspc.log
+- Full FMSPC gas summary: logs/all-available-fmspc-summary.log
+- Runtime sizes: forge build --sizes in automata-on-chain-pccs and automata-dcap-attestation/evm
+
+Notes:
+- Dedicated SGX/TDX E2E sections list every charged transaction individually; Full FMSPC regression also records per-row gas derived from those tx gas values.
+- Quote verification is executed through eth_call in these E2E runs, so it has no charged transaction gas.
+- EIP-170 runtime code size limit: 24,576 bytes.
+
+Dedicated E2E gas delta vs previous record
+
+| Case | Previous gas | Current gas | Delta |
+| --- | ---: | ---: | ---: |
+| Deploy/router config | 9,894,247 | 9,943,977 | +49,730 |
+| SGX first/local async upsert | 16,452,878 | 16,461,005 | +8,127 |
+| SGX second/current async upsert | 16,387,581 | 16,395,009 | +7,428 |
+| TDX first/local async upsert | 11,546,986 | 11,555,087 | +8,101 |
+| TDX second/current async upsert | 11,495,920 | 11,490,818 | -5,102 |
+
+SGX deploy and router config transactions
+
+| Stage | Transaction | Tx hash | Gas |
+| --- | --- | --- | ---: |
+| Deploy helper | FmspcTcbHelperV2 create | 0x3a3b06e0ecc00c558a6aedafe3a46cc62092d49eb0cbda60f90cf0c62d256b3f | 2,720,936 |
+| Deploy storage | AutomataDaoStorageV2 create | 0xe114b5e9194b0c963d13953d7caf08aedac16a8413190b226f047d9b3d29be1a | 1,630,196 |
+| Deploy storage | AutomataDaoStorageV2 grantDao(address) | 0x7e2c2d2117919963b85a5b6445dac914f38bb6956757fab554f8d853bbb87464 | 47,277 |
+| Deploy DAO | AutomataFmspcTcbDaoVersionedV2 create | 0xf34d2488b753d6c67c03ab714b6c6a2e31b247318d0aa2015c7ab1eb16f07a00 | 5,309,541 |
+| Config | StorageV2 grant DAO writer | 0x9ac1eca75eaa78d91afda5e48bbc388022b720aa0138aeea3dd71e11df967209 | 47,353 |
+| Config | DAO grant attester role | 0x6235f1e07e80d8b49524802838a04286bc3058e0f072dc2f87b6e5bc5fb209d6 | 47,703 |
+| Router config | authorize PCCS Storage | 0xf9c409a85181f9ad71767ba0ecc431a920d91a55929af60bd9abdb1cba34b85a | 27,643 |
+| Router config | authorize PCCS StorageV2 | 0x99efdbdd94be8934d3f8a80711daf37b7535838909450f8a91c3fa28bc8ca00a | 47,620 |
+| Router config | updateVersionedDaoConfig tx 1 | 0x46ef3be6dcd8362196c187dd425ea6e95823415091d1471a899d2efc8f55a0b9 | 31,354 |
+| Router config | updateVersionedDaoConfig tx 2 | 0x8297077f3e4d50abaed05cd8eab73becc57fa63264aaad9e29cd2cd9b14f0a46 | 34,354 |
+
+SGX async upsert transactions - first/local snapshot
+
+| Function | Tx hash | Gas |
+| --- | --- | ---: |
+| start_async_upsert | 0xde0675cf7b403bcee78da11896e7e06b10e8cec8931fff65fb6e0fe6ba813734 | 405,004 |
+| upload_basic_info | 0x9f14c914cbd763b0de6d5eeb55b08a15598dd52318318a98f803266a4cbf48a3 | 457,383 |
+| upload_tcb_levels_batch_0_3 | 0x6e2b9e2e987bec0c080fdca8748a672fc823b816cbdee8802e17912c32085c16 | 2,258,628 |
+| upload_tcb_levels_batch_3_6 | 0xac76eca4f94f7d03ef252cd6c9c6c4d8def2919b689d6cb4f8c0e98f6b6df93f | 2,431,960 |
+| upload_tcb_levels_batch_6_9 | 0xa06ced060e07f6f9f4947d06cefaaf602398238d4a221221f0eec6dd2219f345 | 2,651,870 |
+| upload_tcb_levels_batch_9_12 | 0x1cc1b38ff6e1a5b941ba4e351cf2d051154796ab638e0f70e43354df4370ee31 | 2,892,047 |
+| upload_tcb_levels_batch_12_15 | 0xe7abd2cd7cff90497ba41b7281e7b5fe5b6b70b0ff05ebf95824dd59079d3d73 | 3,531,656 |
+| finalize_async_upsert | 0x5a1b9d47dc7810b0b367e772c161ee27000a74138ad8ffafd2c1ed91bf6566ae | 1,832,457 |
+
+SGX async upsert transactions - second/current Intel PCS
+
+| Function | Tx hash | Gas |
+| --- | --- | ---: |
+| start_async_upsert | 0x9cc237e775efab2c89e3a5e5cc101b21f17db2bc9b5601e1d2c403b93b293b8d | 404,992 |
+| upload_basic_info | 0x8c16f25bc980991ae1cd823ecd5f112b0ad6366b26eff0614623dd34f3bd7070 | 457,383 |
+| upload_tcb_levels_batch_0_3 | 0x92e6c62c4d531c0ef9eeeb357d320f73f416323e569ee4efb7bc822034315815 | 2,258,628 |
+| upload_tcb_levels_batch_3_6 | 0x65c53d918b9cd23c40e1fe9e6f3d2796d7461728d5c9d0d15790b812769d644e | 2,431,960 |
+| upload_tcb_levels_batch_6_9 | 0xbaec6c47db68bfb2b8666fdab19371328cdc998c04398c5608da135d7ba2ce48 | 2,651,870 |
+| upload_tcb_levels_batch_9_12 | 0x2c4005b0da8cefc2fb7c95abd20fb54ded552fc65cc8629bdcab89b7615a66d1 | 2,892,047 |
+| upload_tcb_levels_batch_12_15 | 0xe3ff6df97293c7f0c23eb2185ba4a69e8ace468c8deb987d5864c8e339866461 | 3,531,656 |
+| finalize_async_upsert | 0x3767623f9f8984ffa3226a9b7b1127b1f9daf95af199ba62b827050e67c1aa2c | 1,766,473 |
+
+SGX double-upsert result
+
+| Check | Value |
+| --- | --- |
+| First raw hash | 0xfc00320cde98fc0abadebb7906c94ac5715aeeab621d0b1c3d0096cd7ca4f7fb |
+| Second raw hash | 0x0ecc223354357de2dc9db3ac7c01cd29bb96700502a1e11e2a801ab6ac40d668 |
+| Overwrite check | Second async upsert overwrote the first result |
+| Router-served content hash | 0x2f41e997bed8656b1004b828f85ff4b865e147363f0bc0623195d878927d3c3e |
+| Quote verification | verifyAndAttestOnChain returned success=true |
+
+TDX deploy and router config transactions
+
+| Stage | Transaction | Tx hash | Gas |
+| --- | --- | --- | ---: |
+| Deploy helper | FmspcTcbHelperV2 create | 0x3a3b06e0ecc00c558a6aedafe3a46cc62092d49eb0cbda60f90cf0c62d256b3f | 2,720,936 |
+| Deploy storage | AutomataDaoStorageV2 create | 0xe114b5e9194b0c963d13953d7caf08aedac16a8413190b226f047d9b3d29be1a | 1,630,196 |
+| Deploy storage | AutomataDaoStorageV2 grantDao(address) | 0x7e2c2d2117919963b85a5b6445dac914f38bb6956757fab554f8d853bbb87464 | 47,277 |
+| Deploy DAO | AutomataFmspcTcbDaoVersionedV2 create | 0xf34d2488b753d6c67c03ab714b6c6a2e31b247318d0aa2015c7ab1eb16f07a00 | 5,309,541 |
+| Config | StorageV2 grant DAO writer | 0x9ac1eca75eaa78d91afda5e48bbc388022b720aa0138aeea3dd71e11df967209 | 47,353 |
+| Config | DAO grant attester role | 0x6235f1e07e80d8b49524802838a04286bc3058e0f072dc2f87b6e5bc5fb209d6 | 47,703 |
+| Router config | authorize PCCS Storage | 0xf9c409a85181f9ad71767ba0ecc431a920d91a55929af60bd9abdb1cba34b85a | 27,643 |
+| Router config | authorize PCCS StorageV2 | 0x99efdbdd94be8934d3f8a80711daf37b7535838909450f8a91c3fa28bc8ca00a | 47,620 |
+| Router config | updateVersionedDaoConfig tx 1 | 0x46ef3be6dcd8362196c187dd425ea6e95823415091d1471a899d2efc8f55a0b9 | 31,354 |
+| Router config | updateVersionedDaoConfig tx 2 | 0x8297077f3e4d50abaed05cd8eab73becc57fa63264aaad9e29cd2cd9b14f0a46 | 34,354 |
+
+TDX async upsert transactions - first/local snapshot
+
+| Function | Tx hash | Gas |
+| --- | --- | ---: |
+| start_async_upsert | 0x906cc0892f7324c94e65b655b534bbf1a92e7096ef9eb39056001154dc9a91c3 | 405,004 |
+| upload_basic_info | 0x20acd44f68f4a324828fe68ce1a5a6febd4dd1d6ecd9940536ce68981aaea786 | 856,328 |
+| upload_tcb_levels_batch_0_3 | 0x085f0ff8ded02b1b2a3b7009f6d3f4a40cfb55d232f8ae23764f54be1a085215 | 4,055,454 |
+| upload_tcb_levels_batch_3_5 | 0x563b3dd83ee4571fec65ef8aecd7815713b4f0091f100a51a262bb54d7754b4f | 3,439,156 |
+| upload_tdx_module_identities_batch_0_2 | 0x413d72486ad038989036ebdec497e40541524b7ca3d926707aab6fbfab5b436e | 1,202,230 |
+| finalize_async_upsert | 0x18f6cb849ce190ef8b0923c7c301819c5b1e2809267edace8cdc5e538e3e1e21 | 1,596,915 |
+
+TDX async upsert transactions - second/current Intel PCS
+
+| Function | Tx hash | Gas |
+| --- | --- | ---: |
+| start_async_upsert | 0x90a307cc375585f4848164b4856565836750c2b5315ad7960cd77ea2aa3944be | 405,004 |
+| upload_basic_info | 0x71a38fc2b6d7e9e0ee9ab7196b4ad5bb7c16a6c8ab84aab82e521b03c734f040 | 856,401 |
+| upload_tcb_levels_batch_0_3 | 0xf96d3c4768cb00bb87218ce97330fce7a48a2ace10541b2384c78b6137ad20f0 | 4,055,454 |
+| upload_tcb_levels_batch_3_5 | 0x9875ca688c464e81e42f84fafce160a434f5444ded3fd8706ece6b1fa3c64d14 | 3,439,156 |
+| upload_tdx_module_identities_batch_0_2 | 0x5227b78ab28838d86b33dae5bf386bf8d3267ee672e8569bbe3af82a7e6cb34a | 1,202,230 |
+| finalize_async_upsert | 0x4631d980942e3085d28cb8d1f5aca349e07527976d90206076c1953de84036f2 | 1,532,573 |
+
+TDX double-upsert result
+
+| Check | Value |
+| --- | --- |
+| First raw hash | 0xea5e36a2e1810f6f3b812609a35355e6ba3c7a67adc609886269a8411e0a96ce |
+| Second raw hash | 0x2ded3d5b05eea77ec5d0440613bdd278fd118e2fb519be1376940e57c02d459e |
+| Overwrite check | Second async upsert overwrote the first result |
+| Router-served content hash | 0x8a7e1c81df438b468a48e5d9c0cf3db240fa28aa940d6633cc51ca00a54851f5 |
+| Quote verification | verifyAndAttestOnChain returned success=true |
+Full FMSPC regression
+
+| Item | Value |
+| --- | --- |
+| Source | logs/all-available-fmspc.log |
+| Summary source | logs/all-available-fmspc-summary.log |
+| Run | 2026-05-27, Anvil fork of Story Aeneid Testnet |
+| Eval numbers | 19, 20, 21 |
+| Attempted rows | 153 |
+| Passed rows | 151 |
+| Failed rows | 2 |
+| Per-row tx gas | The table below lists total gas, the max-gas subtransaction, and every charged async-upsert transaction for each row. |
+
+Result summary by eval/TEE
+
+| Eval | TEE | Passed / Attempted |
+| --- | --- | ---: |
+| 19 | SGX | 36 / 37 |
+| 19 | TDX | 13 / 14 |
+| 20 | SGX | 37 / 37 |
+| 20 | TDX | 14 / 14 |
+| 21 | SGX | 37 / 37 |
+| 21 | TDX | 14 / 14 |
+
+Failures:
+- eval=19 SGX 20A06E050000: Intel PCS returned 404 Not Found.
+- eval=19 TDX 20A06E050000: Intel PCS returned 404 Not Found.
+
+Full FMSPC regression gas by row
+
+| EVAL | TEE | FMSPC | STATUS | TOTAL GAS | MAX TX | MAX TX GAS | TX GAS BREAKDOWN |
+| --- | --- | --- | --- | ---: | --- | ---: | --- |
+| 19 | SGX | 00606C040000 | OK | 17820238 | upload_tcb_levels_batch_12_15 | 3859329 | start_async_upsert=405004, upload_basic_info=514565, upload_tcb_levels_batch_0_3=2428799, upload_tcb_levels_batch_3_6=2633011, upload_tcb_levels_batch_6_9=2970939, upload_tcb_levels_batch_9_12=3180842, upload_tcb_levels_batch_12_15=3859329, finalize_async_upsert=1827749 |
+| 19 | SGX | 00906EC10000 | OK | 3214843 | upload_tcb_levels_batch_0_2 | 1184266 | start_async_upsert=405004, upload_basic_info=514730, upload_tcb_levels_batch_0_2=1184266, finalize_async_upsert=1110843 |
+| 19 | SGX | 00806F050000 | OK | 7357075 | upload_tcb_levels_batch_0_3 | 2644759 | start_async_upsert=405004, upload_basic_info=514565, upload_tcb_levels_batch_0_3=2644759, upload_tcb_levels_batch_3_5=2462214, finalize_async_upsert=1330533 |
+| 19 | SGX | 00706E470000 | OK | 13809257 | upload_tcb_levels_batch_12_15 | 2734631 | start_async_upsert=405004, upload_basic_info=514565, upload_tcb_levels_batch_0_3=1830825, upload_tcb_levels_batch_3_6=2000724, upload_tcb_levels_batch_6_9=2254020, upload_tcb_levels_batch_9_12=2487798, upload_tcb_levels_batch_12_15=2734631, finalize_async_upsert=1581690 |
+| 19 | SGX | 00906EA10000 | OK | 23480336 | upload_tcb_levels_batch_18_21 | 3437581 | start_async_upsert=404980, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2032731, upload_tcb_levels_batch_3_6=2287323, upload_tcb_levels_batch_6_9=2509404, upload_tcb_levels_batch_9_12=2789207, upload_tcb_levels_batch_12_15=2946596, upload_tcb_levels_batch_15_18=3243573, upload_tcb_levels_batch_18_21=3437581, upload_tcb_levels_batch_21_22=1324516, finalize_async_upsert=1989683 |
+| 19 | SGX | 00906EA50000 | OK | 23483307 | upload_tcb_levels_batch_18_21 | 3437581 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2032731, upload_tcb_levels_batch_3_6=2287323, upload_tcb_levels_batch_6_9=2509404, upload_tcb_levels_batch_9_12=2789207, upload_tcb_levels_batch_12_15=2946596, upload_tcb_levels_batch_15_18=3243573, upload_tcb_levels_batch_18_21=3437581, upload_tcb_levels_batch_21_22=1324516, finalize_async_upsert=1992630 |
+| 19 | SGX | C0806F000000 | OK | 7088047 | upload_tcb_levels_batch_0_3 | 2644759 | start_async_upsert=404992, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2644759, upload_tcb_levels_batch_3_5=2190343, finalize_async_upsert=1333211 |
+| 19 | SGX | 00A06E050000 | OK | 3644717 | upload_tcb_levels_batch_0_2 | 1582737 | start_async_upsert=404992, upload_basic_info=514718, upload_tcb_levels_batch_0_2=1582737, finalize_async_upsert=1142270 |
+| 19 | SGX | 00A06D080000 | OK | 3635731 | upload_tcb_levels_batch_0_2 | 1559754 | start_async_upsert=405004, upload_basic_info=514710, upload_tcb_levels_batch_0_2=1559754, finalize_async_upsert=1156263 |
+| 19 | SGX | 20A06E050000 | FAIL | - | - | - | - |
+| 19 | SGX | 10A06F010000 | OK | 2873764 | finalize_async_upsert | 1095825 | start_async_upsert=404992, upload_basic_info=514718, upload_tcb_levels_batch_0_1=858229, finalize_async_upsert=1095825 |
+| 19 | SGX | B0C06F000000 | OK | 5145535 | upload_tcb_levels_batch_0_3 | 2998675 | start_async_upsert=405004, upload_basic_info=514919, upload_tcb_levels_batch_0_3=2998675, finalize_async_upsert=1226937 |
+| 19 | SGX | 00606A000000 | OK | 17692226 | upload_tcb_levels_batch_12_15 | 3859317 | start_async_upsert=404980, upload_basic_info=514553, upload_tcb_levels_batch_0_3=2428787, upload_tcb_levels_batch_3_6=2632999, upload_tcb_levels_batch_6_9=2873818, upload_tcb_levels_batch_9_12=3148151, upload_tcb_levels_batch_12_15=3859317, finalize_async_upsert=1829621 |
+| 19 | SGX | 00806F000000 | OK | 7382214 | upload_tcb_levels_batch_0_3 | 2645752 | start_async_upsert=405004, upload_basic_info=514565, upload_tcb_levels_batch_0_3=2645752, upload_tcb_levels_batch_3_5=2485226, finalize_async_upsert=1331667 |
+| 19 | SGX | 00906ED50000 | OK | 20977364 | upload_tcb_levels_batch_18_21 | 3320775 | start_async_upsert=404992, upload_basic_info=514742, upload_tcb_levels_batch_0_3=1968574, upload_tcb_levels_batch_3_6=2152490, upload_tcb_levels_batch_6_9=2440826, upload_tcb_levels_batch_9_12=2489598, upload_tcb_levels_batch_12_15=2817720, upload_tcb_levels_batch_15_18=2979492, upload_tcb_levels_batch_18_21=3320775, finalize_async_upsert=1888155 |
+| 19 | SGX | F0806F000000 | OK | 6929471 | upload_tcb_levels_batch_0_3 | 2645752 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2645752, upload_tcb_levels_batch_3_5=2048707, finalize_async_upsert=1315266 |
+| 19 | SGX | 00906EB10000 | OK | 23480449 | upload_tcb_levels_batch_18_21 | 3437581 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2032731, upload_tcb_levels_batch_3_6=2287323, upload_tcb_levels_batch_6_9=2509404, upload_tcb_levels_batch_9_12=2789207, upload_tcb_levels_batch_12_15=2946596, upload_tcb_levels_batch_15_18=3243573, upload_tcb_levels_batch_18_21=3437581, upload_tcb_levels_batch_21_22=1324516, finalize_async_upsert=1989772 |
+| 19 | SGX | 10A06D000000 | OK | 3629869 | upload_tcb_levels_batch_0_2 | 1559754 | start_async_upsert=405004, upload_basic_info=514710, upload_tcb_levels_batch_0_2=1559754, finalize_async_upsert=1150401 |
+| 19 | SGX | 00806EB70000 | OK | 3206491 | upload_tcb_levels_batch_0_2 | 1184266 | start_async_upsert=405004, upload_basic_info=514730, upload_tcb_levels_batch_0_2=1184266, finalize_async_upsert=1102491 |
+| 19 | SGX | 00A065510000 | OK | 12943880 | upload_tcb_levels_batch_9_12 | 2511875 | start_async_upsert=404992, upload_basic_info=514565, upload_tcb_levels_batch_0_3=1904671, upload_tcb_levels_batch_3_6=2055720, upload_tcb_levels_batch_6_9=2254828, upload_tcb_levels_batch_9_12=2511875, upload_tcb_levels_batch_12_14=1760165, finalize_async_upsert=1537064 |
+| 19 | SGX | 20A06D080000 | OK | 3647261 | upload_tcb_levels_batch_0_2 | 1582737 | start_async_upsert=404992, upload_basic_info=514718, upload_tcb_levels_batch_0_2=1582737, finalize_async_upsert=1144814 |
+| 19 | SGX | 90806F000000 | OK | 7378599 | upload_tcb_levels_batch_0_3 | 2645740 | start_async_upsert=404992, upload_basic_info=514553, upload_tcb_levels_batch_0_3=2645740, upload_tcb_levels_batch_3_5=2485214, finalize_async_upsert=1328100 |
+| 19 | SGX | 30606A000000 | OK | 17684332 | upload_tcb_levels_batch_12_15 | 3859329 | start_async_upsert=405004, upload_basic_info=514565, upload_tcb_levels_batch_0_3=2428799, upload_tcb_levels_batch_3_6=2633011, upload_tcb_levels_batch_6_9=2873830, upload_tcb_levels_batch_9_12=3148163, upload_tcb_levels_batch_12_15=3859329, finalize_async_upsert=1821631 |
+| 19 | SGX | 00A067110000 | OK | 12107071 | upload_tcb_levels_batch_9_12 | 2411698 | start_async_upsert=404992, upload_basic_info=514553, upload_tcb_levels_batch_0_3=1831610, upload_tcb_levels_batch_3_6=1937193, upload_tcb_levels_batch_6_9=2221230, upload_tcb_levels_batch_9_12=2411698, upload_tcb_levels_batch_12_13=1289628, finalize_async_upsert=1496167 |
+| 19 | SGX | 20806EB70000 | OK | 22097698 | upload_tcb_levels_batch_18_21 | 3423582 | start_async_upsert=405004, upload_basic_info=514722, upload_tcb_levels_batch_0_3=2032731, upload_tcb_levels_batch_3_6=2287323, upload_tcb_levels_batch_6_9=2509404, upload_tcb_levels_batch_9_12=2789207, upload_tcb_levels_batch_12_15=2946596, upload_tcb_levels_batch_15_18=3243573, upload_tcb_levels_batch_18_21=3423582, finalize_async_upsert=1945556 |
+| 19 | SGX | 70A06D070000 | OK | 3628752 | upload_tcb_levels_batch_0_2 | 1559754 | start_async_upsert=405004, upload_basic_info=514710, upload_tcb_levels_batch_0_2=1559754, finalize_async_upsert=1149284 |
+| 19 | SGX | 50806F000000 | OK | 7353005 | upload_tcb_levels_batch_0_3 | 2644759 | start_async_upsert=405004, upload_basic_info=514565, upload_tcb_levels_batch_0_3=2644759, upload_tcb_levels_batch_3_5=2462214, finalize_async_upsert=1326463 |
+| 19 | SGX | 00706A100000 | OK | 12626000 | upload_tcb_levels_batch_9_12 | 3379277 | start_async_upsert=404992, upload_basic_info=514565, upload_tcb_levels_batch_0_3=1806576, upload_tcb_levels_batch_3_6=2249340, upload_tcb_levels_batch_6_9=2755996, upload_tcb_levels_batch_9_12=3379277, finalize_async_upsert=1515254 |
+| 19 | SGX | 30806F040000 | OK | 7387764 | upload_tcb_levels_batch_0_3 | 2645752 | start_async_upsert=405004, upload_basic_info=514565, upload_tcb_levels_batch_0_3=2645752, upload_tcb_levels_batch_3_5=2485226, finalize_async_upsert=1337217 |
+| 19 | SGX | 60A06F000000 | OK | 4653628 | upload_tcb_levels_batch_0_3 | 2535344 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2535344, finalize_async_upsert=1198538 |
+| 19 | SGX | 20A06F000000 | OK | 4654544 | upload_tcb_levels_batch_0_3 | 2535332 | start_async_upsert=404992, upload_basic_info=514730, upload_tcb_levels_batch_0_3=2535332, finalize_async_upsert=1199490 |
+| 19 | SGX | 20906EC10000 | OK | 22087310 | upload_tcb_levels_batch_18_21 | 3423582 | start_async_upsert=405004, upload_basic_info=514722, upload_tcb_levels_batch_0_3=2032731, upload_tcb_levels_batch_3_6=2287323, upload_tcb_levels_batch_6_9=2509404, upload_tcb_levels_batch_9_12=2789207, upload_tcb_levels_batch_12_15=2946596, upload_tcb_levels_batch_15_18=3243573, upload_tcb_levels_batch_18_21=3423582, finalize_async_upsert=1935168 |
+| 19 | SGX | 20606C040000 | OK | 16631460 | upload_tcb_levels_batch_9_12 | 3180842 | start_async_upsert=405004, upload_basic_info=514565, upload_tcb_levels_batch_0_3=2428799, upload_tcb_levels_batch_3_6=2633011, upload_tcb_levels_batch_6_9=2970939, upload_tcb_levels_batch_9_12=3180842, upload_tcb_levels_batch_12_14=2726277, finalize_async_upsert=1772023 |
+| 19 | SGX | 00706A800000 | OK | 8679459 | upload_tcb_levels_batch_6_9 | 2659287 | start_async_upsert=405004, upload_basic_info=514565, upload_tcb_levels_batch_0_3=1709492, upload_tcb_levels_batch_3_6=2041052, upload_tcb_levels_batch_6_9=2659287, finalize_async_upsert=1350059 |
+| 19 | SGX | 00906EC50000 | OK | 22081896 | upload_tcb_levels_batch_18_21 | 3423582 | start_async_upsert=405004, upload_basic_info=514722, upload_tcb_levels_batch_0_3=2032731, upload_tcb_levels_batch_3_6=2287323, upload_tcb_levels_batch_6_9=2509404, upload_tcb_levels_batch_9_12=2789207, upload_tcb_levels_batch_12_15=2946596, upload_tcb_levels_batch_15_18=3243573, upload_tcb_levels_batch_18_21=3423582, finalize_async_upsert=1929754 |
+| 19 | SGX | 00806EA60000 | OK | 23477006 | upload_tcb_levels_batch_18_21 | 3437581 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2032731, upload_tcb_levels_batch_3_6=2287323, upload_tcb_levels_batch_6_9=2509404, upload_tcb_levels_batch_9_12=2789207, upload_tcb_levels_batch_12_15=2946596, upload_tcb_levels_batch_15_18=3243573, upload_tcb_levels_batch_18_21=3437581, upload_tcb_levels_batch_21_22=1324516, finalize_async_upsert=1986329 |
+| 19 | SGX | 90C06F000000 | OK | 5134531 | upload_tcb_levels_batch_0_3 | 2998675 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2998675, finalize_async_upsert=1216110 |
+| 19 | TDX | 10A06F010000 | OK | 5296111 | upload_tdx_module_identities_batch_0_2 | 1349417 | start_async_upsert=404992, upload_basic_info=973470, upload_tcb_levels_batch_0_1=1339054, upload_tdx_module_identities_batch_0_2=1349417, finalize_async_upsert=1229178 |
+| 19 | TDX | 60A06F000000 | OK | 8112499 | upload_tcb_levels_batch_0_3 | 3993738 | start_async_upsert=405004, upload_basic_info=973482, upload_tcb_levels_batch_0_3=3993738, upload_tdx_module_identities_batch_0_2=1349417, finalize_async_upsert=1390858 |
+| 19 | TDX | 20A06E050000 | FAIL | - | - | - | - |
+| 19 | TDX | C0806F000000 | OK | 12130767 | upload_tcb_levels_batch_0_3 | 4348425 | start_async_upsert=404992, upload_basic_info=973470, upload_tcb_levels_batch_0_3=4348425, upload_tcb_levels_batch_3_5=3462010, upload_tdx_module_identities_batch_0_2=1349405, finalize_async_upsert=1592465 |
+| 19 | TDX | 70A06D070000 | OK | 6555206 | upload_tcb_levels_batch_0_2 | 2529275 | start_async_upsert=405004, upload_basic_info=973470, upload_tcb_levels_batch_0_2=2529275, upload_tdx_module_identities_batch_0_2=1349417, finalize_async_upsert=1298040 |
+| 19 | TDX | 20A06D080000 | OK | 6557768 | upload_tcb_levels_batch_0_2 | 2529948 | start_async_upsert=405004, upload_basic_info=973470, upload_tcb_levels_batch_0_2=2529948, upload_tdx_module_identities_batch_0_2=1349417, finalize_async_upsert=1299929 |
+| 19 | TDX | 10A06D000000 | OK | 6548371 | upload_tcb_levels_batch_0_2 | 2529275 | start_async_upsert=405004, upload_basic_info=973470, upload_tcb_levels_batch_0_2=2529275, upload_tdx_module_identities_batch_0_2=1349417, finalize_async_upsert=1291205 |
+| 19 | TDX | 00806F050000 | OK | 12407733 | upload_tcb_levels_batch_0_3 | 4348437 | start_async_upsert=405004, upload_basic_info=973305, upload_tcb_levels_batch_0_3=4348437, upload_tcb_levels_batch_3_5=3722046, upload_tdx_module_identities_batch_0_2=1349417, finalize_async_upsert=1609524 |
+| 19 | TDX | 20A06F000000 | OK | 8106200 | upload_tcb_levels_batch_0_3 | 3993738 | start_async_upsert=405004, upload_basic_info=973482, upload_tcb_levels_batch_0_3=3993738, upload_tdx_module_identities_batch_0_2=1349417, finalize_async_upsert=1384559 |
+| 19 | TDX | 90C06F000000 | OK | 8728450 | upload_tcb_levels_batch_0_3 | 4577824 | start_async_upsert=404992, upload_basic_info=973470, upload_tcb_levels_batch_0_3=4577824, upload_tdx_module_identities_batch_0_2=1349405, finalize_async_upsert=1422759 |
+| 19 | TDX | 50806F000000 | OK | 12406055 | upload_tcb_levels_batch_0_3 | 4348437 | start_async_upsert=405004, upload_basic_info=973305, upload_tcb_levels_batch_0_3=4348437, upload_tcb_levels_batch_3_5=3722046, upload_tdx_module_identities_batch_0_2=1349417, finalize_async_upsert=1607846 |
+| 19 | TDX | B0C06F000000 | OK | 8716050 | upload_tcb_levels_batch_0_3 | 4577836 | start_async_upsert=405004, upload_basic_info=973659, upload_tcb_levels_batch_0_3=4577836, upload_tdx_module_identities_batch_0_2=1349417, finalize_async_upsert=1410134 |
+| 19 | TDX | 00A06D080000 | OK | 6557405 | upload_tcb_levels_batch_0_2 | 2529275 | start_async_upsert=405004, upload_basic_info=973470, upload_tcb_levels_batch_0_2=2529275, upload_tdx_module_identities_batch_0_2=1349417, finalize_async_upsert=1300239 |
+| 19 | TDX | 00A06E050000 | OK | 6560495 | upload_tcb_levels_batch_0_2 | 2529948 | start_async_upsert=405004, upload_basic_info=973470, upload_tcb_levels_batch_0_2=2529948, upload_tdx_module_identities_batch_0_2=1349417, finalize_async_upsert=1302656 |
+| 20 | SGX | 00606C040000 | OK | 17828070 | upload_tcb_levels_batch_12_15 | 3859329 | start_async_upsert=405004, upload_basic_info=514565, upload_tcb_levels_batch_0_3=2428799, upload_tcb_levels_batch_3_6=2633011, upload_tcb_levels_batch_6_9=2970939, upload_tcb_levels_batch_9_12=3180842, upload_tcb_levels_batch_12_15=3859329, finalize_async_upsert=1835581 |
+| 20 | SGX | 00906EC10000 | OK | 3219045 | upload_tcb_levels_batch_0_2 | 1184266 | start_async_upsert=405004, upload_basic_info=514730, upload_tcb_levels_batch_0_2=1184266, finalize_async_upsert=1115045 |
+| 20 | SGX | 00806F050000 | OK | 8317814 | upload_tcb_levels_batch_3_6 | 3500619 | start_async_upsert=405004, upload_basic_info=514565, upload_tcb_levels_batch_0_3=2516395, upload_tcb_levels_batch_3_6=3500619, finalize_async_upsert=1381231 |
+| 20 | SGX | 00706E470000 | OK | 13803074 | upload_tcb_levels_batch_12_15 | 2734631 | start_async_upsert=405004, upload_basic_info=514565, upload_tcb_levels_batch_0_3=1830825, upload_tcb_levels_batch_3_6=2000724, upload_tcb_levels_batch_6_9=2254020, upload_tcb_levels_batch_9_12=2487798, upload_tcb_levels_batch_12_15=2734631, finalize_async_upsert=1575507 |
+| 20 | SGX | 00906EA10000 | OK | 23484648 | upload_tcb_levels_batch_18_21 | 3437581 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2032731, upload_tcb_levels_batch_3_6=2287323, upload_tcb_levels_batch_6_9=2509404, upload_tcb_levels_batch_9_12=2789207, upload_tcb_levels_batch_12_15=2946596, upload_tcb_levels_batch_15_18=3243573, upload_tcb_levels_batch_18_21=3437581, upload_tcb_levels_batch_21_22=1324516, finalize_async_upsert=1993971 |
+| 20 | SGX | 00906EA50000 | OK | 23491340 | upload_tcb_levels_batch_18_21 | 3437581 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2032731, upload_tcb_levels_batch_3_6=2287323, upload_tcb_levels_batch_6_9=2509404, upload_tcb_levels_batch_9_12=2789207, upload_tcb_levels_batch_12_15=2946596, upload_tcb_levels_batch_15_18=3243573, upload_tcb_levels_batch_18_21=3437581, upload_tcb_levels_batch_21_22=1324516, finalize_async_upsert=2000663 |
+| 20 | SGX | C0806F000000 | OK | 8052294 | upload_tcb_levels_batch_3_6 | 3246485 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2516395, upload_tcb_levels_batch_3_6=3246485, finalize_async_upsert=1369668 |
+| 20 | SGX | 00A06E050000 | OK | 3655643 | upload_tcb_levels_batch_0_2 | 1582749 | start_async_upsert=404992, upload_basic_info=514730, upload_tcb_levels_batch_0_2=1582749, finalize_async_upsert=1153172 |
+| 20 | SGX | 00A06D080000 | OK | 4583237 | upload_tcb_levels_batch_0_3 | 2470403 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2470403, finalize_async_upsert=1193088 |
+| 20 | SGX | 20A06E050000 | OK | 3651867 | upload_tcb_levels_batch_0_2 | 1582749 | start_async_upsert=405004, upload_basic_info=514730, upload_tcb_levels_batch_0_2=1582749, finalize_async_upsert=1149384 |
+| 20 | SGX | 10A06F010000 | OK | 2889000 | finalize_async_upsert | 1111025 | start_async_upsert=405004, upload_basic_info=514730, upload_tcb_levels_batch_0_1=858241, finalize_async_upsert=1111025 |
+| 20 | SGX | B0C06F000000 | OK | 6137201 | upload_tcb_levels_batch_0_3 | 2516395 | start_async_upsert=405004, upload_basic_info=514919, upload_tcb_levels_batch_0_3=2516395, upload_tcb_levels_batch_3_4=1436291, finalize_async_upsert=1264592 |
+| 20 | SGX | 00606A000000 | OK | 17697023 | upload_tcb_levels_batch_12_15 | 3859305 | start_async_upsert=404980, upload_basic_info=514541, upload_tcb_levels_batch_0_3=2428775, upload_tcb_levels_batch_3_6=2632987, upload_tcb_levels_batch_6_9=2873806, upload_tcb_levels_batch_9_12=3148139, upload_tcb_levels_batch_12_15=3859305, finalize_async_upsert=1834490 |
+| 20 | SGX | 00806F000000 | OK | 8343833 | upload_tcb_levels_batch_3_6 | 3501639 | start_async_upsert=405004, upload_basic_info=536445, upload_tcb_levels_batch_0_3=2517385, upload_tcb_levels_batch_3_6=3501639, finalize_async_upsert=1383360 |
+| 20 | SGX | 00906ED50000 | OK | 20970364 | upload_tcb_levels_batch_18_21 | 3320775 | start_async_upsert=404980, upload_basic_info=514742, upload_tcb_levels_batch_0_3=1968574, upload_tcb_levels_batch_3_6=2152490, upload_tcb_levels_batch_6_9=2440826, upload_tcb_levels_batch_9_12=2489598, upload_tcb_levels_batch_12_15=2817720, upload_tcb_levels_batch_15_18=2979492, upload_tcb_levels_batch_18_21=3320775, finalize_async_upsert=1881167 |
+| 20 | SGX | F0806F000000 | OK | 7882187 | upload_tcb_levels_batch_3_6 | 3080822 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2517385, upload_tcb_levels_batch_3_6=3080822, finalize_async_upsert=1364234 |
+| 20 | SGX | 00906EB10000 | OK | 23481311 | upload_tcb_levels_batch_18_21 | 3437581 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2032731, upload_tcb_levels_batch_3_6=2287323, upload_tcb_levels_batch_6_9=2509404, upload_tcb_levels_batch_9_12=2789207, upload_tcb_levels_batch_12_15=2946596, upload_tcb_levels_batch_15_18=3243573, upload_tcb_levels_batch_18_21=3437581, upload_tcb_levels_batch_21_22=1324516, finalize_async_upsert=1990634 |
+| 20 | SGX | 10A06D000000 | OK | 4583012 | upload_tcb_levels_batch_0_3 | 2470403 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2470403, finalize_async_upsert=1192863 |
+| 20 | SGX | 00806EB70000 | OK | 3223208 | upload_tcb_levels_batch_0_2 | 1184266 | start_async_upsert=405004, upload_basic_info=514730, upload_tcb_levels_batch_0_2=1184266, finalize_async_upsert=1119208 |
+| 20 | SGX | 00A065510000 | OK | 12945070 | upload_tcb_levels_batch_9_12 | 2511875 | start_async_upsert=405004, upload_basic_info=514565, upload_tcb_levels_batch_0_3=1904671, upload_tcb_levels_batch_3_6=2055720, upload_tcb_levels_batch_6_9=2254828, upload_tcb_levels_batch_9_12=2511875, upload_tcb_levels_batch_12_14=1760165, finalize_async_upsert=1538242 |
+| 20 | SGX | 20A06D080000 | OK | 4589136 | upload_tcb_levels_batch_0_3 | 2471395 | start_async_upsert=404992, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2471395, finalize_async_upsert=1198007 |
+| 20 | SGX | 90806F000000 | OK | 8347284 | upload_tcb_levels_batch_3_6 | 3501639 | start_async_upsert=405004, upload_basic_info=536445, upload_tcb_levels_batch_0_3=2517385, upload_tcb_levels_batch_3_6=3501639, finalize_async_upsert=1386811 |
+| 20 | SGX | 30606A000000 | OK | 17692278 | upload_tcb_levels_batch_12_15 | 3859329 | start_async_upsert=405004, upload_basic_info=514565, upload_tcb_levels_batch_0_3=2428799, upload_tcb_levels_batch_3_6=2633011, upload_tcb_levels_batch_6_9=2873830, upload_tcb_levels_batch_9_12=3148163, upload_tcb_levels_batch_12_15=3859329, finalize_async_upsert=1829577 |
+| 20 | SGX | 00A067110000 | OK | 12108646 | upload_tcb_levels_batch_9_12 | 2411710 | start_async_upsert=405004, upload_basic_info=514565, upload_tcb_levels_batch_0_3=1831622, upload_tcb_levels_batch_3_6=1937205, upload_tcb_levels_batch_6_9=2221242, upload_tcb_levels_batch_9_12=2411710, upload_tcb_levels_batch_12_13=1289640, finalize_async_upsert=1497658 |
+| 20 | SGX | 20806EB70000 | OK | 22089359 | upload_tcb_levels_batch_18_21 | 3423582 | start_async_upsert=405004, upload_basic_info=514722, upload_tcb_levels_batch_0_3=2032731, upload_tcb_levels_batch_3_6=2287323, upload_tcb_levels_batch_6_9=2509404, upload_tcb_levels_batch_9_12=2789207, upload_tcb_levels_batch_12_15=2946596, upload_tcb_levels_batch_15_18=3243573, upload_tcb_levels_batch_18_21=3423582, finalize_async_upsert=1937217 |
+| 20 | SGX | 70A06D070000 | OK | 4590678 | upload_tcb_levels_batch_0_3 | 2470403 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2470403, finalize_async_upsert=1200529 |
+| 20 | SGX | 50806F000000 | OK | 8312273 | upload_tcb_levels_batch_3_6 | 3500619 | start_async_upsert=404992, upload_basic_info=514565, upload_tcb_levels_batch_0_3=2516395, upload_tcb_levels_batch_3_6=3500619, finalize_async_upsert=1375702 |
+| 20 | SGX | 00706A100000 | OK | 12624185 | upload_tcb_levels_batch_9_12 | 3379277 | start_async_upsert=405004, upload_basic_info=514565, upload_tcb_levels_batch_0_3=1806576, upload_tcb_levels_batch_3_6=2249340, upload_tcb_levels_batch_6_9=2755996, upload_tcb_levels_batch_9_12=3379277, finalize_async_upsert=1513427 |
+| 20 | SGX | 30806F040000 | OK | 8343648 | upload_tcb_levels_batch_3_6 | 3501639 | start_async_upsert=405004, upload_basic_info=536445, upload_tcb_levels_batch_0_3=2517385, upload_tcb_levels_batch_3_6=3501639, finalize_async_upsert=1383175 |
+| 20 | SGX | 60A06F000000 | OK | 5791949 | upload_tcb_levels_batch_0_3 | 2581434 | start_async_upsert=404968, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2581434, upload_tcb_levels_batch_3_4=1030509, finalize_async_upsert=1260296 |
+| 20 | SGX | 20A06F000000 | OK | 5779441 | upload_tcb_levels_batch_0_3 | 2581422 | start_async_upsert=404992, upload_basic_info=514730, upload_tcb_levels_batch_0_3=2581422, upload_tcb_levels_batch_3_4=1030497, finalize_async_upsert=1247800 |
+| 20 | SGX | 20906EC10000 | OK | 22085174 | upload_tcb_levels_batch_18_21 | 3423582 | start_async_upsert=405004, upload_basic_info=514722, upload_tcb_levels_batch_0_3=2032731, upload_tcb_levels_batch_3_6=2287323, upload_tcb_levels_batch_6_9=2509404, upload_tcb_levels_batch_9_12=2789207, upload_tcb_levels_batch_12_15=2946596, upload_tcb_levels_batch_15_18=3243573, upload_tcb_levels_batch_18_21=3423582, finalize_async_upsert=1933032 |
+| 20 | SGX | 20606C040000 | OK | 16638827 | upload_tcb_levels_batch_9_12 | 3180842 | start_async_upsert=405004, upload_basic_info=514565, upload_tcb_levels_batch_0_3=2428799, upload_tcb_levels_batch_3_6=2633011, upload_tcb_levels_batch_6_9=2970939, upload_tcb_levels_batch_9_12=3180842, upload_tcb_levels_batch_12_14=2726277, finalize_async_upsert=1779390 |
+| 20 | SGX | 00706A800000 | OK | 8681519 | upload_tcb_levels_batch_6_9 | 2659287 | start_async_upsert=404992, upload_basic_info=514565, upload_tcb_levels_batch_0_3=1709492, upload_tcb_levels_batch_3_6=2041052, upload_tcb_levels_batch_6_9=2659287, finalize_async_upsert=1352131 |
+| 20 | SGX | 00906EC50000 | OK | 22092094 | upload_tcb_levels_batch_18_21 | 3423582 | start_async_upsert=405004, upload_basic_info=514722, upload_tcb_levels_batch_0_3=2032731, upload_tcb_levels_batch_3_6=2287323, upload_tcb_levels_batch_6_9=2509404, upload_tcb_levels_batch_9_12=2789207, upload_tcb_levels_batch_12_15=2946596, upload_tcb_levels_batch_15_18=3243573, upload_tcb_levels_batch_18_21=3423582, finalize_async_upsert=1939952 |
+| 20 | SGX | 00806EA60000 | OK | 23482538 | upload_tcb_levels_batch_18_21 | 3437581 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2032731, upload_tcb_levels_batch_3_6=2287323, upload_tcb_levels_batch_6_9=2509404, upload_tcb_levels_batch_9_12=2789207, upload_tcb_levels_batch_12_15=2946596, upload_tcb_levels_batch_15_18=3243573, upload_tcb_levels_batch_18_21=3437581, upload_tcb_levels_batch_21_22=1324516, finalize_async_upsert=1991861 |
+| 20 | SGX | 90C06F000000 | OK | 6132150 | upload_tcb_levels_batch_0_3 | 2516395 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2516395, upload_tcb_levels_batch_3_4=1436291, finalize_async_upsert=1259718 |
+| 20 | TDX | 10A06F010000 | OK | 5824796 | upload_tdx_module_identities_batch_0_2 | 1848579 | start_async_upsert=405004, upload_basic_info=973949, upload_tcb_levels_batch_0_1=1339054, upload_tdx_module_identities_batch_0_2=1848579, finalize_async_upsert=1258210 |
+| 20 | TDX | 60A06F000000 | OK | 10570145 | upload_tcb_levels_batch_0_3 | 4216526 | start_async_upsert=405004, upload_basic_info=973961, upload_tcb_levels_batch_0_3=4216526, upload_tcb_levels_batch_3_4=1611462, upload_tdx_module_identities_batch_0_2=1848579, finalize_async_upsert=1514613 |
+| 20 | TDX | 20A06E050000 | OK | 7091311 | upload_tcb_levels_batch_0_2 | 2529948 | start_async_upsert=405004, upload_basic_info=973949, upload_tcb_levels_batch_0_2=2529948, upload_tdx_module_identities_batch_0_2=1848579, finalize_async_upsert=1333831 |
+| 20 | TDX | C0806F000000 | OK | 14659828 | upload_tcb_levels_batch_3_6 | 5420572 | start_async_upsert=405004, upload_basic_info=973961, upload_tcb_levels_batch_0_3=4283513, upload_tcb_levels_batch_3_6=5420572, upload_tdx_module_identities_batch_0_2=1848579, finalize_async_upsert=1728199 |
+| 20 | TDX | 70A06D070000 | OK | 8729850 | upload_tcb_levels_batch_0_3 | 4077773 | start_async_upsert=405004, upload_basic_info=973961, upload_tcb_levels_batch_0_3=4077773, upload_tdx_module_identities_batch_0_2=1848579, finalize_async_upsert=1424533 |
+| 20 | TDX | 20A06D080000 | OK | 8755186 | upload_tcb_levels_batch_0_3 | 4078828 | start_async_upsert=404992, upload_basic_info=995829, upload_tcb_levels_batch_0_3=4078828, upload_tdx_module_identities_batch_0_2=1848567, finalize_async_upsert=1426970 |
+| 20 | TDX | 10A06D000000 | OK | 8735169 | upload_tcb_levels_batch_0_3 | 4077773 | start_async_upsert=405004, upload_basic_info=973961, upload_tcb_levels_batch_0_3=4077773, upload_tdx_module_identities_batch_0_2=1848579, finalize_async_upsert=1429852 |
+| 20 | TDX | 00806F050000 | OK | 14969696 | upload_tcb_levels_batch_3_6 | 5716169 | start_async_upsert=404992, upload_basic_info=973784, upload_tcb_levels_batch_0_3=4283513, upload_tcb_levels_batch_3_6=5716169, upload_tdx_module_identities_batch_0_2=1848579, finalize_async_upsert=1742659 |
+| 20 | TDX | 20A06F000000 | OK | 10561094 | upload_tcb_levels_batch_0_3 | 4216526 | start_async_upsert=405004, upload_basic_info=973961, upload_tcb_levels_batch_0_3=4216526, upload_tcb_levels_batch_3_4=1611462, upload_tdx_module_identities_batch_0_2=1848579, finalize_async_upsert=1505562 |
+| 20 | TDX | 90C06F000000 | OK | 11107320 | upload_tcb_levels_batch_0_3 | 4216133 | start_async_upsert=404992, upload_basic_info=973949, upload_tcb_levels_batch_0_3=4216133, upload_tcb_levels_batch_3_4=2118846, upload_tdx_module_identities_batch_0_2=1848567, finalize_async_upsert=1544833 |
+| 20 | TDX | 50806F000000 | OK | 14966178 | upload_tcb_levels_batch_3_6 | 5716169 | start_async_upsert=404992, upload_basic_info=973784, upload_tcb_levels_batch_0_3=4283513, upload_tcb_levels_batch_3_6=5716169, upload_tdx_module_identities_batch_0_2=1848579, finalize_async_upsert=1739141 |
+| 20 | TDX | B0C06F000000 | OK | 11105506 | upload_tcb_levels_batch_0_3 | 4216145 | start_async_upsert=405004, upload_basic_info=974138, upload_tcb_levels_batch_0_3=4216145, upload_tcb_levels_batch_3_4=2118858, upload_tdx_module_identities_batch_0_2=1848579, finalize_async_upsert=1542782 |
+| 20 | TDX | 00A06D080000 | OK | 8726041 | upload_tcb_levels_batch_0_3 | 4077773 | start_async_upsert=404992, upload_basic_info=973961, upload_tcb_levels_batch_0_3=4077773, upload_tdx_module_identities_batch_0_2=1848579, finalize_async_upsert=1420736 |
+| 20 | TDX | 00A06E050000 | OK | 7089717 | upload_tcb_levels_batch_0_2 | 2529948 | start_async_upsert=405004, upload_basic_info=973949, upload_tcb_levels_batch_0_2=2529948, upload_tdx_module_identities_batch_0_2=1848579, finalize_async_upsert=1332237 |
+| 21 | SGX | 00606C040000 | OK | 17829277 | upload_tcb_levels_batch_12_15 | 3859329 | start_async_upsert=405004, upload_basic_info=514565, upload_tcb_levels_batch_0_3=2428799, upload_tcb_levels_batch_3_6=2633011, upload_tcb_levels_batch_6_9=2970939, upload_tcb_levels_batch_9_12=3180842, upload_tcb_levels_batch_12_15=3859329, finalize_async_upsert=1836788 |
+| 21 | SGX | 00906EC10000 | OK | 3207328 | upload_tcb_levels_batch_0_2 | 1184266 | start_async_upsert=405004, upload_basic_info=514730, upload_tcb_levels_batch_0_2=1184266, finalize_async_upsert=1103328 |
+| 21 | SGX | 00806F050000 | OK | 8319267 | upload_tcb_levels_batch_3_6 | 3500619 | start_async_upsert=405004, upload_basic_info=514565, upload_tcb_levels_batch_0_3=2516395, upload_tcb_levels_batch_3_6=3500619, finalize_async_upsert=1382684 |
+| 21 | SGX | 00706E470000 | OK | 13791497 | upload_tcb_levels_batch_12_15 | 2734631 | start_async_upsert=405004, upload_basic_info=514565, upload_tcb_levels_batch_0_3=1830825, upload_tcb_levels_batch_3_6=2000724, upload_tcb_levels_batch_6_9=2254020, upload_tcb_levels_batch_9_12=2487798, upload_tcb_levels_batch_12_15=2734631, finalize_async_upsert=1563930 |
+| 21 | SGX | 00906EA10000 | OK | 23481400 | upload_tcb_levels_batch_18_21 | 3437581 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2032731, upload_tcb_levels_batch_3_6=2287323, upload_tcb_levels_batch_6_9=2509404, upload_tcb_levels_batch_9_12=2789207, upload_tcb_levels_batch_12_15=2946596, upload_tcb_levels_batch_15_18=3243573, upload_tcb_levels_batch_18_21=3437581, upload_tcb_levels_batch_21_22=1324516, finalize_async_upsert=1990723 |
+| 21 | SGX | 00906EA50000 | OK | 23486882 | upload_tcb_levels_batch_18_21 | 3437581 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2032731, upload_tcb_levels_batch_3_6=2287323, upload_tcb_levels_batch_6_9=2509404, upload_tcb_levels_batch_9_12=2789207, upload_tcb_levels_batch_12_15=2946596, upload_tcb_levels_batch_15_18=3243573, upload_tcb_levels_batch_18_21=3437581, upload_tcb_levels_batch_21_22=1324516, finalize_async_upsert=1996205 |
+| 21 | SGX | C0806F000000 | OK | 8057220 | upload_tcb_levels_batch_3_6 | 3246485 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2516395, upload_tcb_levels_batch_3_6=3246485, finalize_async_upsert=1374594 |
+| 21 | SGX | 00A06E050000 | OK | 3645082 | upload_tcb_levels_batch_0_2 | 1582749 | start_async_upsert=405004, upload_basic_info=514730, upload_tcb_levels_batch_0_2=1582749, finalize_async_upsert=1142599 |
+| 21 | SGX | 00A06D080000 | OK | 4583127 | upload_tcb_levels_batch_0_3 | 2470403 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2470403, finalize_async_upsert=1192978 |
+| 21 | SGX | 20A06E050000 | OK | 3644485 | upload_tcb_levels_batch_0_2 | 1582749 | start_async_upsert=404992, upload_basic_info=514730, upload_tcb_levels_batch_0_2=1582749, finalize_async_upsert=1142014 |
+| 21 | SGX | 10A06F010000 | OK | 2883537 | finalize_async_upsert | 1105562 | start_async_upsert=405004, upload_basic_info=514730, upload_tcb_levels_batch_0_1=858241, finalize_async_upsert=1105562 |
+| 21 | SGX | B0C06F000000 | OK | 6141269 | upload_tcb_levels_batch_0_3 | 2516395 | start_async_upsert=405004, upload_basic_info=514919, upload_tcb_levels_batch_0_3=2516395, upload_tcb_levels_batch_3_4=1436291, finalize_async_upsert=1268660 |
+| 21 | SGX | 00606A000000 | OK | 17684582 | upload_tcb_levels_batch_12_15 | 3859329 | start_async_upsert=404992, upload_basic_info=514565, upload_tcb_levels_batch_0_3=2428799, upload_tcb_levels_batch_3_6=2633011, upload_tcb_levels_batch_6_9=2873830, upload_tcb_levels_batch_9_12=3148163, upload_tcb_levels_batch_12_15=3859329, finalize_async_upsert=1821893 |
+| 21 | SGX | 00806F000000 | OK | 8344908 | upload_tcb_levels_batch_3_6 | 3501639 | start_async_upsert=405004, upload_basic_info=536445, upload_tcb_levels_batch_0_3=2517385, upload_tcb_levels_batch_3_6=3501639, finalize_async_upsert=1384435 |
+| 21 | SGX | 00906ED50000 | OK | 20982074 | upload_tcb_levels_batch_18_21 | 3320775 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=1968574, upload_tcb_levels_batch_3_6=2152490, upload_tcb_levels_batch_6_9=2440826, upload_tcb_levels_batch_9_12=2489598, upload_tcb_levels_batch_12_15=2817720, upload_tcb_levels_batch_15_18=2979492, upload_tcb_levels_batch_18_21=3320775, finalize_async_upsert=1892853 |
+| 21 | SGX | F0806F000000 | OK | 7880050 | upload_tcb_levels_batch_3_6 | 3080810 | start_async_upsert=404992, upload_basic_info=514730, upload_tcb_levels_batch_0_3=2517373, upload_tcb_levels_batch_3_6=3080810, finalize_async_upsert=1362145 |
+| 21 | SGX | 00906EB10000 | OK | 23488104 | upload_tcb_levels_batch_18_21 | 3437581 | start_async_upsert=404992, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2032731, upload_tcb_levels_batch_3_6=2287323, upload_tcb_levels_batch_6_9=2509404, upload_tcb_levels_batch_9_12=2789207, upload_tcb_levels_batch_12_15=2946596, upload_tcb_levels_batch_15_18=3243573, upload_tcb_levels_batch_18_21=3437581, upload_tcb_levels_batch_21_22=1324516, finalize_async_upsert=1997439 |
+| 21 | SGX | 10A06D000000 | OK | 4581692 | upload_tcb_levels_batch_0_3 | 2470403 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2470403, finalize_async_upsert=1191543 |
+| 21 | SGX | 00806EB70000 | OK | 3218190 | upload_tcb_levels_batch_0_2 | 1184266 | start_async_upsert=405004, upload_basic_info=514730, upload_tcb_levels_batch_0_2=1184266, finalize_async_upsert=1114190 |
+| 21 | SGX | 00A065510000 | OK | 12943418 | upload_tcb_levels_batch_9_12 | 2511875 | start_async_upsert=405004, upload_basic_info=514565, upload_tcb_levels_batch_0_3=1904671, upload_tcb_levels_batch_3_6=2055720, upload_tcb_levels_batch_6_9=2254828, upload_tcb_levels_batch_9_12=2511875, upload_tcb_levels_batch_12_14=1760165, finalize_async_upsert=1536590 |
+| 21 | SGX | 20A06D080000 | OK | 4578734 | upload_tcb_levels_batch_0_3 | 2471395 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2471395, finalize_async_upsert=1187593 |
+| 21 | SGX | 90806F000000 | OK | 8346499 | upload_tcb_levels_batch_3_6 | 3501639 | start_async_upsert=404992, upload_basic_info=536445, upload_tcb_levels_batch_0_3=2517385, upload_tcb_levels_batch_3_6=3501639, finalize_async_upsert=1386038 |
+| 21 | SGX | 30606A000000 | OK | 17692323 | upload_tcb_levels_batch_12_15 | 3859329 | start_async_upsert=404992, upload_basic_info=514565, upload_tcb_levels_batch_0_3=2428799, upload_tcb_levels_batch_3_6=2633011, upload_tcb_levels_batch_6_9=2873830, upload_tcb_levels_batch_9_12=3148163, upload_tcb_levels_batch_12_15=3859329, finalize_async_upsert=1829634 |
+| 21 | SGX | 00A067110000 | OK | 12118259 | upload_tcb_levels_batch_9_12 | 2411710 | start_async_upsert=405004, upload_basic_info=514565, upload_tcb_levels_batch_0_3=1831622, upload_tcb_levels_batch_3_6=1937205, upload_tcb_levels_batch_6_9=2221242, upload_tcb_levels_batch_9_12=2411710, upload_tcb_levels_batch_12_13=1289640, finalize_async_upsert=1507271 |
+| 21 | SGX | 20806EB70000 | OK | 22086575 | upload_tcb_levels_batch_18_21 | 3423582 | start_async_upsert=405004, upload_basic_info=514722, upload_tcb_levels_batch_0_3=2032731, upload_tcb_levels_batch_3_6=2287323, upload_tcb_levels_batch_6_9=2509404, upload_tcb_levels_batch_9_12=2789207, upload_tcb_levels_batch_12_15=2946596, upload_tcb_levels_batch_15_18=3243573, upload_tcb_levels_batch_18_21=3423582, finalize_async_upsert=1934433 |
+| 21 | SGX | 70A06D070000 | OK | 4593337 | upload_tcb_levels_batch_0_3 | 2470403 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2470403, finalize_async_upsert=1203188 |
+| 21 | SGX | 50806F000000 | OK | 8313509 | upload_tcb_levels_batch_3_6 | 3500619 | start_async_upsert=405004, upload_basic_info=514565, upload_tcb_levels_batch_0_3=2516395, upload_tcb_levels_batch_3_6=3500619, finalize_async_upsert=1376926 |
+| 21 | SGX | 00706A100000 | OK | 12618269 | upload_tcb_levels_batch_9_12 | 3379277 | start_async_upsert=405004, upload_basic_info=514565, upload_tcb_levels_batch_0_3=1806576, upload_tcb_levels_batch_3_6=2249340, upload_tcb_levels_batch_6_9=2755996, upload_tcb_levels_batch_9_12=3379277, finalize_async_upsert=1507511 |
+| 21 | SGX | 30806F040000 | OK | 8343289 | upload_tcb_levels_batch_3_6 | 3501639 | start_async_upsert=405004, upload_basic_info=536445, upload_tcb_levels_batch_0_3=2517385, upload_tcb_levels_batch_3_6=3501639, finalize_async_upsert=1382816 |
+| 21 | SGX | 60A06F000000 | OK | 5786908 | upload_tcb_levels_batch_0_3 | 2581434 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2581434, upload_tcb_levels_batch_3_4=1030509, finalize_async_upsert=1255219 |
+| 21 | SGX | 20A06F000000 | OK | 5788565 | upload_tcb_levels_batch_0_3 | 2581434 | start_async_upsert=405004, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2581434, upload_tcb_levels_batch_3_4=1030509, finalize_async_upsert=1256876 |
+| 21 | SGX | 20906EC10000 | OK | 22084342 | upload_tcb_levels_batch_18_21 | 3423582 | start_async_upsert=404992, upload_basic_info=514722, upload_tcb_levels_batch_0_3=2032731, upload_tcb_levels_batch_3_6=2287323, upload_tcb_levels_batch_6_9=2509404, upload_tcb_levels_batch_9_12=2789207, upload_tcb_levels_batch_12_15=2946596, upload_tcb_levels_batch_15_18=3243573, upload_tcb_levels_batch_18_21=3423582, finalize_async_upsert=1932212 |
+| 21 | SGX | 20606C040000 | OK | 16617768 | upload_tcb_levels_batch_9_12 | 3180842 | start_async_upsert=404992, upload_basic_info=514565, upload_tcb_levels_batch_0_3=2428799, upload_tcb_levels_batch_3_6=2633011, upload_tcb_levels_batch_6_9=2970939, upload_tcb_levels_batch_9_12=3180842, upload_tcb_levels_batch_12_14=2726277, finalize_async_upsert=1758343 |
+| 21 | SGX | 00706A800000 | OK | 8670935 | upload_tcb_levels_batch_6_9 | 2659287 | start_async_upsert=405004, upload_basic_info=514565, upload_tcb_levels_batch_0_3=1709492, upload_tcb_levels_batch_3_6=2041052, upload_tcb_levels_batch_6_9=2659287, finalize_async_upsert=1341535 |
+| 21 | SGX | 00906EC50000 | OK | 22089463 | upload_tcb_levels_batch_18_21 | 3423582 | start_async_upsert=405004, upload_basic_info=514722, upload_tcb_levels_batch_0_3=2032731, upload_tcb_levels_batch_3_6=2287323, upload_tcb_levels_batch_6_9=2509404, upload_tcb_levels_batch_9_12=2789207, upload_tcb_levels_batch_12_15=2946596, upload_tcb_levels_batch_15_18=3243573, upload_tcb_levels_batch_18_21=3423582, finalize_async_upsert=1937321 |
+| 21 | SGX | 00806EA60000 | OK | 23472874 | upload_tcb_levels_batch_18_21 | 3437581 | start_async_upsert=404992, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2032731, upload_tcb_levels_batch_3_6=2287323, upload_tcb_levels_batch_6_9=2509404, upload_tcb_levels_batch_9_12=2789207, upload_tcb_levels_batch_12_15=2946596, upload_tcb_levels_batch_15_18=3243573, upload_tcb_levels_batch_18_21=3437581, upload_tcb_levels_batch_21_22=1324516, finalize_async_upsert=1982209 |
+| 21 | SGX | 90C06F000000 | OK | 6141652 | upload_tcb_levels_batch_0_3 | 2516395 | start_async_upsert=404992, upload_basic_info=514742, upload_tcb_levels_batch_0_3=2516395, upload_tcb_levels_batch_3_4=1436291, finalize_async_upsert=1269232 |
+| 21 | TDX | 10A06F010000 | OK | 6362240 | upload_tdx_module_identities_batch_0_2 | 2358619 | start_async_upsert=404992, upload_basic_info=973470, upload_tcb_levels_batch_0_1=1339054, upload_tdx_module_identities_batch_0_2=2358619, finalize_async_upsert=1286105 |
+| 21 | TDX | 60A06F000000 | OK | 11139767 | upload_tcb_levels_batch_0_3 | 4216514 | start_async_upsert=404980, upload_basic_info=973470, upload_tcb_levels_batch_0_3=4216514, upload_tcb_levels_batch_3_4=1633809, upload_tdx_module_identities_batch_0_2=2358607, finalize_async_upsert=1552387 |
+| 21 | TDX | 20A06E050000 | OK | 7636786 | upload_tcb_levels_batch_0_2 | 2529948 | start_async_upsert=405004, upload_basic_info=973470, upload_tcb_levels_batch_0_2=2529948, upload_tdx_module_identities_batch_0_2=2358619, finalize_async_upsert=1369745 |
+| 21 | TDX | C0806F000000 | OK | 15203728 | upload_tcb_levels_batch_3_6 | 5420572 | start_async_upsert=405004, upload_basic_info=973482, upload_tcb_levels_batch_0_3=4283513, upload_tcb_levels_batch_3_6=5420572, upload_tdx_module_identities_batch_0_2=2358619, finalize_async_upsert=1762538 |
+| 21 | TDX | 70A06D070000 | OK | 9298495 | upload_tcb_levels_batch_0_3 | 4100132 | start_async_upsert=405004, upload_basic_info=973482, upload_tcb_levels_batch_0_3=4100132, upload_tdx_module_identities_batch_0_2=2358619, finalize_async_upsert=1461258 |
+| 21 | TDX | 20A06D080000 | OK | 9295448 | upload_tcb_levels_batch_0_3 | 4101199 | start_async_upsert=405004, upload_basic_info=973482, upload_tcb_levels_batch_0_3=4101199, upload_tdx_module_identities_batch_0_2=2358619, finalize_async_upsert=1457144 |
+| 21 | TDX | 10A06D000000 | OK | 9299953 | upload_tcb_levels_batch_0_3 | 4100132 | start_async_upsert=405004, upload_basic_info=973482, upload_tcb_levels_batch_0_3=4100132, upload_tdx_module_identities_batch_0_2=2358619, finalize_async_upsert=1462716 |
+| 21 | TDX | 00806F050000 | OK | 15518213 | upload_tcb_levels_batch_3_6 | 5716157 | start_async_upsert=404992, upload_basic_info=973293, upload_tcb_levels_batch_0_3=4283501, upload_tcb_levels_batch_3_6=5716157, upload_tdx_module_identities_batch_0_2=2358607, finalize_async_upsert=1781663 |
+| 21 | TDX | 20A06F000000 | OK | 11135148 | upload_tcb_levels_batch_0_3 | 4216526 | start_async_upsert=405004, upload_basic_info=973482, upload_tcb_levels_batch_0_3=4216526, upload_tcb_levels_batch_3_4=1633821, upload_tdx_module_identities_batch_0_2=2358619, finalize_async_upsert=1547696 |
+| 21 | TDX | 90C06F000000 | OK | 11649029 | upload_tcb_levels_batch_0_3 | 4216145 | start_async_upsert=405004, upload_basic_info=973482, upload_tcb_levels_batch_0_3=4216145, upload_tcb_levels_batch_3_4=2118858, upload_tdx_module_identities_batch_0_2=2358619, finalize_async_upsert=1576921 |
+| 21 | TDX | 50806F000000 | OK | 15508286 | upload_tcb_levels_batch_3_6 | 5716157 | start_async_upsert=404992, upload_basic_info=973293, upload_tcb_levels_batch_0_3=4283501, upload_tcb_levels_batch_3_6=5716157, upload_tdx_module_identities_batch_0_2=2358607, finalize_async_upsert=1771736 |
+| 21 | TDX | B0C06F000000 | OK | 11642366 | upload_tcb_levels_batch_0_3 | 4216145 | start_async_upsert=405004, upload_basic_info=973659, upload_tcb_levels_batch_0_3=4216145, upload_tcb_levels_batch_3_4=2118858, upload_tdx_module_identities_batch_0_2=2358619, finalize_async_upsert=1570081 |
+| 21 | TDX | 00A06D080000 | OK | 9294538 | upload_tcb_levels_batch_0_3 | 4100132 | start_async_upsert=405004, upload_basic_info=973482, upload_tcb_levels_batch_0_3=4100132, upload_tdx_module_identities_batch_0_2=2358619, finalize_async_upsert=1457301 |
+| 21 | TDX | 00A06E050000 | OK | 7623870 | upload_tcb_levels_batch_0_2 | 2529948 | start_async_upsert=405004, upload_basic_info=973470, upload_tcb_levels_batch_0_2=2529948, upload_tdx_module_identities_batch_0_2=2358619, finalize_async_upsert=1356829 |
+Runtime code size check
+
+| Repo | Contract | Runtime Size (B) | Runtime Margin (B) | Status |
+| --- | --- | ---: | ---: | --- |
+| automata-on-chain-pccs | FmspcTcbHelperV2 | 12,340 | 12,236 | OK |
+| automata-on-chain-pccs | AutomataDaoStorageV2 | 6,938 | 17,638 | OK |
+| automata-on-chain-pccs | AutomataFmspcTcbDaoVersionedV2 | 23,681 | 895 | OK |
+| automata-dcap-attestation/evm | PCCSRouter | 13,475 | 11,101 | OK |
+| automata-dcap-attestation/evm | AutomataDcapAttestationFee | 9,263 | 15,313 | OK |
+| automata-dcap-attestation/evm | V3QuoteVerifier | 17,844 | 6,732 | OK |
+| automata-dcap-attestation/evm | V4QuoteVerifier | 22,638 | 1,938 | OK |
+| automata-dcap-attestation/evm | V5QuoteVerifier | 24,159 | 417 | OK |
+
+Size check result:
+- All listed runtime code sizes are below 24,576 bytes.
+- AutomataFmspcTcbDaoVersionedV2 has 895 bytes of runtime margin.
+- V5QuoteVerifier has 417 bytes of runtime margin.
+
+Safety hardening rerun gas delta (2026-05-27 UTC)
+
+Scope:
+- Story Aeneid forked local E2E, deploy -> async upsert -> router content hash -> verifyAndAttestOnChain.
+- SGX FMSPC 00606a000000, TCB eval 19.
+- TDX FMSPC 00806f050000, TCB eval 19.
+- Baseline is the previously tracked SGX/TDX E2E log value before the packed stream completeness and JSON/typed-data consistency hardening.
+- Previous SGX/TDX E2E logs did not send verifyAndAttestOnChain as a transaction, so verify gas has no previous delta in this table.
+
+Deploy/config gas delta:
+
+| Transaction | Previous gas | Current gas | Delta |
+| --- | ---: | ---: | ---: |
+| deploy_helper_v2 | 2720936 | 3136918 | +415982 |
+| storage_v2_deploy | 1630196 | 1630196 | +0 |
+| storage_v2_grant_old | 47277 | 47277 | +0 |
+| dao_v2_deploy | 5309541 | 5491569 | +182028 |
+| grant_dao_v2 | 47353 | 47353 | +0 |
+| configure_dao_v2_roles | 47703 | 47703 | +0 |
+| router_update_config_0 | 31354 | 31354 | +0 |
+| router_update_config_1 | 34354 | 34354 | +0 |
+
+SGX async upsert and verify gas delta:
+
+| Transaction | Previous gas | Current gas | Delta |
+| --- | ---: | ---: | ---: |
+| start_async_upsert | 404992 | 404992 | +0 |
+| upload_basic_info | 457383 | 514565 | +57182 |
+| upload_tcb_levels_batch_0_3 | 2258628 | 2428799 | +170171 |
+| upload_tcb_levels_batch_3_6 | 2431960 | 2633011 | +201051 |
+| upload_tcb_levels_batch_6_9 | 2651870 | 2873830 | +221960 |
+| upload_tcb_levels_batch_9_12 | 2892047 | 3148163 | +256116 |
+| upload_tcb_levels_batch_12_15 | 3531656 | 3859329 | +327673 |
+| finalize_async_upsert | 1766473 | 1829633 | +63160 |
+| verifyAndAttestOnChain | N/A | 7863812 | N/A |
+
+TDX async upsert and verify gas delta:
+
+| Transaction | Previous gas | Current gas | Delta |
+| --- | ---: | ---: | ---: |
+| start_async_upsert | 405004 | 405004 | +0 |
+| upload_basic_info | 856401 | 973305 | +116904 |
+| upload_tcb_levels_batch_0_3 | 4055454 | 4348437 | +292983 |
+| upload_tcb_levels_batch_3_5 | 3439156 | 3722046 | +282890 |
+| upload_tdx_module_identities_batch_0_2 | 1202230 | 1349417 | +147187 |
+| finalize_async_upsert | 1532573 | 1609524 | +76951 |
+| verifyAndAttestOnChain | N/A | 6795427 | N/A |
+
+Safety hardening runtime code size check before the zero-refId guard:
+
+| Contract | Runtime Size (B) | Runtime Margin (B) | Status |
+| --- | ---: | ---: | --- |
+| FmspcTcbHelperV2 | 14264 | 10312 | OK |
+| AutomataFmspcTcbDaoVersionedV2 | 24523 | 53 | OK |
+
+Size check note:
+- Production contracts remain under the 24576-byte EIP-170 runtime limit.
+- forge build --sizes exits non-zero because the test-only FmspcTcbDaoV2CompletenessHarness is 25209 bytes, which is expected for the harness and is not deployed.
+
+Zero refId guard rerun gas delta (2026-05-27 UTC)
+
+Scope:
+- Story Aeneid forked local E2E, deploy -> async upsert -> router content hash -> verifyAndAttestOnChain.
+- SGX FMSPC 00606a000000, TCB eval 19.
+- TDX FMSPC 00806f050000, TCB eval 19.
+- Baseline is the safety hardening rerun above, before startAsyncUpsert rejected bytes32(0) refId.
+- This rerun overwrote logs/sgx-e2e.log and logs/tdx-e2e.log.
+
+Deploy/config gas delta:
+
+| Transaction | Previous gas | Current gas | Delta |
+| --- | ---: | ---: | ---: |
+| deploy_helper_v2 | 3136918 | 3136918 | +0 |
+| storage_v2_deploy | 1630196 | 1630196 | +0 |
+| storage_v2_grant_old | 47277 | 47277 | +0 |
+| dao_v2_deploy | 5491569 | 5492865 | +1296 |
+| grant_dao_v2 | 47353 | 47353 | +0 |
+| configure_dao_v2_roles | 47703 | 47703 | +0 |
+| router_update_config_0 | 31354 | 31354 | +0 |
+| router_update_config_1 | 34354 | 34354 | +0 |
+
+SGX async upsert and verify gas delta:
+
+| Transaction | Previous gas | Current gas | Delta |
+| --- | ---: | ---: | ---: |
+| start_async_upsert | 404992 | 405011 | +19 |
+| upload_basic_info | 514565 | 514553 | -12 |
+| upload_tcb_levels_batch_0_3 | 2428799 | 2428787 | -12 |
+| upload_tcb_levels_batch_3_6 | 2633011 | 2632999 | -12 |
+| upload_tcb_levels_batch_6_9 | 2873830 | 2873818 | -12 |
+| upload_tcb_levels_batch_9_12 | 3148163 | 3148151 | -12 |
+| upload_tcb_levels_batch_12_15 | 3859329 | 3859317 | -12 |
+| finalize_async_upsert | 1829633 | 1829585 | -48 |
+| verifyAndAttestOnChain | 7863812 | 7863812 | +0 |
+
+TDX async upsert and verify gas delta:
+
+| Transaction | Previous gas | Current gas | Delta |
+| --- | ---: | ---: | ---: |
+| start_async_upsert | 405004 | 405023 | +19 |
+| upload_basic_info | 973305 | 973305 | +0 |
+| upload_tcb_levels_batch_0_3 | 4348437 | 4348437 | +0 |
+| upload_tcb_levels_batch_3_5 | 3722046 | 3722046 | +0 |
+| upload_tdx_module_identities_batch_0_2 | 1349417 | 1349417 | +0 |
+| finalize_async_upsert | 1609524 | 1601286 | -8238 |
+| verifyAndAttestOnChain | 6795427 | 6795427 | +0 |
+
+Current runtime code size check after zero-refId guard:
+
+| Contract | Runtime Size (B) | Runtime Margin (B) | Status |
+| --- | ---: | ---: | --- |
+| FmspcTcbHelperV2 | 14264 | 10312 | OK |
+| AutomataDaoStorageV2 | 6938 | 17638 | OK |
+| AutomataFmspcTcbDaoVersionedV2 | 24529 | 47 | OK |
+
+Size check note:
+- Production contracts remain under the 24576-byte EIP-170 runtime limit.
+- AutomataFmspcTcbDaoVersionedV2 has 47 bytes of runtime margin after the zero-refId guard.
+- forge build --sizes exits non-zero because the test-only FmspcTcbDaoV2CompletenessHarness is 25215 bytes, which is expected for the harness and is not deployed.

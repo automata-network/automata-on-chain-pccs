@@ -3,10 +3,6 @@ pragma solidity ^0.8.0;
 
 import "../../utils/DeploymentConfig.sol";
 import "../../utils/Multichain.sol";
-import {AutomataTcbEvalDao} from "../../../src/automata_pccs/AutomataTcbEvalDao.sol";
-import {AutomataFmspcTcbDaoVersioned} from "../../../src/automata_pccs/versioned/AutomataFmspcTcbDaoVersioned.sol";
-import {AutomataEnclaveIdentityDaoVersioned} from
-    "../../../src/automata_pccs/versioned/AutomataEnclaveIdentityDaoVersioned.sol";
 
 interface IOwnableRoles {
     function grantRoles(address user, uint256 roles) external;
@@ -42,6 +38,16 @@ contract ConfigureAutomataDaoVersioned is DeploymentConfig, Multichain {
         multichain
     {
         address fmspcTcbDao = readVersionedContractAddress("AutomataFmspcTcbDaoVersioned", version, false);
+        if (fmspcTcbDao != address(0)) {
+            _configureRoles(fmspcTcbDao, user, roles, authorize);
+        }
+    }
+
+    function configureFmspcTcbDaoVersionedV2Roles(address user, uint32 version, uint256 roles, bool authorize)
+        external
+        multichain
+    {
+        address fmspcTcbDao = readVersionedContractAddress("AutomataFmspcTcbDaoVersionedV2", version, false);
         if (fmspcTcbDao != address(0)) {
             _configureRoles(fmspcTcbDao, user, roles, authorize);
         }

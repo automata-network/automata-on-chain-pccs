@@ -1,0 +1,4250 @@
+[1/8] Start Story Aeneid fork
+[2/8] Confirm local fork and fund impersonated owner
+1315
+[3/8] Show current router target
+Old router DAO[19]: 0x0353eFD9c0e0b208442c62Bd7Dd704d456C4FF3d
+[4/8] Run delta update against the fork
+[1/7] Build on-chain-pccs
+No files changed, compilation skipped
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> src/bases/TcbEvalDao.sol:25:19
+   |
+25 |     PcsDao public Pcs;
+   |                   ^^^ help: consider using: `pcs`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[pascal-case-struct]: structs should use PascalCase
+  --> src/helpers/PCKHelper.sol:32:12
+   |
+32 |     struct PCKTCBFlags {
+   |            ^^^^^^^^^^^ help: consider using: `PcktcbFlags`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#pascal-case-struct
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+   --> src/utils/BytesUtils.sol:277:20
+    |
+277 |     bytes constant base32HexTable =
+    |                    ^^^^^^^^^^^^^^ help: consider using: `BASE32_HEX_TABLE`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> src/automata_pccs/shared/AutomataDaoStorage.sol:15:30
+   |
+15 |     mapping(address => bool) _authorized_writers;
+   |                              ^^^^^^^^^^^^^^^^^^^ help: consider using: `_authorizedWriters`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> src/automata_pccs/shared/AutomataDaoStorage.sol:16:30
+   |
+16 |     mapping(address => bool) _authorized_readers;
+   |                              ^^^^^^^^^^^^^^^^^^^ help: consider using: `_authorizedReaders`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> src/bases/TcbEvalDao.sol:26:26
+   |
+26 |     TcbEvalHelper public TcbEvalLib;
+   |                          ^^^^^^^^^^ help: consider using: `tcbEvalLib`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[mixed-case-function]: function names should use mixedCase
+  --> src/bases/TcbEvalDao.sol:77:14
+   |
+77 |     function TCB_EVAL_KEY(TcbId id) public view virtual returns (bytes32 key) {
+   |              ^^^^^^^^^^^^ help: consider using: `tcbEvalKey`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> src/utils/BytesUtils.sol:84:28
+   |
+84 |                     return int256(diff);
+   |                            ^^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'int256' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/misc/RollbackTest.t.sol:4:8
+  |
+4 | import "../pcs/PCSSetupBase.t.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-function]: function names should use mixedCase
+   --> src/helpers/X509Helper.sol:168:14
+    |
+168 |     function parseX509DER(bytes calldata der) external pure returns (X509CertObj memory cert) {
+    |              ^^^^^^^^^^^^ help: consider using: `parseX509der`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/misc/RollbackTest.t.sol:5:8
+  |
+5 | import "../../src/helpers/X509CRLHelper.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> src/utils/BytesUtils.sol:91:16
+   |
+91 |         return int256(len) - int256(otherlen);
+   |                ^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'int256' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> src/bases/FmspcTcbDaoV2.sol:23:29
+   |
+23 |     FmspcTcbHelperV2 public FmspcTcbLibV2;
+   |                             ^^^^^^^^^^^^^ help: consider using: `fmspcTcbLibV2`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[mixed-case-function]: function names should use mixedCase
+  --> src/automata_pccs/versioned/AutomataEnclaveIdentityDaoVersioned.sol:29:14
+   |
+29 |     function ENCLAVE_ID_KEY(uint256 id, uint256 version) public view override returns (bytes32 key) {
+   |              ^^^^^^^^^^^^^^ help: consider using: `enclaveIdKey`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[unwrapped-modifier-logic]: wrap modifier logic to reduce code size
+  --> src/automata_pccs/shared/AutomataDaoStorage.sol:22:5
+   |
+22 | /     modifier onlyDao(address dao) {
+23 | |         require(_authorized_writers[dao], "FORBIDDEN");
+24 | |         _;
+25 | |     }
+   | |_____^
+   |
+help: wrap modifier logic to reduce code size
+   |
+22 ~     modifier onlyDao(address dao) {
+23 +         _onlyDao(dao);
+24 +         _;
+25 +     }
+26 + 
+27 +     function _onlyDao(address dao) internal {
+28 +         require(_authorized_writers[dao], "FORBIDDEN");
+29 +     }
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unwrapped-modifier-logic
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/helpers/X509Helper.sol:222:26
+    |
+222 |         serial = uint256(bytes32(serialBytes) >> shift);
+    |                          ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'bytes32' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> src/utils/BytesUtils.sol:91:30
+   |
+91 |         return int256(len) - int256(otherlen);
+   |                              ^^^^^^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'int256' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> src/bases/DaoBase.sol:4:8
+  |
+4 | import "../interfaces/IDaoAttestationResolver.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[screaming-snake-case-immutable]: immutables should use SCREAMING_SNAKE_CASE
+  --> src/bases/DaoBase.sol:12:46
+   |
+12 |     IDaoAttestationResolver public immutable resolver;
+   |                                              ^^^^^^^^ help: consider using: `RESOLVER`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-immutable
+
+note[unused-import]: unused imports should be removed
+ --> src/automata_pccs/AutomataEnclaveIdentityDao.sol:4:29
+  |
+4 | import {EnclaveIdentityDao, PcsDao, DaoBase} from "../bases/EnclaveIdentityDao.sol";
+  |                             ^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[mixed-case-function]: function names should use mixedCase
+  --> src/utils/DateTimeUtils.sol:15:14
+   |
+15 |     function fromDERToTimestamp(bytes memory x509Time) internal pure returns (uint256) {
+   |              ^^^^^^^^^^^^^^^^^^ help: consider using: `fromDerToTimestamp`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/bases/FmspcTcbDaoV2.sol:224:30
+    |
+224 |         state.parsedLevels = uint32(start + itemCount);
+    |                              ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint32' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> src/automata_pccs/AutomataEnclaveIdentityDao.sol:48:34
+   |
+48 |             issueDateTimestamp = uint64(slot >> 192);
+   |                                  ^^^^^^^^^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'uint64' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/helpers/FmspcTcbHelperV2.sol:261:24
+    |
+261 |         input.pcesvn = uint16(pcesvn);
+    |                        ^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint16' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[unused-import]: unused imports should be removed
+ --> src/helpers/PCKHelper.sol:4:21
+  |
+4 | import {X509Helper, X509CertObj, Asn1Decode, NodePtr, BytesUtils} from "./X509Helper.sol";
+  |                     ^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+ --> test/misc/RollbackTest.t.sol:8:11
+  |
+8 |     bytes old_pck_crl =
+  |           ^^^^^^^^^^^ help: consider using: `oldPckCrl`
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> test/misc/RollbackTest.t.sol:10:11
+   |
+10 |     bytes new_pck_crl =
+   |           ^^^^^^^^^^^ help: consider using: `newPckCrl`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[asm-keccak256]: use of inefficient hashing mechanism; consider using inline assembly
+   --> src/automata_pccs/shared/AutomataDaoStorage.sol:122:21
+    |
+122 |         bytes32 k = keccak256(abi.encodePacked(qeid, pceid));
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#asm-keccak256
+
+note[mixed-case-function]: function names should use mixedCase
+  --> src/utils/DateTimeUtils.sol:42:14
+   |
+42 |     function fromISOToTimestamp(string memory iso) internal pure returns (uint256) {
+   |              ^^^^^^^^^^^^^^^^^^ help: consider using: `fromIsoToTimestamp`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/bases/FmspcTcbDaoV2.sol:254:40
+    |
+254 |         state.parsedModuleIdentities = uint32(start + itemCount);
+    |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint32' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/bases/FmspcTcbDaoV2.sol:324:34
+    |
+324 |             issueDateTimestamp = uint64(slot >> 192);
+    |                                  ^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint64' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> src/bases/EnclaveIdentityDao.sol:25:19
+   |
+25 |     PcsDao public Pcs;
+   |                   ^^^ help: consider using: `pcs`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> src/utils/Asn1Decode.sol:8:8
+  |
+8 | import "./BytesUtils.sol";
+  |        ^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/helpers/FmspcTcbHelperV2.sol:354:44
+    |
+354 |                     bytes(_twoDigitDecimal(uint8(i + 1))),
+    |                                            ^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint8' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/bases/FmspcTcbDaoV2.sol:325:35
+    |
+325 |             nextUpdateTimestamp = uint64(slot >> 128);
+    |                                   ^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint64' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/helpers/PCKHelper.sol:130:51
+    |
+130 |                 svnValueBytes.length < 2 ? uint16(bytes2(svnValueBytes)) / 256 : uint16(bytes2(svnValueBytes));
+    |                                                   ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'bytes2' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/bases/FmspcTcbDaoV2.sol:326:36
+    |
+326 |             evaluationDataNumber = uint32(slot);
+    |                                    ^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint32' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> src/utils/Asn1Decode.sol:13:16
+   |
+13 |         return uint80(self);
+   |                ^^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'uint80' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> src/utils/Asn1Decode.sol:18:16
+   |
+18 |         return uint80(self >> 80);
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'uint80' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> src/automata_pccs/AutomataEnclaveIdentityDao.sol:49:35
+   |
+49 |             nextUpdateTimestamp = uint64(slot >> 128);
+   |                                   ^^^^^^^^^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'uint64' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/helpers/PCKHelper.sol:130:89
+    |
+130 |                 svnValueBytes.length < 2 ? uint16(bytes2(svnValueBytes)) / 256 : uint16(bytes2(svnValueBytes));
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'bytes2' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/helpers/PCKHelper.sol:135:32
+    |
+135 |                 uint8 cpusvn = uint8(svnValue);
+    |                                ^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint8' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/misc/X509HelperTest.t.sol:4:8
+  |
+4 | import "forge-std/Test.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[asm-keccak256]: use of inefficient hashing mechanism; consider using inline assembly
+   --> src/automata_pccs/shared/AutomataDaoStorage.sol:132:21
+    |
+132 |         bytes32 k = keccak256(abi.encodePacked(qeid, pceid));
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#asm-keccak256
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> src/utils/Asn1Decode.sol:23:16
+   |
+23 |         return uint80(self >> 160);
+   |                ^^^^^^^^^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'uint80' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[mixed-case-function]: function names should use mixedCase
+  --> src/automata_pccs/versioned/AutomataFmspcTcbDaoVersionedV2.sol:31:14
+   |
+31 |     function FMSPC_TCB_KEY(uint8 tcbType, bytes6 fmspc, uint32 version)
+   |              ^^^^^^^^^^^^^ help: consider using: `fmspcTcbKey`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> src/automata_pccs/AutomataEnclaveIdentityDao.sol:50:36
+   |
+50 |             evaluationDataNumber = uint32(slot);
+   |                                    ^^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'uint32' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[mixed-case-function]: function names should use mixedCase
+  --> src/automata_pccs/versioned/AutomataFmspcTcbDaoVersioned.sol:28:14
+   |
+28 |     function FMSPC_TCB_KEY(uint8 tcbType, bytes6 fmspc, uint32 version)
+   |              ^^^^^^^^^^^^^ help: consider using: `fmspcTcbKey`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/utils/Asn1Decode.sol:189:34
+    |
+189 |             ixFirstContentByte = uint80(ix + 2);
+    |                                  ^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint80' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/utils/Asn1Decode.sol:190:33
+    |
+190 |             ixLastContentByte = uint80(ixFirstContentByte + length - 1);
+    |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint80' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/utils/Asn1Decode.sol:207:34
+    |
+207 |             ixFirstContentByte = uint80(ix + 2 + lengthbytesLength);
+    |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint80' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> src/bases/EnclaveIdentityDao.sol:26:34
+   |
+26 |     EnclaveIdentityHelper public EnclaveIdentityLib;
+   |                                  ^^^^^^^^^^^^^^^^^^ help: consider using: `enclaveIdentityLib`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[pascal-case-struct]: structs should use PascalCase
+  --> src/helpers/FmspcTcbHelper.sol:49:8
+   |
+49 | struct TCBLevelsObj {
+   |        ^^^^^^^^^^^^ help: consider using: `TcbLevelsObj`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#pascal-case-struct
+
+note[pascal-case-struct]: structs should use PascalCase
+  --> src/helpers/FmspcTcbHelper.sol:58:8
+   |
+58 | struct TDXModule {
+   |        ^^^^^^^^^ help: consider using: `TdxModule`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#pascal-case-struct
+
+note[pascal-case-struct]: structs should use PascalCase
+  --> src/helpers/FmspcTcbHelper.sol:64:8
+   |
+64 | struct TDXModuleIdentity {
+   |        ^^^^^^^^^^^^^^^^^ help: consider using: `TdxModuleIdentity`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#pascal-case-struct
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> src/automata_pccs/shared/AutomataDaoStorageV2.sol:16:30
+   |
+16 |     mapping(address => bool) _authorized_writers;
+   |                              ^^^^^^^^^^^^^^^^^^^ help: consider using: `_authorizedWriters`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[mixed-case-function]: function names should use mixedCase
+  --> src/bases/EnclaveIdentityDao.sol:83:14
+   |
+83 |     function ENCLAVE_ID_KEY(uint256 id, uint256 version) public view virtual returns (bytes32 key) {
+   |              ^^^^^^^^^^^^^^ help: consider using: `enclaveIdKey`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/utils/Asn1Decode.sol:208:33
+    |
+208 |             ixLastContentByte = uint80(ixFirstContentByte + length - 1);
+    |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint80' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/bases/FmspcTcbDaoV2.sol:335:27
+    |
+335 |             contentHash = bytes32(data);
+    |                           ^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'bytes32' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/misc/X509HelperTest.t.sol:5:8
+  |
+5 | import "../../src/helpers/X509Helper.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> src/utils/P256Verifier.sol:4:8
+  |
+4 | import "./BytesUtils.sol";
+  |        ^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> src/automata_pccs/shared/AutomataDaoStorageV2.sol:17:30
+   |
+17 |     mapping(address => bool) _authorized_readers;
+   |                              ^^^^^^^^^^^^^^^^^^^ help: consider using: `_authorizedReaders`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[mixed-case-function]: function names should use mixedCase
+  --> src/interfaces/IPcsDao.sol:18:14
+   |
+18 |     function upsertRootCACrl(bytes calldata rootcacrl) external returns (bytes32 attestationId);
+   |              ^^^^^^^^^^^^^^^ help: consider using: `upsertRootCaCrl`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/helpers/EnclaveIdentityHelper.sol:121:46
+    |
+121 |                 identity.miscselect = bytes4(uint32(val));
+    |                                              ^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint32' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[pascal-case-struct]: structs should use PascalCase
+  --> src/helpers/FmspcTcbHelper.sol:72:8
+   |
+72 | struct TDXModuleTCBLevelsObj {
+   |        ^^^^^^^^^^^^^^^^^^^^^ help: consider using: `TdxModuleTcbLevelsObj`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#pascal-case-struct
+
+note[unwrapped-modifier-logic]: wrap modifier logic to reduce code size
+  --> src/automata_pccs/shared/AutomataDaoStorageV2.sol:33:5
+   |
+33 | /     modifier onlyDao(address dao) {
+34 | |         require(_authorized_writers[dao], "FORBIDDEN");
+35 | |         _;
+36 | |     }
+   | |_____^
+   |
+help: wrap modifier logic to reduce code size
+   |
+33 ~     modifier onlyDao(address dao) {
+34 +         _onlyDao(dao);
+35 +         _;
+36 +     }
+37 + 
+38 +     function _onlyDao(address dao) internal {
+39 +         require(_authorized_writers[dao], "FORBIDDEN");
+40 +     }
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unwrapped-modifier-logic
+
+note[asm-keccak256]: use of inefficient hashing mechanism; consider using inline assembly
+   --> src/automata_pccs/shared/AutomataDaoStorageV2.sol:232:21
+    |
+232 |         bytes32 k = keccak256(abi.encodePacked(qeid, pceid));
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#asm-keccak256
+
+note[asm-keccak256]: use of inefficient hashing mechanism; consider using inline assembly
+   --> src/automata_pccs/shared/AutomataDaoStorageV2.sol:242:21
+    |
+242 |         bytes32 k = keccak256(abi.encodePacked(qeid, pceid));
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#asm-keccak256
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/misc/X509HelperTest.t.sol:6:8
+  |
+6 | import "../../src/helpers/X509CRLHelper.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unused-import]: unused imports should be removed
+ --> src/automata_pccs/AutomataFmspcTcbDao.sol:4:22
+  |
+4 | import {FmspcTcbDao, PcsDao, DaoBase} from "../bases/FmspcTcbDao.sol";
+  |                      ^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/bases/FmspcTcbDaoV2.sol:553:25
+    |
+553 |         nextRawCursor = uint32(rawEnd);
+    |                         ^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint32' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/helpers/FmspcTcbHelper.sol:500:50
+    |
+500 |         tdxModuleTcbLevelsObj.status = TCBStatus(uint8(uint64(tdxTcbPacked & mask)));
+    |                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint8' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/helpers/FmspcTcbHelper.sol:500:56
+    |
+500 |         tdxModuleTcbLevelsObj.status = TCBStatus(uint8(uint64(tdxTcbPacked & mask)));
+    |                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint64' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> src/automata_pccs/AutomataFmspcTcbDao.sol:51:34
+   |
+51 |             issueDateTimestamp = uint64(slot >> 192);
+   |                                  ^^^^^^^^^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'uint64' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> src/helpers/TcbEvalHelper.sol:75:50
+   |
+75 |             numbers[i].tcbEvaluationDataNumber = uint32(slot >> 224);
+   |                                                  ^^^^^^^^^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'uint32' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[unused-import]: unused imports should be removed
+ --> src/automata_pccs/AutomataPcsDao.sol:4:17
+  |
+4 | import {PcsDao, X509CRLHelper, DaoBase} from "../bases/PcsDao.sol";
+  |                 ^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+ --> test/tcb/TDXConstants.t.sol:7:30
+  |
+7 |     bytes8 internal constant attributes = 0x0000000000000000;
+  |                              ^^^^^^^^^^ help: consider using: `ATTRIBUTES`
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+ --> test/tcb/TDXConstants.t.sol:8:30
+  |
+8 |     bytes8 internal constant attributesMask = 0xFFFFFFFFFFFFFFFF;
+  |                              ^^^^^^^^^^^^^^ help: consider using: `ATTRIBUTES_MASK`
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/helpers/EnclaveIdentityHelper.sol:124:50
+    |
+124 |                 identity.miscselectMask = bytes4(uint32(val));
+    |                                                  ^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint32' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> src/helpers/TcbEvalHelper.sol:76:47
+   |
+76 |             numbers[i].tcbRecoveryEventDate = uint64(slot >> 160);
+   |                                               ^^^^^^^^^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'uint64' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/helpers/FmspcTcbHelper.sol:502:40
+    |
+502 |         tdxModuleTcbLevelsObj.isvsvn = uint8(uint64((tdxTcbPacked >> 128) & mask));
+    |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint8' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/helpers/FmspcTcbHelper.sol:517:26
+    |
+517 |                 pcesvn = uint16(value);
+    |                          ^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint16' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> src/automata_pccs/AutomataFmspcTcbDao.sol:52:35
+   |
+52 |             nextUpdateTimestamp = uint64(slot >> 128);
+   |                                   ^^^^^^^^^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'uint64' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> src/automata_pccs/AutomataFmspcTcbDao.sol:53:36
+   |
+53 |             evaluationDataNumber = uint32(slot);
+   |                                    ^^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'uint32' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> src/automata_pccs/AutomataPcsDao.sol:35:30
+   |
+35 |             notValidBefore = uint64(slot >> 64);
+   |                              ^^^^^^^^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'uint64' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> src/automata_pccs/AutomataPcsDao.sol:36:29
+   |
+36 |             notValidAfter = uint64(slot);
+   |                             ^^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'uint64' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+ --> test/misc/X509HelperTest.t.sol:9:16
+  |
+9 |     X509Helper X509;
+  |                ^^^^ help: consider using: `x509`
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> test/misc/X509HelperTest.t.sol:10:19
+   |
+10 |     X509CRLHelper X509_CRL;
+   |                   ^^^^^^^^ help: consider using: `x509Crl`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+  --> test/misc/X509HelperTest.t.sol:11:20
+   |
+11 |     bytes constant sampleRootCaDer =
+   |                    ^^^^^^^^^^^^^^^ help: consider using: `SAMPLE_ROOT_CA_DER`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/tcb/FmspcTcbHelperV2Test.t.sol:4:8
+  |
+4 | import "forge-std/Test.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/helpers/EnclaveIdentityHelper.sol:127:47
+    |
+127 |                 identity.attributes = bytes16(uint128(val));
+    |                                               ^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint128' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/helpers/EnclaveIdentityHelper.sol:130:51
+    |
+130 |                 identity.attributesMask = bytes16(uint128(val));
+    |                                                   ^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint128' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[pascal-case-struct]: structs should use PascalCase
+  --> src/helpers/X509CRLHelper.sol:12:8
+   |
+12 | struct X509CRLObj {
+   |        ^^^^^^^^^^ help: consider using: `X509crlObj`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#pascal-case-struct
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+  --> test/misc/X509HelperTest.t.sol:13:20
+   |
+13 |     bytes constant sampleRootCrlDer =
+   |                    ^^^^^^^^^^^^^^^^ help: consider using: `SAMPLE_ROOT_CRL_DER`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+  --> test/misc/X509HelperTest.t.sol:15:20
+   |
+15 |     bytes constant samplePlatformCaDer =
+   |                    ^^^^^^^^^^^^^^^^^^^ help: consider using: `SAMPLE_PLATFORM_CA_DER`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/helpers/FmspcTcbHelper.sol:519:56
+    |
+519 |                 sgxComponentCpuSvns[cpusvnCounter++] = uint8(value);
+    |                                                        ^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint8' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/helpers/FmspcTcbHelper.sol:671:42
+    |
+671 |         mrSignerBytes = abi.encodePacked(uint128(mrSignerUpperBytes), mrSignerLowerBytes);
+    |                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint128' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> src/helpers/TcbEvalHelper.sol:77:34
+   |
+77 |             numbers[i].tcbDate = uint64(slot >> 96);
+   |                                  ^^^^^^^^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'uint64' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> test/tcb/FmspcTcbHelperV2Test.t.sol:17:27
+   |
+17 |         bytes20 tcbDate = bytes20("2024-01-01T00:00:00Z");
+   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'bytes20' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> script/utils/DeploymentConfig.sol:4:8
+  |
+4 | import "forge-std/Script.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> test/tcb/FmspcTcbHelperV2Test.t.sol:22:13
+   |
+22 |             bytes4(hex"01020300"),
+   |             ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'bytes4' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[mixed-case-function]: function names should use mixedCase
+   --> src/helpers/X509CRLHelper.sol:122:14
+    |
+122 |     function parseCRLDER(bytes calldata der) external pure returns (X509CRLObj memory crl) {
+    |              ^^^^^^^^^^^ help: consider using: `parseCrlder`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/tcb/AutomataTcbDaoTest.t.sol:4:8
+  |
+4 | import "../pcs/PCSSetupBase.t.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[asm-keccak256]: use of inefficient hashing mechanism; consider using inline assembly
+   --> src/bases/FmspcTcbDaoV2.sol:698:16
+    |
+698 |         return keccak256(abi.encodePacked(rootRefId, tag));
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#asm-keccak256
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/helpers/X509CRLHelper.sol:236:26
+    |
+236 |         serial = uint256(bytes32(serialBytes) >> shift);
+    |                          ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'bytes32' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[unused-import]: unused imports should be removed
+ --> src/automata_pccs/AutomataPckDao.sol:4:17
+  |
+4 | import {PckDao, PcsDao, X509CRLHelper, DaoBase} from "../bases/PckDao.sol";
+  |                 ^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> script/utils/DeploymentConfig.sol:5:8
+  |
+5 | import "forge-std/StdJson.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/identity/IdentityHelperTest.t.sol:4:8
+  |
+4 | import "forge-std/Test.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unused-import]: unused imports should be removed
+ --> test/identity/IdentityHelperTest.t.sol:6:32
+  |
+6 | import {EnclaveIdentityHelper, EnclaveId, IdentityObj} from "../../src/helpers/EnclaveIdentityHelper.sol";
+  |                                ^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unsafe-cheatcode]: usage of unsafe cheatcodes that can perform dangerous operations
+  --> script/utils/DeploymentConfig.sol:14:36
+   |
+14 |         string memory jsonStr = vm.readFile(deploymentDir);
+   |                                    ^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-cheatcode
+
+note[unused-import]: unused imports should be removed
+ --> src/automata_pccs/AutomataTcbEvalDao.sol:5:21
+  |
+5 | import {TcbEvalDao, PcsDao, DaoBase} from "../bases/TcbEvalDao.sol";
+  |                     ^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/tcb/AutomataTcbDaoV2LiveTest.t.sol:4:8
+  |
+4 | import "../pcs/PCSSetupBase.t.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> script/automata/versioned/DeployAutomataVersioned.s.sol:4:8
+  |
+4 | import "../../utils/P256Configuration.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unsafe-cheatcode]: usage of unsafe cheatcodes that can perform dangerous operations
+  --> script/utils/DeploymentConfig.sol:28:36
+   |
+28 |         string memory jsonStr = vm.readFile(deploymentDir);
+   |                                    ^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-cheatcode
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/mock/MockTcbDao.sol:4:8
+  |
+4 | import "../../src/bases/FmspcTcbDao.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/mock/MockTcbDao.sol:5:8
+  |
+5 | import "../../src/interfaces/IDaoAttestationResolver.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> test/tcb/AutomataTcbDaoV2LiveTest.t.sol:191:32
+    |
+191 |             order, 1, 2, true, bytes20("2024-01-01T00:00:00Z"), bytes20("2025-01-01T00:00:00Z")
+    |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'bytes20' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[unsafe-cheatcode]: usage of unsafe cheatcodes that can perform dangerous operations
+  --> script/utils/DeploymentConfig.sol:53:26
+   |
+53 |             jsonStr = vm.readFile(jsonPath);
+   |                          ^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-cheatcode
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> src/automata_pccs/AutomataTcbEvalDao.sol:68:34
+   |
+68 |             issueDateTimestamp = uint64(slot >> 192);
+   |                                  ^^^^^^^^^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'uint64' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> src/automata_pccs/AutomataTcbEvalDao.sol:69:35
+   |
+69 |             nextUpdateTimestamp = uint64(slot >> 128);
+   |                                   ^^^^^^^^^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'uint64' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> test/tcb/AutomataTcbDaoV2LiveTest.t.sol:191:65
+    |
+191 |             order, 1, 2, true, bytes20("2024-01-01T00:00:00Z"), bytes20("2025-01-01T00:00:00Z")
+    |                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'bytes20' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> test/tcb/AutomataTcbDaoV2LiveTest.t.sol:213:35
+    |
+213 |             uint32(0), uint32(1), bytes5(hex"0102030405"), bytes1(uint8(32)), bytes32("tdx-module-identity-id-too-long")
+    |                                   ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'bytes5' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> test/tcb/AutomataTcbDaoV2LiveTest.t.sol:213:79
+    |
+213 |             uint32(0), uint32(1), bytes5(hex"0102030405"), bytes1(uint8(32)), bytes32("tdx-module-identity-id-too-long")
+    |                                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'bytes32' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> script/automata/versioned/DeployAutomataVersioned.s.sol:5:8
+  |
+5 | import "../../utils/Salt.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/mock/MockTcbDao.sol:7:8
+  |
+7 | import "forge-std/console.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unused-import]: unused imports should be removed
+ --> src/automata_pccs/AutomataPckDao.sol:4:25
+  |
+4 | import {PckDao, PcsDao, X509CRLHelper, DaoBase} from "../bases/PckDao.sol";
+  |                         ^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+  --> test/misc/X509HelperTest.t.sol:17:20
+   |
+17 |     bytes constant samplePlatformCrlDer =
+   |                    ^^^^^^^^^^^^^^^^^^^^ help: consider using: `SAMPLE_PLATFORM_CRL_DER`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> test/mock/MockTcbDao.sol:106:34
+    |
+106 |             issueDateTimestamp = uint64(slot >> 192);
+    |                                  ^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint64' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/pcs/AutomataPcsDaoTest.t.sol:4:8
+  |
+4 | import "../pcs/PCSSetupBase.t.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> test/tcb/AutomataTcbDaoV2LiveTest.t.sol:230:54
+    |
+230 |             flags == LEVEL_FLAG_HAS_ADVISORY_FIELD ? bytes4(hex"01020304") : bytes4(hex"01020300"),
+    |                                                      ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'bytes4' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> test/tcb/AutomataTcbDaoV2LiveTest.t.sol:230:78
+    |
+230 |             flags == LEVEL_FLAG_HAS_ADVISORY_FIELD ? bytes4(hex"01020304") : bytes4(hex"01020300"),
+    |                                                                              ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'bytes4' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> script/automata/versioned/DeployAutomataVersioned.s.sol:6:8
+  |
+6 | import "../../utils/DeploymentConfig.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/pcs/PCSSetupBase.t.sol:4:8
+  |
+4 | import "../TestSetupBase.t.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+  --> test/misc/X509HelperTest.t.sol:19:20
+   |
+19 |     bytes constant samplePckDer =
+   |                    ^^^^^^^^^^^^ help: consider using: `SAMPLE_PCK_DER`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> test/tcb/AutomataTcbDaoV2LiveTest.t.sol:231:13
+    |
+231 |             bytes3(hex"010200"),
+    |             ^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'bytes3' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> test/tcb/AutomataTcbDaoV2LiveTest.t.sol:235:13
+    |
+235 |             bytes20("2024-01-01T00:00:00Z"),
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'bytes20' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> test/mock/MockTcbDao.sol:107:35
+    |
+107 |             nextUpdateTimestamp = uint64(slot >> 128);
+    |                                   ^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint64' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> src/bases/FmspcTcbDao.sol:48:19
+   |
+48 |     PcsDao public Pcs;
+   |                   ^^^ help: consider using: `pcs`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> script/automata/versioned/DeployAutomataVersioned.s.sol:7:8
+  |
+7 | import "../../utils/Multichain.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> src/bases/FmspcTcbDao.sol:49:27
+   |
+49 |     FmspcTcbHelper public FmspcTcbLib;
+   |                           ^^^^^^^^^^^ help: consider using: `fmspcTcbLib`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/DumpPacked.t.sol:3:8
+  |
+3 | import "forge-std/Test.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unsafe-cheatcode]: usage of unsafe cheatcodes that can perform dangerous operations
+ --> test/DumpPacked.t.sol:9:32
+  |
+9 |         string memory raw = vm.readFile("test/tcb/fixtures/live_intel_eval19_inner.txt");
+  |                                ^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-cheatcode
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/identity/AutomataEnclaveIdentityVersionedTest.t.sol:4:8
+  |
+4 | import "forge-std/StdJson.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/identity/AutomataEnclaveIdentityVersionedTest.t.sol:6:8
+  |
+6 | import "../pcs/PCSSetupBase.t.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/identity/AutomataEnclaveIdentityVersionedTest.t.sol:7:8
+  |
+7 | import "./IdentityConstants.t.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-function]: function names should use mixedCase
+   --> src/bases/FmspcTcbDao.sol:100:14
+    |
+100 |     function FMSPC_TCB_KEY(uint8 tcbType, bytes6 fmspc, uint32 version) public view virtual returns (bytes32 key) {
+    |              ^^^^^^^^^^^^^ help: consider using: `fmspcTcbKey`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[unused-import]: unused imports should be removed
+ --> test/identity/AutomataEnclaveIdentityVersionedTest.t.sol:8:9
+  |
+8 | import {AutomataEnclaveIdentityDao} from "../../src/automata_pccs/AutomataEnclaveIdentityDao.sol";
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unused-import]: unused imports should be removed
+  --> test/identity/AutomataEnclaveIdentityVersionedTest.t.sol:10:9
+   |
+10 | import {DaoBase} from "../../src/bases/DaoBase.sol";
+   |         ^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> test/misc/X509HelperTest.t.sol:41:22
+   |
+41 |         bytes memory crl_akid = X509_CRL.getAuthorityKeyIdentifier(sampleRootCrlDer);
+   |                      ^^^^^^^^ help: consider using: `crlAkid`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[unused-import]: unused imports should be removed
+ --> test/DumpPacked.t.sol:4:39
+  |
+4 | import {FmspcTcbHelper, TCBLevelsObj, TcbInfoBasic} from "../src/helpers/FmspcTcbHelper.sol";
+  |                                       ^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unsafe-cheatcode]: usage of unsafe cheatcodes that can perform dangerous operations
+  --> script/utils/DeploymentConfig.sol:75:26
+   |
+75 |             jsonStr = vm.readFile(jsonPath);
+   |                          ^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-cheatcode
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> test/mock/MockTcbDao.sol:108:36
+    |
+108 |             evaluationDataNumber = uint32(slot);
+    |                                    ^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint32' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> script/utils/P256Configuration.sol:3:8
+  |
+3 | import "../../src/utils/BytesUtils.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> script/automata/versioned/ConfigAutomataDaoVersioned.s.sol:4:8
+  |
+4 | import "../../utils/DeploymentConfig.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> script/automata/versioned/ConfigAutomataDaoVersioned.s.sol:5:8
+  |
+5 | import "../../utils/Multichain.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> test/misc/X509HelperTest.t.sol:42:22
+   |
+42 |         bytes memory ca_skid = X509.getSubjectKeyIdentifier(sampleRootCaDer);
+   |                      ^^^^^^^ help: consider using: `caSkid`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> src/automata_pccs/AutomataPckDao.sol:59:30
+   |
+59 |             notValidBefore = uint64(slot >> 64);
+   |                              ^^^^^^^^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'uint64' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> src/automata_pccs/AutomataPckDao.sol:60:29
+   |
+60 |             notValidAfter = uint64(slot);
+   |                             ^^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'uint64' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/identity/AutomataEnclaveIdentityTest.t.sol:4:8
+  |
+4 | import "../pcs/PCSSetupBase.t.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> script/automata/ConfigAutomataDao.s.sol:4:8
+  |
+4 | import "../utils/DeploymentConfig.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/identity/AutomataEnclaveIdentityTest.t.sol:5:8
+  |
+5 | import "./IdentityConstants.t.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> script/automata/ConfigAutomataDao.s.sol:5:8
+  |
+5 | import "../utils/Multichain.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> script/utils/P256Configuration.sol:4:8
+  |
+4 | import "forge-std/Script.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/shared/AutomataDaoStorageV2Test.t.sol:4:8
+  |
+4 | import "forge-std/Test.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> script/utils/Multichain.sol:4:8
+  |
+4 | import "forge-std/Vm.sol";
+  |        ^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> script/automata/DeployAutomataDao.s.sol:4:8
+  |
+4 | import "../utils/P256Configuration.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> test/misc/X509HelperTest.t.sol:66:22
+   |
+66 |         bytes memory crl_akid = X509_CRL.getAuthorityKeyIdentifier(samplePlatformCrlDer);
+   |                      ^^^^^^^^ help: consider using: `crlAkid`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> test/misc/X509HelperTest.t.sol:67:22
+   |
+67 |         bytes memory ca_skid = X509.getSubjectKeyIdentifier(samplePlatformCaDer);
+   |                      ^^^^^^^ help: consider using: `caSkid`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+  --> script/utils/P256Configuration.sol:14:20
+   |
+14 |     bytes constant test_pubkey =
+   |                    ^^^^^^^^^^^ help: consider using: `TEST_PUBKEY`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> test/misc/X509HelperTest.t.sol:76:22
+   |
+76 |         bytes memory platform_crl_akid = X509_CRL.getAuthorityKeyIdentifier(samplePlatformCrlDer);
+   |                      ^^^^^^^^^^^^^^^^^ help: consider using: `platformCrlAkid`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/bases/FmspcTcbDao.sol:121:52
+    |
+121 |             _onFetchDataFromResolver(FMSPC_TCB_KEY(uint8(tcbType), fmspcBytes, uint32(version)), false);
+    |                                                    ^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint8' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+  --> script/utils/P256Configuration.sol:16:20
+   |
+16 |     bytes constant test_sig =
+   |                    ^^^^^^^^ help: consider using: `TEST_SIG`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> script/automata/DeployAutomataDao.s.sol:5:8
+  |
+5 | import "../utils/Salt.sol";
+  |        ^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> script/utils/Multichain.sol:5:8
+  |
+5 | import "forge-std/console.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> test/misc/X509HelperTest.t.sol:77:22
+   |
+77 |         bytes memory platform_ca_skid = X509.getSubjectKeyIdentifier(samplePlatformCaDer);
+   |                      ^^^^^^^^^^^^^^^^ help: consider using: `platformCaSkid`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+  --> script/utils/P256Configuration.sol:18:20
+   |
+18 |     bytes constant test_message = hex"a9b4ac5fb82203536c408b1db1d0338c61fd0064ea2471794d435fc0e03c217f";
+   |                    ^^^^^^^^^^^^ help: consider using: `TEST_MESSAGE`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/TestSetupBase.t.sol:4:8
+  |
+4 | import "forge-std/Test.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+ --> test/tcb/TCBConstants.t.sol:5:21
+  |
+5 |     string internal tdx_tcbStr =
+  |                     ^^^^^^^^^^ help: consider using: `tdxTcbStr`
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> test/tcb/TCBConstants.t.sol:11:20
+   |
+11 |     bytes internal tdx_signature =
+   |                    ^^^^^^^^^^^^^ help: consider using: `tdxSignature`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> test/tcb/TCBConstants.t.sol:14:20
+   |
+14 |     bytes internal sgx_v2_tcbStr =
+   |                    ^^^^^^^^^^^^^ help: consider using: `sgxV2TcbStr`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/TestSetupBase.t.sol:6:8
+  |
+6 | import "../src/automata_pccs/shared/AutomataDaoStorage.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> test/tcb/TCBConstants.t.sol:17:20
+   |
+17 |     bytes internal sgx_v2_signature =
+   |                    ^^^^^^^^^^^^^^^^ help: consider using: `sgxV2Signature`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> script/automata/DeployAutomataDao.s.sol:6:8
+  |
+6 | import "../utils/DeploymentConfig.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+ --> script/utils/Multichain.sol:9:17
+  |
+9 |     Vm constant internalVm = Vm(HEVM_ADDRESS);
+  |                 ^^^^^^^^^^ help: consider using: `INTERNAL_VM`
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[unsafe-cheatcode]: usage of unsafe cheatcodes that can perform dangerous operations
+  --> script/utils/Multichain.sol:23:32
+   |
+23 |                     internalVm.setEnv("RPC_URL", rpcUrl);
+   |                                ^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-cheatcode
+
+note[unsafe-cheatcode]: usage of unsafe cheatcodes that can perform dangerous operations
+  --> script/utils/P256Configuration.sol:62:31
+   |
+62 |         bytes memory ret = vm.ffi(inputs);
+   |                               ^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-cheatcode
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/TestSetupBase.t.sol:7:8
+  |
+7 | import "../src/automata_pccs/AutomataFmspcTcbDao.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> test/identity/AutomataEnclaveIdentityTest.t.sol:39:23
+   |
+39 |         string memory id_td_qe_0 =
+   |                       ^^^^^^^^^^ help: consider using: `idTdQe0`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> test/identity/AutomataEnclaveIdentityTest.t.sol:41:22
+   |
+41 |         bytes memory sig_0 =
+   |                      ^^^^^ help: consider using: `sig0`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> test/identity/AutomataEnclaveIdentityTest.t.sol:44:23
+   |
+44 |         string memory id_td_qe_1 =
+   |                       ^^^^^^^^^^ help: consider using: `idTdQe1`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> test/identity/AutomataEnclaveIdentityTest.t.sol:46:22
+   |
+46 |         bytes memory sig_1 =
+   |                      ^^^^^ help: consider using: `sig1`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/TestSetupBase.t.sol:8:8
+  |
+8 | import "../src/automata_pccs/AutomataEnclaveIdentityDao.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/eval/AutomataTcbEvalDaoTest.t.sol:4:8
+  |
+4 | import "../pcs/PCSSetupBase.t.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> test/tcb/TCBConstants.t.sol:20:20
+   |
+20 |     bytes internal sgx_v3_tcbStr =
+   |                    ^^^^^^^^^^^^^ help: consider using: `sgxV3TcbStr`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/eval/AutomataTcbEvalDaoTest.t.sol:6:8
+  |
+6 | import "src/helpers/TcbEvalHelper.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/pcs/AutomataPckDaoTest.t.sol:4:8
+  |
+4 | import "../pcs/PCSSetupBase.t.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unsafe-cheatcode]: usage of unsafe cheatcodes that can perform dangerous operations
+  --> script/utils/Multichain.sol:30:32
+   |
+30 |                     internalVm.setEnv("RPC_URL", "");
+   |                                ^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-cheatcode
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/bases/FmspcTcbDao.sol:121:80
+    |
+121 |             _onFetchDataFromResolver(FMSPC_TCB_KEY(uint8(tcbType), fmspcBytes, uint32(version)), false);
+    |                                                                                ^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'uint32' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> script/helper/DeployHelpers.s.sol:4:8
+  |
+4 | import "../../src/helpers/EnclaveIdentityHelper.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/TestSetupBase.t.sol:9:8
+  |
+9 | import "../src/automata_pccs/AutomataPcsDao.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unused-import]: unused imports should be removed
+ --> test/identity/AutomataEnclaveIdentityTest.t.sol:6:9
+  |
+6 | import {AutomataEnclaveIdentityDao} from "../../src/automata_pccs/AutomataEnclaveIdentityDao.sol";
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+  --> test/TestSetupBase.t.sol:10:8
+   |
+10 | import "../src/automata_pccs/AutomataPckDao.sol";
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> test/misc/X509HelperTest.t.sol:79:22
+   |
+79 |         bytes memory root_crl_akid = X509_CRL.getAuthorityKeyIdentifier(sampleRootCrlDer);
+   |                      ^^^^^^^^^^^^^ help: consider using: `rootCrlAkid`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/tcb/TCBMockTest.t.sol:4:8
+  |
+4 | import "../pcs/PCSSetupBase.t.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> test/tcb/TCBConstants.t.sol:23:20
+   |
+23 |     bytes internal sgx_v3_signature =
+   |                    ^^^^^^^^^^^^^^^^ help: consider using: `sgxV3Signature`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> script/bench/DeployLocalTcbBench.s.sol:4:8
+  |
+4 | import "forge-std/Script.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/tcb/TCBMockTest.t.sol:5:8
+  |
+5 | import "../mock/MockTcbDao.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> test/misc/X509HelperTest.t.sol:80:22
+   |
+80 |         bytes memory root_ca_skid = X509.getSubjectKeyIdentifier(sampleRootCaDer);
+   |                      ^^^^^^^^^^^^ help: consider using: `rootCaSkid`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+  --> test/pcs/AutomataPckDaoTest.t.sol:10:21
+   |
+10 |     string constant qeid = "ad04024c9dfb382baf51ca3e5d6cb6e6";
+   |                     ^^^^ help: consider using: `QEID`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> script/helper/DeployHelpers.s.sol:5:8
+  |
+5 | import "../../src/helpers/FmspcTcbHelper.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> script/helper/DeployHelpers.s.sol:6:8
+  |
+6 | import "../../src/helpers/FmspcTcbHelperV2.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> test/TestSetupBase.t.sol:29:13
+   |
+29 |     address P256_VERIFIER;
+   |             ^^^^^^^^^^^^^ help: consider using: `p256Verifier`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/tcb/TCBHelperTest.t.sol:4:8
+  |
+4 | import "forge-std/Test.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> src/bases/PckDao.sol:73:19
+   |
+73 |     PcsDao public Pcs;
+   |                   ^^^ help: consider using: `pcs`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+  --> test/pcs/AutomataPckDaoTest.t.sol:11:21
+   |
+11 |     string constant pceid = "0000";
+   |                     ^^^^^ help: consider using: `PCEID`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/tcb/AutomataTcbDaoVersionedTest.t.sol:4:8
+  |
+4 | import "../pcs/PCSSetupBase.t.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+  --> test/pcs/AutomataPckDaoTest.t.sol:12:21
+   |
+12 |     string constant tcbm = "0c0c0303ffff010000000000000000000d00";
+   |                     ^^^^ help: consider using: `TCBM`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+  --> test/pcs/AutomataPckDaoTest.t.sol:13:21
+   |
+13 |     string constant cpusvn = "0c0c100fffff01000000000000000000";
+   |                     ^^^^^^ help: consider using: `CPUSVN`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> script/helper/DeployHelpers.s.sol:7:8
+  |
+7 | import "../../src/helpers/PCKHelper.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unused-import]: unused imports should be removed
+ --> test/tcb/AutomataTcbDaoVersionedTest.t.sol:6:9
+  |
+6 | import {DaoBase} from "../../src/bases/DaoBase.sol";
+  |         ^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[mixed-case-function]: function names should use mixedCase
+  --> src/bases/PckDao.sol:77:14
+   |
+77 |     modifier pckCACheck(CA ca) {
+   |              ^^^^^^^^^^ help: consider using: `pckCaCheck`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[mixed-case-function]: function names should use mixedCase
+  --> src/bases/PckDao.sol:93:14
+   |
+93 |     function PCK_KEY(bytes16 qeidBytes, bytes2 pceidBytes, bytes18 tcbmBytes) public pure returns (bytes32 key) {
+   |              ^^^^^^^ help: consider using: `pckKey`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[mixed-case-function]: function names should use mixedCase
+  --> src/bases/PckDao.sol:97:14
+   |
+97 |     function TCB_MAPPING_KEY(bytes16 qeid, bytes2 pceid, bytes16 platformCpuSvn, bytes2 platformPceSvn)
+   |              ^^^^^^^^^^^^^^^ help: consider using: `tcbMappingKey`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> script/helper/DeployHelpers.s.sol:8:8
+  |
+8 | import "../../src/helpers/X509CRLHelper.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+  --> test/pcs/AutomataPckDaoTest.t.sol:14:21
+   |
+14 |     string constant pcesvn = "0e00";
+   |                     ^^^^^^ help: consider using: `PCESVN`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/tcb/TCBHelperTest.t.sol:6:8
+  |
+6 | import "../../src/helpers/FmspcTcbHelper.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> script/helper/DeployHelpers.s.sol:9:8
+  |
+9 | import "../../src/helpers/TcbEvalHelper.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unused-import]: unused imports should be removed
+  --> test/TestSetupBase.t.sol:12:32
+   |
+12 | import {EnclaveIdentityHelper, EnclaveIdentityJsonObj} from "../src/helpers/EnclaveIdentityHelper.sol";
+   |                                ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/tcb/TCBHelperTest.t.sol:7:8
+  |
+7 | import "./TCBConstants.t.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> test/tcb/TCBHelperTest.t.sol:8:8
+  |
+8 | import "./TDXConstants.t.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unused-import]: unused imports should be removed
+  --> test/TestSetupBase.t.sol:13:25
+   |
+13 | import {FmspcTcbHelper, TcbInfoJsonObj} from "../src/helpers/FmspcTcbHelper.sol";
+   |                         ^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unused-import]: unused imports should be removed
+  --> test/TestSetupBase.t.sol:14:24
+   |
+14 | import {X509CRLHelper, X509CRLObj} from "../src/helpers/X509CRLHelper.sol";
+   |                        ^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+  --> script/helper/DeployHelpers.s.sol:10:8
+   |
+10 | import "../utils/Salt.sol";
+   |        ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unused-import]: unused imports should be removed
+ --> src/bases/PckDao.sol:6:24
+  |
+6 | import {X509CRLHelper, X509CRLObj} from "../helpers/X509CRLHelper.sol";
+  |                        ^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unwrapped-modifier-logic]: wrap modifier logic to reduce code size
+  --> src/bases/PckDao.sol:77:5
+   |
+77 | /     modifier pckCACheck(CA ca) {
+78 | |         if (ca == CA.ROOT || ca == CA.SIGNING) {
+79 | |             revert Invalid_PCK_CA(ca);
+...  |
+82 | |     }
+   | |_____^
+   |
+help: wrap modifier logic to reduce code size
+   |
+77 ~     modifier pckCACheck(CA ca) {
+78 +         _pckCACheck(ca);
+79 +         _;
+80 +     }
+81 + 
+82 +     function _pckCACheck(CA ca) internal {
+83 +         if (ca == CA.ROOT || ca == CA.SIGNING) {
+84 +             revert Invalid_PCK_CA(ca);
+85 +         }
+86 +     }
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unwrapped-modifier-logic
+
+note[unused-import]: unused imports should be removed
+ --> test/pcs/AutomataPckDaoTest.t.sol:5:9
+  |
+5 | import {AutomataPckDao} from "../../src/automata_pccs/AutomataPckDao.sol";
+  |         ^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/bases/PckDao.sol:379:29
+    |
+379 |         bool pceidMatched = bytes2(pceidBytes) == pceid;
+    |                             ^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'bytes2' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> src/bases/PckDao.sol:386:35
+    |
+386 |         bool tcbIsValid = tcbm == bytes18(encodedTcbmBytes);
+    |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'bytes18' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[unused-import]: unused imports should be removed
+  --> test/TestSetupBase.t.sol:15:20
+   |
+15 | import {PCKHelper, X509CertObj} from "../src/helpers/PCKHelper.sol";
+   |                    ^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+  --> script/helper/DeployHelpers.s.sol:11:8
+   |
+11 | import "../utils/DeploymentConfig.sol";
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-function]: function names should use mixedCase
+  --> src/bases/PcsDao.sol:88:14
+   |
+88 |     function PCS_KEY(CA ca, bool isCrl) public pure returns (bytes32 key) {
+   |              ^^^^^^^ help: consider using: `pcsKey`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[mixed-case-function]: function names should use mixedCase
+  --> src/bases/PcsDao.sol:92:14
+   |
+92 |     modifier pckCACheck(CA ca) {
+   |              ^^^^^^^^^^ help: consider using: `pckCaCheck`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[mixed-case-function]: function names should use mixedCase
+   --> src/bases/PcsDao.sol:142:14
+    |
+142 |     function upsertRootCACrl(bytes calldata rootcacrl) external returns (bytes32 attestationId) {
+    |              ^^^^^^^^^^^^^^^ help: consider using: `upsertRootCaCrl`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[unwrapped-modifier-logic]: wrap modifier logic to reduce code size
+  --> src/bases/PcsDao.sol:92:5
+   |
+92 | /     modifier pckCACheck(CA ca) {
+93 | |         if (ca == CA.ROOT || ca == CA.SIGNING) {
+94 | |             revert Invalid_PCK_CA(ca);
+...  |
+97 | |     }
+   | |_____^
+   |
+help: wrap modifier logic to reduce code size
+   |
+92 ~     modifier pckCACheck(CA ca) {
+93 +         _pckCACheck(ca);
+94 +         _;
+95 +     }
+96 + 
+97 +     function _pckCACheck(CA ca) internal {
+98 +         if (ca == CA.ROOT || ca == CA.SIGNING) {
+99 +             revert Invalid_PCK_CA(ca);
+100+         }
+101+     }
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unwrapped-modifier-logic
+
+[2/7] Deploy FmspcTcbHelperV2
+No files changed, compilation skipped
+Script ran successfully.
+
+== Logs ==
+  [LOG] FmspcTcbHelperV2:  0x9d5e95109E13C6Fc88804eca6B76AF6372e939a8
+
+SKIPPING ON CHAIN SIMULATION.
+
+
+==========================
+
+ONCHAIN EXECUTION COMPLETE & SUCCESSFUL.
+
+Transactions saved to: /home/rustdev/shared/code/pccs-async-upsert-project/automata-on-chain-pccs/broadcast/DeployHelpers.s.sol/1315/deployFmspcTcbHelperV2-latest.json
+
+Sensitive values saved to: /home/rustdev/shared/code/pccs-async-upsert-project/automata-on-chain-pccs/cache/DeployHelpers.s.sol/1315/deployFmspcTcbHelperV2-latest.json
+
+[3/7] Deploy StorageV2
+[0;32m[INFO][0m Starting deployment for storage-v2 command
+[0;32m[INFO][0m Project root detected via git: /home/rustdev/shared/code/pccs-async-upsert-project/automata-on-chain-pccs
+[0;32m[INFO][0m Using unlocked sender authentication
+[0;32m[INFO][0m Configured owner address: 0xDf841B239bE7a6b37366005107069b7410da4Ff9
+[0;32m[INFO][0m Detecting chain ID...
+[0;32m[INFO][0m Chain ID: 1315
+[0;32m[INFO][0m Resolving P256 verifier address...
+[0;32m[INFO][0m P256 verifier address: 0xc2b78104907F722DABAc4C69f826a522B2754De4
+[0;32m[INFO][0m Estimating gas from network...
+  AutomataDaoStorageV2: 1630196 gas
+  Max: AutomataDaoStorageV2 (1630196 gas)
+  Buffer: +10%
+  Final estimate: 1793215 gas
+[0;32m[INFO][0m Estimated gas limit: 1793215
+[0;32m[INFO][0m Deploying AutomataDaoStorageV2...
+No files changed, compilation skipped
+Script ran successfully.
+
+== Logs ==
+  [LOG] AutomataDaoStorageV2 deployed at:  0x8E85537d56E5Eb80578E52c97E2174c1206aB036
+
+SKIPPING ON CHAIN SIMULATION.
+
+
+==========================
+
+ONCHAIN EXECUTION COMPLETE & SUCCESSFUL.
+
+Transactions saved to: /home/rustdev/shared/code/pccs-async-upsert-project/automata-on-chain-pccs/broadcast/DeployAutomataVersioned.s.sol/1315/deployStorageV2-latest.json
+
+Sensitive values saved to: /home/rustdev/shared/code/pccs-async-upsert-project/automata-on-chain-pccs/cache/DeployAutomataVersioned.s.sol/1315/deployStorageV2-latest.json
+
+[0;32m[INFO][0m Deployment completed successfully for storage-v2 command!
+[0;32m[INFO][0m Chain ID: 1315
+[0;32m[INFO][0m Contract addresses have been saved to: /home/rustdev/shared/code/pccs-async-upsert-project/automata-on-chain-pccs/deployment/1315.json
+[0;32m[INFO][0m Next steps:
+[0;32m[INFO][0m   1. Configure roles: ./config_versioned.sh
+[0;32m[INFO][0m   2. Verify contracts: ./verify_versioned.sh
+[4/7] Deploy FmspcTcbDaoVersionedV2
+[0;32m[INFO][0m Starting deployment for fmspc-v2 command
+[0;32m[INFO][0m TCB Eval Data Number: 19
+[0;32m[INFO][0m Project root detected via git: /home/rustdev/shared/code/pccs-async-upsert-project/automata-on-chain-pccs
+[0;32m[INFO][0m Using unlocked sender authentication
+[0;32m[INFO][0m Configured owner address: 0xDf841B239bE7a6b37366005107069b7410da4Ff9
+[0;32m[INFO][0m Detecting chain ID...
+[0;32m[INFO][0m Chain ID: 1315
+[0;32m[INFO][0m Resolving P256 verifier address...
+[0;32m[INFO][0m P256 verifier address: 0xc2b78104907F722DABAc4C69f826a522B2754De4
+[0;32m[INFO][0m Deploying AutomataFmspcTcbDaoVersionedV2 (tcb-eval-data-number: 19)...
+No files changed, compilation skipped
+Script ran successfully.
+
+== Logs ==
+  P256Verifier address:  0xc2b78104907F722DABAc4C69f826a522B2754De4
+  [LOG] AutomataFmspcTcbDaoVersionedV2 deployed at:  0xC3D2e1b9065b678a00Fe55524750B33911BFc315
+
+SKIPPING ON CHAIN SIMULATION.
+
+
+==========================
+
+ONCHAIN EXECUTION COMPLETE & SUCCESSFUL.
+
+Transactions saved to: /home/rustdev/shared/code/pccs-async-upsert-project/automata-on-chain-pccs/broadcast/DeployAutomataVersioned.s.sol/1315/deployFmspcTcbDaoVersionedV2-latest.json
+
+Sensitive values saved to: /home/rustdev/shared/code/pccs-async-upsert-project/automata-on-chain-pccs/cache/DeployAutomataVersioned.s.sol/1315/deployFmspcTcbDaoVersionedV2-latest.json
+
+[0;32m[INFO][0m Deployment completed successfully for fmspc-v2 command!
+[0;32m[INFO][0m TCB Eval Data Number: 19
+[0;32m[INFO][0m Chain ID: 1315
+[0;32m[INFO][0m Contract addresses have been saved to: /home/rustdev/shared/code/pccs-async-upsert-project/automata-on-chain-pccs/deployment/1315.json
+[0;32m[INFO][0m Next steps:
+[0;32m[INFO][0m   1. Configure roles: ./config_versioned.sh
+[0;32m[INFO][0m   2. Verify contracts: ./verify_versioned.sh
+[4.5/7] Grant StorageV2 access to new FmspcTcbDaoVersioned
+No files changed, compilation skipped
+Script ran successfully.
+
+SKIPPING ON CHAIN SIMULATION.
+
+
+==========================
+
+ONCHAIN EXECUTION COMPLETE & SUCCESSFUL.
+
+Transactions saved to: /home/rustdev/shared/code/pccs-async-upsert-project/automata-on-chain-pccs/broadcast/ConfigAutomataDao.s.sol/1315/grantDaoV2-latest.json
+
+Sensitive values saved to: /home/rustdev/shared/code/pccs-async-upsert-project/automata-on-chain-pccs/cache/ConfigAutomataDao.s.sol/1315/grantDaoV2-latest.json
+
+[5/7] Grant attester role to new DAO
+[0;32m[INFO][0m Project root detected via git: /home/rustdev/shared/code/pccs-async-upsert-project/automata-on-chain-pccs
+[0;32m[INFO][0m Using unlocked sender authentication
+[0;32m[INFO][0m Configured owner address: 0xDf841B239bE7a6b37366005107069b7410da4Ff9
+[0;32m[INFO][0m Starting role configuration for fmspc-v2 command
+[0;32m[INFO][0m User: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+[0;32m[INFO][0m TCB Eval Data Number: 19
+[0;32m[INFO][0m Roles: 1
+[0;32m[INFO][0m Action: Grant
+[0;32m[INFO][0m Detecting chain ID...
+[0;32m[INFO][0m Chain ID: 1315
+[0;32m[INFO][0m Configuring AutomataFmspcTcbDaoVersionedV2 roles (tcb-eval-data-number: 19)...
+No files changed, compilation skipped
+Script ran successfully.
+
+SKIPPING ON CHAIN SIMULATION.
+
+
+==========================
+
+ONCHAIN EXECUTION COMPLETE & SUCCESSFUL.
+
+Transactions saved to: /home/rustdev/shared/code/pccs-async-upsert-project/automata-on-chain-pccs/broadcast/ConfigAutomataDaoVersioned.s.sol/1315/configureFmspcTcbDaoVersionedV2Roles-latest.json
+
+Sensitive values saved to: /home/rustdev/shared/code/pccs-async-upsert-project/automata-on-chain-pccs/cache/ConfigAutomataDaoVersioned.s.sol/1315/configureFmspcTcbDaoVersionedV2Roles-latest.json
+
+[0;32m[INFO][0m Role configuration completed successfully for fmspc-v2 command!
+[0;32m[INFO][0m User: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+[0;32m[INFO][0m TCB Eval Data Number: 19
+[0;32m[INFO][0m Roles: 1 (granted)
+[0;32m[INFO][0m Role configurations have been applied on-chain
+[0;32m[INFO][0m Next step: Verify contracts with ./verify_versioned.sh
+[6/7] Sync deployment into attestation repo
+[0;34m[INFO][0m Using local submodule: ../evm/lib/automata-on-chain-pccs/deployment
+[0;34m[INFO][0m Starting PCCS deployment update...
+[0;34m[INFO][0m Updating 1 specified chain IDs
+[0;34m[INFO][0m Updating chain ID: 1315 (from local submodule)
+[0;32m[SUCCESS][0m Updated ./libraries/network-registry/deployment/current/1315/onchain_pccs.json
+[0;34m[INFO][0m   Contains 22 contract addresses
+
+[0;34m[INFO][0m Update Summary:
+[0;32m[SUCCESS][0m   Successfully updated: 1 chain(s)
+[0;32m[SUCCESS][0m All PCCS deployments updated successfully!
+[7/7] Update router config
+No files changed, compilation skipped
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> contracts/AutomataDcapAttestationFee.sol:4:8
+  |
+4 | import "./AttestationEntrypointBase.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> contracts/verifiers/V3QuoteVerifier.sol:5:8
+  |
+5 | import "../bases/QuoteVerifierBase.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> contracts/AttestationEntrypointBase.sol:6:8
+  |
+6 | import "./types/Constants.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-function]: function names should use mixedCase
+   --> contracts/AttestationEntrypointBase.sol:255:14
+    |
+255 |     function _verifyAndAttestWithZKProof(
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using: `_verifyAndAttestWithZkProof`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[pascal-case-struct]: structs should use PascalCase
+ --> contracts/types/TDXStruct.sol:9:8
+  |
+9 | struct TD10ReportBody {
+  |        ^^^^^^^^^^^^^^ help: consider using: `Td10ReportBody`
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#pascal-case-struct
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> contracts/verifiers/V3QuoteVerifier.sol:6:8
+  |
+6 | import "../bases/tcb/TCBInfoV2Base.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> contracts/AutomataDcapAttestationFee.sol:5:8
+  |
+5 | import "./bases/FeeManagerBase.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> contracts/types/TDXStruct.sol:15:12
+   |
+15 |     bytes8 xFAM;
+   |            ^^^^ help: consider using: `xFam`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[pascal-case-struct]: structs should use PascalCase
+  --> contracts/types/TDXStruct.sol:27:8
+   |
+27 | struct TD15ReportBody {
+   |        ^^^^^^^^^^^^^^ help: consider using: `Td15ReportBody`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#pascal-case-struct
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-test/utils/PCCSSetupBase.sol:4:8
+  |
+4 | import "forge-std/Test.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-function]: function names should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:130:14
+    |
+130 |     function invert_Fp(uint256 a) internal view returns (uint256 x) {
+    |              ^^^^^^^^^ help: consider using: `invertFp`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[mixed-case-function]: function names should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:145:14
+    |
+145 |     function sqrt_Fp(uint256 a) internal view returns (uint256 x) {
+    |              ^^^^^^^ help: consider using: `sqrtFp`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[mixed-case-function]: function names should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:160:14
+    |
+160 |     function isSquare_Fp(uint256 a) internal view returns (bool) {
+    |              ^^^^^^^^^^^ help: consider using: `isSquareFp`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> contracts/types/TDXStruct.sol:33:12
+   |
+33 |     bytes8 xFAM;
+   |            ^^^^ help: consider using: `xFam`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[pascal-case-struct]: structs should use PascalCase
+  --> contracts/types/CommonStruct.sol:61:8
+   |
+61 | struct QEAuthData {
+   |        ^^^^^^^^^^ help: consider using: `QeAuthData`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#pascal-case-struct
+
+note[unwrapped-modifier-logic]: wrap modifier logic to reduce code size
+  --> contracts/AttestationEntrypointBase.sol:69:5
+   |
+69 | /     modifier noneZkConfigCheck(ZkCoProcessorType zkCoProcessor) {
+70 | |         require(zkCoProcessor != ZkCoProcessorType.None, "Cannot use None ZK Co-Processor");
+71 | |         _;
+72 | |     }
+   | |_____^
+   |
+help: wrap modifier logic to reduce code size
+   |
+69 ~     modifier noneZkConfigCheck(ZkCoProcessorType zkCoProcessor) {
+70 +         _noneZkConfigCheck(zkCoProcessor);
+71 +         _;
+72 +     }
+73 + 
+74 +     function _noneZkConfigCheck(ZkCoProcessorType zkCoProcessor) internal {
+75 +         require(zkCoProcessor != ZkCoProcessorType.None, "Cannot use None ZK Co-Processor");
+76 +     }
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unwrapped-modifier-logic
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+  --> contracts/bases/TdxQuoteBase.sol:14:8
+   |
+14 | import "./QuoteVerifierBase.sol";
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+  --> contracts/bases/TdxQuoteBase.sol:15:8
+   |
+15 | import "./tcb/TCBInfoV3Base.sol";
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-test/utils/PCCSSetupBase.sol:5:8
+  |
+5 | import "forge-std/StdJson.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unused-import]: unused imports should be removed
+ --> contracts/bases/TdxQuoteBase.sol:6:5
+  |
+6 |     TcbId,
+  |     ^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unused-import]: unused imports should be removed
+ --> contracts/bases/TdxQuoteBase.sol:7:5
+  |
+7 |     TCBLevelsObj,
+  |     ^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unused-import]: unused imports should be removed
+  --> contracts/bases/TdxQuoteBase.sol:11:9
+   |
+11 | import {TD10ReportBody, TD15ReportBody} from "../utils/TDReportParser.sol";
+   |         ^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unused-import]: unused imports should be removed
+ --> contracts/interfaces/IPCCSRouter.sol:5:5
+  |
+5 |     EnclaveIdentityJsonObj,
+  |     ^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[mixed-case-function]: function names should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:177:14
+    |
+177 |     function sqrt_Fp2(uint256 a0, uint256 a1, bool hint) internal view returns (uint256 x0, uint256 x1) {
+    |              ^^^^^^^^ help: consider using: `sqrtFp2`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[unused-import]: unused imports should be removed
+  --> contracts/interfaces/IPCCSRouter.sol:10:5
+   |
+10 |     TcbInfoJsonObj,
+   |     ^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unused-import]: unused imports should be removed
+  --> contracts/bases/TdxQuoteBase.sol:11:25
+   |
+11 | import {TD10ReportBody, TD15ReportBody} from "../utils/TDReportParser.sol";
+   |                         ^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-test/utils/PCCSSetupBase.sol:6:8
+  |
+6 | import "solady/utils/JSONParserLib.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-test/utils/PCCSSetupBase.sol:7:8
+  |
+7 | import "solady/utils/LibString.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unused-import]: unused imports should be removed
+  --> contracts/interfaces/IPCCSRouter.sol:12:5
+   |
+12 |     TcbInfoBasic,
+   |     ^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[mixed-case-function]: function names should use mixedCase
+  --> contracts/AutomataDcapAttestationFee.sol:32:14
+   |
+32 |     function verifyAndAttestWithZKProof(
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using: `verifyAndAttestWithZkProof`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> contracts/verifiers/V3QuoteVerifier.sol:7:8
+  |
+7 | import "../types/Errors.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unused-import]: unused imports should be removed
+  --> contracts/bases/TdxQuoteBase.sol:12:9
+   |
+12 | import {PCKCertTCB} from "../types/CommonStruct.sol";
+   |         ^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+  --> forge-test/utils/PCCSSetupBase.sol:28:8
+   |
+28 | import "../../contracts/PCCSRouter.sol";
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-function]: function names should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:202:14
+    |
+202 |     function compress_g1(uint256 x, uint256 y) internal view returns (uint256 c) {
+    |              ^^^^^^^^^^^ help: consider using: `compressG1`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:213:17
+    |
+213 |         uint256 y_pos = sqrt_Fp(addmod(mulmod(mulmod(x, x, P), x, P), 3, P));
+    |                 ^^^^^ help: consider using: `yPos`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[asm-keccak256]: use of inefficient hashing mechanism; consider using inline assembly
+  --> contracts/bases/X509ChainBase.sol:81:44
+   |
+81 |                 bytes32 issuerPubKeyHash = keccak256(issuer.subjectPublicKey);
+   |                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#asm-keccak256
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-test/AutomataDcapOnChainAttestationTest.t.sol:4:8
+  |
+4 | import "./utils/PCCSSetupBase.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-function]: function names should use mixedCase
+  --> contracts/bases/EnclaveIdBase.sol:13:14
+   |
+13 |     function verifyQEReportWithIdentity(
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using: `verifyQeReportWithIdentity`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+  --> forge-test/utils/PCCSSetupBase.sol:46:13
+   |
+46 |     address P256_VERIFIER;
+   |             ^^^^^^^^^^^^^ help: consider using: `p256Verifier`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+  --> forge-test/utils/PCCSSetupBase.sol:48:31
+   |
+48 |     address internal constant admin = address(1);
+   |                               ^^^^^ help: consider using: `ADMIN`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+ --> contracts/bases/FeeManagerBase.sol:7:12
+  |
+7 |     uint16 _feeBP; // the percentage of gas fee in basis point;
+  |            ^^^^^^ help: consider using: `_feeBp`
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[mixed-case-function]: function names should use mixedCase
+  --> contracts/AutomataDcapAttestationFee.sol:51:14
+   |
+51 |     function verifyAndAttestWithZKProof(
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using: `verifyAndAttestWithZkProof`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[mixed-case-function]: function names should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:230:14
+    |
+230 |     function decompress_g1(uint256 c) internal view returns (uint256 x, uint256 y) {
+    |              ^^^^^^^^^^^^^ help: consider using: `decompressG1`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:237:14
+    |
+237 |         bool negate_point = c & 1 == 1;
+    |              ^^^^^^^^^^^^ help: consider using: `negatePoint`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[mixed-case-function]: function names should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:265:14
+    |
+265 |     function compress_g2(uint256 x0, uint256 x1, uint256 y0, uint256 y1)
+    |              ^^^^^^^^^^^ help: consider using: `compressG2`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> contracts/PCCSRouter.sol:4:8
+  |
+4 | import "./interfaces/IPCCSRouter.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> contracts/verifiers/V4QuoteVerifier.sol:7:8
+  |
+7 | import "../bases/TdxQuoteBase.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> contracts/verifiers/V4QuoteVerifier.sol:8:8
+  |
+8 | import "../types/Errors.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+  --> forge-test/utils/PCCSSetupBase.sol:50:20
+   |
+50 |     bytes constant rootCaDer =
+   |                    ^^^^^^^^^ help: consider using: `ROOT_CA_DER`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+  --> forge-test/utils/PCCSSetupBase.sol:52:20
+   |
+52 |     bytes constant platformDer =
+   |                    ^^^^^^^^^^^ help: consider using: `PLATFORM_DER`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:278:17
+    |
+278 |         uint256 y0_pos;
+    |                 ^^^^^^ help: consider using: `y0Pos`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[unused-import]: unused imports should be removed
+ --> contracts/bases/EnclaveIdBase.sol:6:5
+  |
+6 |     EnclaveId,
+  |     ^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unused-import]: unused imports should be removed
+ --> contracts/bases/EnclaveIdBase.sol:7:5
+  |
+7 |     Tcb,
+  |     ^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+  --> forge-test/AutomataDcapOnChainAttestationTest.t.sol:15:20
+   |
+15 |     bytes constant platformCrlDer =
+   |                    ^^^^^^^^^^^^^^ help: consider using: `PLATFORM_CRL_DER`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+  --> forge-test/utils/PCCSSetupBase.sol:54:20
+   |
+54 |     bytes constant rootCrlDer =
+   |                    ^^^^^^^^^^ help: consider using: `ROOT_CRL_DER`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[mixed-case-function]: function names should use mixedCase
+  --> contracts/verifiers/V4QuoteVerifier.sol:93:14
+   |
+93 |     function _verifySGXQuote(
+   |              ^^^^^^^^^^^^^^^ help: consider using: `_verifySgxQuote`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[pascal-case-struct]: structs should use PascalCase
+  --> contracts/types/CommonStruct.sol:97:8
+   |
+97 | struct PCKCollateral {
+   |        ^^^^^^^^^^^^^ help: consider using: `PckCollateral`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#pascal-case-struct
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+  --> contracts/bases/tcb/TCBInfoV3Base.sol:11:8
+   |
+11 | import "./TCBInfoV2Base.sol";
+   |        ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unwrapped-modifier-logic]: wrap modifier logic to reduce code size
+  --> contracts/bases/FeeManagerBase.sol:36:5
+   |
+36 | /     modifier collectFee() {
+37 | |         uint256 txFee;
+38 | |         if (_feeBP > 0) {
+39 | |             uint256 gasBefore = gasleft();
+...  |
+60 | |     }
+   | |_____^
+   |
+help: wrap modifier logic to reduce code size
+   |
+36 ~     modifier collectFee() {
+37 +         _collectFee();
+38 +         _;
+39 +     }
+40 + 
+41 +     function _collectFee() internal {
+42 +         uint256 txFee;
+43 +         if (_feeBP > 0) {
+44 +             uint256 gasBefore = gasleft();
+45 +             _;
+46 +             uint256 gasAfter = gasleft();
+47 +             txFee = ((gasBefore - gasAfter) * tx.gasprice * _feeBP) / MAX_BP;
+48 +             if (msg.value < txFee) {
+49 +                 revert Insufficient_Funds();
+50 +             }
+51 +         } else {
+52 +             _;
+53 +         }
+54 +         if (msg.value > 0) {
+55 +             uint256 excess = msg.value - txFee;
+56 +             if (excess > 0) {
+57 +                 // refund the sender, rather than the caller
+58 +                 // @dev may fail subsequent call(s), if the caller were a contract
+59 +                 // that might need to make subsequent calls requiring ETh transfers
+60 +                 _refund(tx.origin, excess);
+61 +             }
+62 +         }
+63 +     }
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unwrapped-modifier-logic
+
+note[pascal-case-struct]: structs should use PascalCase
+   --> contracts/types/CommonStruct.sol:106:8
+    |
+106 | struct PCKCertTCB {
+    |        ^^^^^^^^^^ help: consider using: `PckCertTcb`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#pascal-case-struct
+
+note[unused-import]: unused imports should be removed
+ --> forge-test/AutomataDcapOnChainAttestationTest.t.sol:8:5
+  |
+8 |     ZkCoProcessorConfig,
+  |     ^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:279:17
+    |
+279 |         uint256 y1_pos;
+    |                 ^^^^^^ help: consider using: `y1Pos`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:282:21
+    |
+282 |             uint256 a_3 = mulmod(mulmod(x0, x0, P), x0, P);
+    |                     ^^^ help: consider using: `a3`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:283:21
+    |
+283 |             uint256 b_3 = mulmod(mulmod(x1, x1, P), x1, P);
+    |                     ^^^ help: consider using: `b3`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[mixed-case-function]: function names should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:321:14
+    |
+321 |     function decompress_g2(uint256 c0, uint256 c1)
+    |              ^^^^^^^^^^^^^ help: consider using: `decompressG2`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+  --> contracts/bases/QuoteVerifierBase.sol:12:8
+   |
+12 | import "../types/CommonStruct.sol";
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+   --> contracts/PCCSRouter.sol:498:16
+    |
+498 |         bytes4 COLLATERAL_VALIDITY_SELECTOR = 0x3e960426;
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using: `collateralValiditySelector`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[unused-import]: unused imports should be removed
+ --> forge-test/AutomataDcapOnChainAttestationTest.t.sol:9:5
+  |
+9 |     ZkCoProcessorType
+  |     ^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unwrapped-modifier-logic]: wrap modifier logic to reduce code size
+  --> contracts/PCCSRouter.sol:63:5
+   |
+63 | /     modifier checkTcbEval(uint32 tcbEval, address versionedDao) {
+64 | |         if (versionedDao != address(0)) {
+65 | |             IVersionedDao dao = IVersionedDao(versionedDao);
+66 | |             if (dao.TCB_EVALUATION_NUMBER() != tcbEval) {
+...  |
+70 | |         _;
+71 | |     }
+   | |_____^
+   |
+help: wrap modifier logic to reduce code size
+   |
+63 ~     modifier checkTcbEval(uint32 tcbEval, address versionedDao) {
+64 +         _checkTcbEval(tcbEval, versionedDao);
+65 +         _;
+66 +     }
+67 + 
+68 +     function _checkTcbEval(uint32 tcbEval, address versionedDao) internal {
+69 +         if (versionedDao != address(0)) {
+70 +             IVersionedDao dao = IVersionedDao(versionedDao);
+71 +             if (dao.TCB_EVALUATION_NUMBER() != tcbEval) {
+72 +                 revert("Invalid TCB evaluation number");
+73 +             }
+74 +         }
+75 +     }
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unwrapped-modifier-logic
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+  --> forge-test/utils/PCCSSetupBase.sol:56:20
+   |
+56 |     bytes constant signingDer =
+   |                    ^^^^^^^^^^ help: consider using: `SIGNING_DER`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[unsafe-cheatcode]: usage of unsafe cheatcodes that can perform dangerous operations
+   --> forge-test/utils/PCCSSetupBase.sol:172:40
+    |
+172 |         string memory tcbInfoData = vm.readFile(inputFile);
+    |                                        ^^^^^^^^
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-cheatcode
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:329:14
+    |
+329 |         bool negate_point = c0 & 1 == 1;
+    |              ^^^^^^^^^^^^ help: consider using: `negatePoint`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[unused-import]: unused imports should be removed
+ --> contracts/types/CommonStruct.sol:4:9
+  |
+4 | import {TCBStatus} from "@automata-network/on-chain-pccs/helpers/FmspcTcbHelper.sol";
+  |         ^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[mixed-case-function]: function names should use mixedCase
+   --> contracts/verifiers/V4QuoteVerifier.sol:137:14
+    |
+137 |     function _verifyTDXQuote(
+    |              ^^^^^^^^^^^^^^^ help: consider using: `_verifyTdxQuote`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[unsafe-cheatcode]: usage of unsafe cheatcodes that can perform dangerous operations
+   --> forge-test/utils/PCCSSetupBase.sol:196:35
+    |
+196 |         string memory idData = vm.readFile(inputFile);
+    |                                   ^^^^^^^^
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-cheatcode
+
+note[unsafe-cheatcode]: usage of unsafe cheatcodes that can perform dangerous operations
+   --> forge-test/utils/PCCSSetupBase.sol:220:40
+    |
+220 |         string memory tcbEvalData = vm.readFile(inputFile);
+    |                                        ^^^^^^^^
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-cheatcode
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> contracts/verifiers/V5QuoteVerifier.sol:5:8
+  |
+5 | import "../types/Errors.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-function]: function names should use mixedCase
+  --> contracts/bases/tcb/TCBInfoV3Base.sol:17:14
+   |
+17 |     function getTDXTcbStatus(TCBLevelsObj[] memory tcbLevels, PCKCertTCB memory pckTcb, bytes16 teeTcbSvn)
+   |              ^^^^^^^^^^^^^^^ help: consider using: `getTdxTcbStatus`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-test/QuoteV5Test.s.sol:4:8
+  |
+4 | import "./utils/PCCSSetupBase.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+  --> forge-test/QuoteV5Test.s.sol:15:20
+   |
+15 |     bytes constant platformCrlDer =
+   |                    ^^^^^^^^^^^^^^ help: consider using: `PLATFORM_CRL_DER`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[unwrapped-modifier-logic]: wrap modifier logic to reduce code size
+   --> contracts/PCCSRouter.sol:115:5
+    |
+115 | /     modifier onlyAuthorized() {
+116 | |         if (_isCallerRestricted && !_authorized[msg.sender]) {
+117 | |             revert Forbidden();
+...   |
+120 | |     }
+    | |_____^
+    |
+help: wrap modifier logic to reduce code size
+    |
+115 ~     modifier onlyAuthorized() {
+116 +         _onlyAuthorized();
+117 +         _;
+118 +     }
+119 + 
+120 +     function _onlyAuthorized() internal {
+121 +         if (_isCallerRestricted && !_authorized[msg.sender]) {
+122 +             revert Forbidden();
+123 +         }
+124 +     }
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unwrapped-modifier-logic
+
+note[unused-import]: unused imports should be removed
+ --> contracts/bases/tcb/TCBInfoV3Base.sol:5:5
+  |
+5 |     TcbId,
+  |     ^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> contracts/verifiers/V5QuoteVerifier.sol:6:8
+  |
+6 | import "../bases/TdxQuoteBase.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unused-import]: unused imports should be removed
+ --> forge-test/QuoteV5Test.s.sol:8:5
+  |
+8 |     ZkCoProcessorConfig,
+  |     ^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unused-import]: unused imports should be removed
+ --> contracts/bases/tcb/TCBInfoV3Base.sol:6:5
+  |
+6 |     TDXModule,
+  |     ^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unused-import]: unused imports should be removed
+ --> contracts/bases/tcb/TCBInfoV3Base.sol:7:5
+  |
+7 |     TDXModuleIdentity,
+  |     ^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-test/zk/AutomataDcapZkTest.t.sol:4:8
+  |
+4 | import "../utils/PCCSSetupBase.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:339:17
+    |
+339 |         uint256 a_3 = mulmod(mulmod(x0, x0, P), x0, P);
+    |                 ^^^ help: consider using: `a3`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:340:17
+    |
+340 |         uint256 b_3 = mulmod(mulmod(x1, x1, P), x1, P);
+    |                 ^^^ help: consider using: `b3`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[unused-import]: unused imports should be removed
+ --> contracts/bases/tcb/TCBInfoV3Base.sol:8:5
+  |
+8 |     TDXModuleTCBLevelsObj
+  |     ^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+  --> contracts/bases/QuoteVerifierBase.sol:13:8
+   |
+13 | import "../types/Constants.sol";
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-function]: function names should use mixedCase
+  --> contracts/bases/tcb/TCBInfoV2Base.sol:15:14
+   |
+15 |     function getSGXTcbStatus(PCKCertTCB memory pckTcb, TCBLevelsObj memory current)
+   |              ^^^^^^^^^^^^^^^ help: consider using: `getSgxTcbStatus`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[mixed-case-function]: function names should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:362:14
+    |
+362 |     function publicInputMSM(uint256[2] calldata input)
+    |              ^^^^^^^^^^^^^^ help: consider using: `publicInputMsm`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-function
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:429:18
+    |
+429 |         (uint256 Ax, uint256 Ay) = decompress_g1(compressedProof[0]);
+    |                  ^^ help: consider using: `ax`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[unused-import]: unused imports should be removed
+ --> forge-test/QuoteV5Test.s.sol:9:5
+  |
+9 |     ZkCoProcessorType
+  |     ^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+   --> contracts/utils/BytesUtils.sol:277:20
+    |
+277 |     bytes constant base32HexTable =
+    |                    ^^^^^^^^^^^^^^ help: consider using: `BASE32_HEX_TABLE`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-test/AutomataDcapAttestationFeeTest.t.sol:4:8
+  |
+4 | import "./utils/PCCSSetupBase.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-test/AutomataDcapAttestationFeeTest.t.sol:5:8
+  |
+5 | import "./utils/RiscZeroSetup.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+  --> forge-test/AutomataDcapAttestationFeeTest.t.sol:16:20
+   |
+16 |     bytes constant platformCrlDer =
+   |                    ^^^^^^^^^^^^^^ help: consider using: `PLATFORM_CRL_DER`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[unused-import]: unused imports should be removed
+ --> forge-test/AutomataDcapAttestationFeeTest.t.sol:8:9
+  |
+8 | import {V3QuoteVerifier} from "../contracts/verifiers/V3QuoteVerifier.sol";
+  |         ^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> contracts/utils/P256Verifier.sol:4:8
+  |
+4 | import "./BytesUtils.sol";
+  |        ^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-script/utils/DeploymentConfig.sol:4:8
+  |
+4 | import "forge-std/Script.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-script/utils/DeploymentConfig.sol:5:8
+  |
+5 | import "forge-std/StdJson.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-test/zk/AutomataDcapZkTest.t.sol:5:8
+  |
+5 | import "../utils/RiscZeroSetup.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unused-import]: unused imports should be removed
+ --> contracts/bases/tcb/TCBInfoV2Base.sol:5:9
+  |
+5 | import {EnclaveIdTcbStatus} from "@automata-network/on-chain-pccs/helpers/EnclaveIdentityHelper.sol";
+  |         ^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> contracts/utils/BytesUtils.sol:84:28
+   |
+84 |                     return int256(diff);
+   |                            ^^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'int256' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-test/zk/AutomataDcapZkTest.t.sol:9:8
+  |
+9 | import "../../contracts/PCCSRouter.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+  --> contracts/bases/QuoteVerifierBase.sol:14:8
+   |
+14 | import "../types/Errors.sol";
+   |        ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+  --> contracts/bases/QuoteVerifierBase.sol:16:8
+   |
+16 | import "./EnclaveIdBase.sol";
+   |        ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+  --> contracts/bases/QuoteVerifierBase.sol:17:8
+   |
+17 | import "./X509ChainBase.sol";
+   |        ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+  --> forge-test/zk/AutomataDcapZkTest.t.sol:10:8
+   |
+10 | import "../../contracts/AutomataDcapAttestationFee.sol";
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+  --> forge-test/zk/AutomataDcapZkTest.t.sol:11:8
+   |
+11 | import "../../contracts/verifiers/V4QuoteVerifier.sol";
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-test/zk/AutomataDcapPicoZkTest.t.sol:4:8
+  |
+4 | import "../utils/PCCSSetupBase.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+  --> forge-test/zk/AutomataDcapZkTest.t.sol:14:20
+   |
+14 |     bytes constant platformCrlDer =
+   |                    ^^^^^^^^^^^^^^ help: consider using: `PLATFORM_CRL_DER`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:429:30
+    |
+429 |         (uint256 Ax, uint256 Ay) = decompress_g1(compressedProof[0]);
+    |                              ^^ help: consider using: `ay`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:430:18
+    |
+430 |         (uint256 Bx0, uint256 Bx1, uint256 By0, uint256 By1) = decompress_g2(
+    |                  ^^^ help: consider using: `bx0`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[unused-import]: unused imports should be removed
+  --> contracts/bases/tcb/TCBInfoV3Base.sol:10:9
+   |
+10 | import {BELE} from "../../utils/BELE.sol";
+   |         ^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-script/AttestationScript.s.sol:6:8
+  |
+6 | import "../contracts/AutomataDcapAttestationFee.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> contracts/utils/TDReportParser.sol:4:8
+  |
+4 | import "../types/Constants.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[screaming-snake-case-immutable]: immutables should use SCREAMING_SNAKE_CASE
+  --> contracts/bases/QuoteVerifierBase.sol:29:43
+   |
+29 |     IPCCSRouter public immutable override pccsRouter;
+   |                                           ^^^^^^^^^^ help: consider using: `PCCS_ROUTER`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-immutable
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:430:31
+    |
+430 |         (uint256 Bx0, uint256 Bx1, uint256 By0, uint256 By1) = decompress_g2(
+    |                               ^^^ help: consider using: `bx1`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> contracts/utils/BytesUtils.sol:91:16
+   |
+91 |         return int256(len) - int256(otherlen);
+   |                ^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'int256' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:430:44
+    |
+430 |         (uint256 Bx0, uint256 Bx1, uint256 By0, uint256 By1) = decompress_g2(
+    |                                            ^^^ help: consider using: `by0`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:430:57
+    |
+430 |         (uint256 Bx0, uint256 Bx1, uint256 By0, uint256 By1) = decompress_g2(
+    |                                                         ^^^ help: consider using: `by1`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-script/AttestationScript.s.sol:7:8
+  |
+7 | import "../contracts/PCCSRouter.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-script/utils/Multichain.sol:4:8
+  |
+4 | import "forge-std/Vm.sol";
+  |        ^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unsafe-cheatcode]: usage of unsafe cheatcodes that can perform dangerous operations
+  --> forge-script/utils/DeploymentConfig.sol:47:26
+   |
+47 |             jsonStr = vm.readFile(string.concat(dir, "/", "onchain_pccs.json"));
+   |                          ^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-cheatcode
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-script/utils/Multichain.sol:5:8
+  |
+5 | import "forge-std/console.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+ --> forge-script/utils/Multichain.sol:9:17
+  |
+9 |     Vm constant internalVm = Vm(HEVM_ADDRESS);
+  |                 ^^^^^^^^^^ help: consider using: `INTERNAL_VM`
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[unsafe-cheatcode]: usage of unsafe cheatcodes that can perform dangerous operations
+  --> forge-script/utils/Multichain.sol:22:32
+   |
+22 |                     internalVm.setEnv("RPC_URL", rpcUrl);
+   |                                ^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-cheatcode
+
+note[unsafe-cheatcode]: usage of unsafe cheatcodes that can perform dangerous operations
+  --> forge-script/utils/Multichain.sol:29:32
+   |
+29 |                     internalVm.setEnv("RPC_URL", "");
+   |                                ^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-cheatcode
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-script/utils/P256Configuration.sol:3:8
+  |
+3 | import "../../contracts/utils/BytesUtils.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-script/AttestationScript.s.sol:9:8
+  |
+9 | import "./utils/Salt.sol";
+  |        ^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+  --> forge-script/AttestationScript.s.sol:10:8
+   |
+10 | import "./utils/DeploymentConfig.sol";
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-script/DeployRouter.s.sol:9:8
+  |
+9 | import "../contracts/PCCSRouter.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+  --> forge-script/DeployRouter.s.sol:10:8
+   |
+10 | import "./utils/Salt.sol";
+   |        ^^^^^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+  --> contracts/utils/BytesUtils.sol:91:30
+   |
+91 |         return int256(len) - int256(otherlen);
+   |                              ^^^^^^^^^^^^^^^^
+   |
+   = note: consider disabling this lint if you're certain the cast is safe
+           
+           // casting to 'int256' is safe because [explain why]
+           // forge-lint: disable-next-line(unsafe-typecast)
+           
+           
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:432:18
+    |
+432 |         (uint256 Cx, uint256 Cy) = decompress_g1(compressedProof[3]);
+    |                  ^^ help: consider using: `cx`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-script/utils/P256Configuration.sol:4:8
+  |
+4 | import "forge-std/Script.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[screaming-snake-case-immutable]: immutables should use SCREAMING_SNAKE_CASE
+  --> contracts/bases/QuoteVerifierBase.sol:30:38
+   |
+30 |     uint16 public immutable override quoteVersion;
+   |                                      ^^^^^^^^^^^^ help: consider using: `QUOTE_VERSION`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-immutable
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:432:30
+    |
+432 |         (uint256 Cx, uint256 Cy) = decompress_g1(compressedProof[3]);
+    |                              ^^ help: consider using: `cy`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:433:18
+    |
+433 |         (uint256 Lx, uint256 Ly) = publicInputMSM(input);
+    |                  ^^ help: consider using: `lx`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[unsafe-cheatcode]: usage of unsafe cheatcodes that can perform dangerous operations
+  --> forge-script/utils/DeploymentConfig.sol:49:26
+   |
+49 |             jsonStr = vm.readFile(string.concat(dir, "/", "dcap.json"));
+   |                          ^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-cheatcode
+
+note[unsafe-cheatcode]: usage of unsafe cheatcodes that can perform dangerous operations
+  --> forge-script/utils/DeploymentConfig.sol:70:26
+   |
+70 |             jsonStr = vm.readFile(string.concat(dir, "/", "onchain_pccs.json"));
+   |                          ^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-cheatcode
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+   --> contracts/zk/pico/Groth16Verifier.sol:433:30
+    |
+433 |         (uint256 Lx, uint256 Ly) = publicInputMSM(input);
+    |                              ^^ help: consider using: `ly`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+  --> forge-script/AttestationScript.s.sol:11:8
+   |
+11 | import "./utils/Multichain.sol";
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-test/zk/AutomataDcapPicoZkTest.t.sol:7:8
+  |
+7 | import "../../contracts/PCCSRouter.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-script/DeployVerifier.s.sol:5:8
+  |
+5 | import "./utils/P256Configuration.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[mixed-case-variable]: mutable variables should use mixedCase
+   --> contracts/bases/QuoteVerifierBase.sol:254:14
+    |
+254 |         bool isSGX = quoteBodyType == 1;
+    |              ^^^^^ help: consider using: `isSgx`
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#mixed-case-variable
+
+note[unused-import]: unused imports should be removed
+ --> forge-script/AttestationScript.s.sol:5:9
+  |
+5 | import {console2} from "forge-std/console2.sol";
+  |         ^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unused-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-test/zk/AutomataDcapPicoZkTest.t.sol:8:8
+  |
+8 | import "../../contracts/AutomataDcapAttestationFee.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+  --> forge-script/utils/P256Configuration.sol:14:20
+   |
+14 |     bytes constant test_pubkey =
+   |                    ^^^^^^^^^^^ help: consider using: `TEST_PUBKEY`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+warning[unsafe-typecast]: typecasts that can truncate values should be checked
+   --> contracts/bases/QuoteVerifierBase.sol:185:32
+    |
+185 |         bytes32 expectedHash = bytes32(qeReportData);
+    |                                ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider disabling this lint if you're certain the cast is safe
+            
+            // casting to 'bytes32' is safe because [explain why]
+            // forge-lint: disable-next-line(unsafe-typecast)
+            
+            
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-typecast
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+  --> forge-script/DeployRouter.s.sol:11:8
+   |
+11 | import "./utils/DeploymentConfig.sol";
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+  --> forge-script/DeployRouter.s.sol:12:8
+   |
+12 | import "./utils/Multichain.sol";
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+  --> forge-script/utils/P256Configuration.sol:16:20
+   |
+16 |     bytes constant test_sig =
+   |                    ^^^^^^^^ help: consider using: `TEST_SIG`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[screaming-snake-case-const]: constants should use SCREAMING_SNAKE_CASE
+  --> forge-script/utils/P256Configuration.sol:18:20
+   |
+18 |     bytes constant test_message = hex"a9b4ac5fb82203536c408b1db1d0338c61fd0064ea2471794d435fc0e03c217f";
+   |                    ^^^^^^^^^^^^ help: consider using: `TEST_MESSAGE`
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#screaming-snake-case-const
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-test/zk/AutomataDcapPicoZkTest.t.sol:9:8
+  |
+9 | import "../../contracts/verifiers/V4QuoteVerifier.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unsafe-cheatcode]: usage of unsafe cheatcodes that can perform dangerous operations
+  --> forge-script/utils/DeploymentConfig.sol:72:26
+   |
+72 |             jsonStr = vm.readFile(string.concat(dir, "/", "dcap.json"));
+   |                          ^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-cheatcode
+
+note[unsafe-cheatcode]: usage of unsafe cheatcodes that can perform dangerous operations
+  --> forge-script/utils/P256Configuration.sol:62:31
+   |
+62 |         bytes memory ret = vm.ffi(inputs);
+   |                               ^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-cheatcode
+
+note[unsafe-cheatcode]: usage of unsafe cheatcodes that can perform dangerous operations
+  --> forge-test/zk/AutomataDcapPicoZkTest.t.sol:83:42
+   |
+83 |         string memory picoInputJson = vm.readFile(picoInputPath);
+   |                                          ^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-cheatcode
+
+note[unsafe-cheatcode]: usage of unsafe cheatcodes that can perform dangerous operations
+  --> forge-script/utils/DeploymentConfig.sol:93:36
+   |
+93 |         string memory jsonStr = vm.readFile(deploymentDir);
+   |                                    ^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-cheatcode
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-script/DeployVerifier.s.sol:6:8
+  |
+6 | import "./utils/DeploymentConfig.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-script/DeployVerifier.s.sol:7:8
+  |
+7 | import "./utils/Salt.sol";
+  |        ^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-script/DeployVerifier.s.sol:8:8
+  |
+8 | import "./utils/Multichain.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+ --> forge-script/DeployVerifier.s.sol:9:8
+  |
+9 | import "../contracts/verifiers/V3QuoteVerifier.sol";
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+  --> forge-script/DeployVerifier.s.sol:10:8
+   |
+10 | import "../contracts/verifiers/V4QuoteVerifier.sol";
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+  --> forge-script/DeployVerifier.s.sol:11:8
+   |
+11 | import "../contracts/verifiers/V5QuoteVerifier.sol";
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+  --> forge-script/DeployVerifier.s.sol:12:8
+   |
+12 | import "../contracts/AutomataDcapAttestationFee.sol";
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unaliased-plain-import]: use named imports '{A, B}' or alias 'import ".." as X'
+  --> forge-script/DeployVerifier.s.sol:13:8
+   |
+13 | import "../contracts/PCCSRouter.sol";
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: https://book.getfoundry.sh/reference/forge/forge-lint#unaliased-plain-import
+
+note[unsafe-cheatcode]: usage of unsafe cheatcodes that can perform dangerous operations
+   --> forge-script/utils/DeploymentConfig.sol:119:36
+    |
+119 |         string memory jsonStr = vm.readFile(deploymentDir);
+    |                                    ^^^^^^^^
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-cheatcode
+
+note[unsafe-cheatcode]: usage of unsafe cheatcodes that can perform dangerous operations
+   --> forge-script/utils/DeploymentConfig.sol:140:26
+    |
+140 |             jsonStr = vm.readFile(jsonPath);
+    |                          ^^^^^^^^
+    |
+    = help: https://book.getfoundry.sh/reference/forge/forge-lint#unsafe-cheatcode
+
+Chain ID: 1315
+
+Wallet Owner: 0xDf841B239bE7a6b37366005107069b7410da4Ff9
+Granting PCCSRouter authorization to call PCCS Storage...
+
+blockHash            0x786b97f9effc98fe96ae1836091f9c38e481f845c31b5da7ff62a37e18b5eb30
+blockNumber          18789699
+contractAddress      
+cumulativeGasUsed    27643
+effectiveGasPrice    8
+from                 0xDf841B239bE7a6b37366005107069b7410da4Ff9
+gasUsed              27643
+logs                 [{"address":"0x8fa0f82fcfca39f71826988c00c6006ae57fa524","topics":["0x40ea71d80ee6535b4d69401c4208d04e32fed332f0f2a2a28063d33df40f05a2"],"data":"0x000000000000000000000000cb1934ea19c6650a8cc9888c0306d39f0bebc2ab0000000000000000000000000000000000000000000000000000000000000001","blockHash":"0x786b97f9effc98fe96ae1836091f9c38e481f845c31b5da7ff62a37e18b5eb30","blockNumber":"0x11eb543","blockTimestamp":"0x6a16aafa","transactionHash":"0xf9c409a85181f9ad71767ba0ecc431a920d91a55929af60bd9abdb1cba34b85a","transactionIndex":"0x0","logIndex":"0x0","removed":false}]
+logsBloom            0x00000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000800000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000
+root                 
+status               1 (success)
+transactionHash      0xf9c409a85181f9ad71767ba0ecc431a920d91a55929af60bd9abdb1cba34b85a
+transactionIndex     0
+type                 2
+blobGasPrice         1
+blobGasUsed          
+to                   0x8fa0F82FCFca39F71826988c00C6006ae57FA524
+Granting PCCSRouter authorization to call PCCS Storage V2...
+
+blockHash            0x77b63114efe2e2810e3ce07d1ac791908db7d0014cb405552ae1e107b5993086
+blockNumber          18789700
+contractAddress      
+cumulativeGasUsed    47620
+effectiveGasPrice    8
+from                 0xDf841B239bE7a6b37366005107069b7410da4Ff9
+gasUsed              47620
+logs                 [{"address":"0x8e85537d56e5eb80578e52c97e2174c1206ab036","topics":["0x40ea71d80ee6535b4d69401c4208d04e32fed332f0f2a2a28063d33df40f05a2"],"data":"0x000000000000000000000000cb1934ea19c6650a8cc9888c0306d39f0bebc2ab0000000000000000000000000000000000000000000000000000000000000001","blockHash":"0x77b63114efe2e2810e3ce07d1ac791908db7d0014cb405552ae1e107b5993086","blockNumber":"0x11eb544","blockTimestamp":"0x6a16aafa","transactionHash":"0x99efdbdd94be8934d3f8a80711daf37b7535838909450f8a91c3fa28bc8ca00a","transactionIndex":"0x0","logIndex":"0x0","removed":false}]
+logsBloom            0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000040000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000800000000000000000000000000000
+root                 
+status               1 (success)
+transactionHash      0x99efdbdd94be8934d3f8a80711daf37b7535838909450f8a91c3fa28bc8ca00a
+transactionIndex     0
+type                 2
+blobGasPrice         1
+blobGasUsed          
+to                   0x8E85537d56E5Eb80578E52c97E2174c1206aB036
+No files changed, compilation skipped
+Script ran successfully.
+
+SKIPPING ON CHAIN SIMULATION.
+
+
+==========================
+
+ONCHAIN EXECUTION COMPLETE & SUCCESSFUL.
+
+Transactions saved to: /home/rustdev/shared/code/pccs-async-upsert-project/automata-dcap-attestation/evm/broadcast/DeployRouter.s.sol/1315/updateVersionedDaoConfig-latest.json
+
+Sensitive values saved to: /home/rustdev/shared/code/pccs-async-upsert-project/automata-dcap-attestation/evm/cache_forge/DeployRouter.s.sol/1315/updateVersionedDaoConfig-latest.json
+
+Done
+New StorageV2: 0x8E85537d56E5Eb80578E52c97E2174c1206aB036
+New DAO V2[19]: 0xC3D2e1b9065b678a00Fe55524750B33911BFc315
+Router DAO[19] after update: 0xC3D2e1b9065b678a00Fe55524750B33911BFc315
+[5/8] Run async upsert from qpl tool (function: upsert_tcb_fmspc_async)
+---- qpl async upsert (second/current Intel PCS) ----
+warning: function `upsert_tcb_eval_data_number` is never used
+   --> src/contracts.rs:518:14
+    |
+518 | pub async fn upsert_tcb_eval_data_number(
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `upsert_tcb_eval_data_number_func` is never used
+    --> src/helper.rs:1315:14
+     |
+1315 | pub async fn upsert_tcb_eval_data_number_func(
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `upsert_root_ca_func` is never used
+    --> src/helper.rs:1359:14
+     |
+1359 | pub async fn upsert_root_ca_func(
+     |              ^^^^^^^^^^^^^^^^^^^
+
+warning: function `upsert_root_ca_crl_func` is never used
+    --> src/helper.rs:1481:14
+     |
+1481 | pub async fn upsert_root_ca_crl_func(
+     |              ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `upsert_platform_ca_func` is never used
+    --> src/helper.rs:1568:14
+     |
+1568 | pub async fn upsert_platform_ca_func(
+     |              ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `upsert_platform_ca_crl_func` is never used
+    --> src/helper.rs:1698:14
+     |
+1698 | pub async fn upsert_platform_ca_crl_func(
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `upsert_processor_ca_func` is never used
+    --> src/helper.rs:1716:14
+     |
+1716 | pub async fn upsert_processor_ca_func(
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `upsert_processor_ca_crl_func` is never used
+    --> src/helper.rs:1846:14
+     |
+1846 | pub async fn upsert_processor_ca_crl_func(
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `upsert_tcb_signing_ca_func` is never used
+    --> src/helper.rs:1864:14
+     |
+1864 | pub async fn upsert_tcb_signing_ca_func(
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `upsert_enclave_identity_func` is never used
+    --> src/helper.rs:1996:14
+     |
+1996 | pub async fn upsert_enclave_identity_func(
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `upsert_platform_processor_ca_crl` is never used
+    --> src/helper.rs:2125:10
+     |
+2125 | async fn upsert_platform_processor_ca_crl(
+     |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `enclave_identity` is never read
+ --> src/pccs_types.rs:8:9
+  |
+6 | pub struct EnclaveIdentity {
+  |            --------------- field in this struct
+7 |     #[serde(rename = "enclaveIdentity")]
+8 |     pub enclave_identity: IndexMap<String, Value>,
+  |         ^^^^^^^^^^^^^^^^
+  |
+  = note: `EnclaveIdentity` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: struct `TcbEvalDataNumber` is never constructed
+  --> src/pccs_types.rs:20:12
+   |
+20 | pub struct TcbEvalDataNumber {
+   |            ^^^^^^^^^^^^^^^^^
+
+warning: `automata-dcap-qpl-tool` (bin "automata-dcap-qpl-tool") generated 13 warnings
+    Finished `release` profile [optimized] target(s) in 0.49s
+     Running `/home/rustdev/cargo-target/release/automata-dcap-qpl-tool --function upsert_tcb_fmspc_async --private_key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --rpc_url 'http://127.0.0.1:8545' --chain_id 1315 --gas_price 50000000000 --collateral_version v4 --fmspc 00606a000000 --pck_ca '' --fmspc_tcb_dao_contract_addr 0xC3D2e1b9065b678a00Fe55524750B33911BFc315 --tcb_evaluation_data_number 19`
+[2026-05-27T08:27:48Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xC3D2e1b9065b678a00Fe55524750B33911BFc315] txn[start_async_upsert] hash: 0x83553e7ae16e81d39280b7c0c684723cdc94809609c6a3fff18dfe1a6dbedf50
+[2026-05-27T08:27:55Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xC3D2e1b9065b678a00Fe55524750B33911BFc315] txn[start_async_upsert] receipt: Some(TransactionReceipt { transaction_hash: 0x83553e7ae16e81d39280b7c0c684723cdc94809609c6a3fff18dfe1a6dbedf50, transaction_index: 0, block_hash: Some(0x2e87a586e27a2e753a077e9993804fe77a4275662c4b960aa3c50a0a5be92d91), block_number: Some(18789703), from: 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266, to: Some(0xc3d2e1b9065b678a00fe55524750b33911bfc315), cumulative_gas_used: 405011, gas_used: Some(405011), contract_address: None, logs: [Log { address: 0x8e85537d56e5eb80578e52c97e2174c1206ab036, topics: [0xe8c60b50c51da54511df9b2a8734e83cd565108d8a878ff287cd5b03de8f98b4, 0x880933dc358a54647f56b9688592c453bac72739a79db06aee1bfedb2dc09568], data: Bytes(0x), block_hash: Some(0x2e87a586e27a2e753a077e9993804fe77a4275662c4b960aa3c50a0a5be92d91), block_number: Some(18789703), transaction_hash: Some(0x83553e7ae16e81d39280b7c0c684723cdc94809609c6a3fff18dfe1a6dbedf50), transaction_index: Some(0), log_index: Some(0), transaction_log_index: None, log_type: None, removed: Some(false) }, Log { address: 0x8e85537d56e5eb80578e52c97e2174c1206ab036, topics: [0xe8c60b50c51da54511df9b2a8734e83cd565108d8a878ff287cd5b03de8f98b4, 0x954ba42331e37edd214436fec0ce0e349918ac84e3a806cea6c56fc02965a5ce], data: Bytes(0x), block_hash: Some(0x2e87a586e27a2e753a077e9993804fe77a4275662c4b960aa3c50a0a5be92d91), block_number: Some(18789703), transaction_hash: Some(0x83553e7ae16e81d39280b7c0c684723cdc94809609c6a3fff18dfe1a6dbedf50), transaction_index: Some(0), log_index: Some(1), transaction_log_index: None, log_type: None, removed: Some(false) }, Log { address: 0x8e85537d56e5eb80578e52c97e2174c1206ab036, topics: [0xe8c60b50c51da54511df9b2a8734e83cd565108d8a878ff287cd5b03de8f98b4, 0x01f0d2b18b3c702689e57a49edbefc4bdf9c6d63562d338e47ccbb7bead7499d], data: Bytes(0x), block_hash: Some(0x2e87a586e27a2e753a077e9993804fe77a4275662c4b960aa3c50a0a5be92d91), block_number: Some(18789703), transaction_hash: Some(0x83553e7ae16e81d39280b7c0c684723cdc94809609c6a3fff18dfe1a6dbedf50), transaction_index: Some(0), log_index: Some(2), transaction_log_index: None, log_type: None, removed: Some(false) }, Log { address: 0x8e85537d56e5eb80578e52c97e2174c1206ab036, topics: [0xe8c60b50c51da54511df9b2a8734e83cd565108d8a878ff287cd5b03de8f98b4, 0x377d22dfe2f8400103a2291bd1e80b415ead0f454c69ebb0224471eb6f57e2d3], data: Bytes(0x), block_hash: Some(0x2e87a586e27a2e753a077e9993804fe77a4275662c4b960aa3c50a0a5be92d91), block_number: Some(18789703), transaction_hash: Some(0x83553e7ae16e81d39280b7c0c684723cdc94809609c6a3fff18dfe1a6dbedf50), transaction_index: Some(0), log_index: Some(3), transaction_log_index: None, log_type: None, removed: Some(false) }], status: Some(1), root: None, logs_bloom: 0x00000000000000000000000000010000000000040000000000008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000010000000000000000000080000000000000000000000000000000000000000000000000000000000000000000040002000002040000200000000000000000080000000000000000020000000000000000000000000000000000000000000000000000000000000000000000010000000000001000000000000000000000000000000000000002000000000000000000008000000000000000000000000001000000, transaction_type: Some(2), effective_gas_price: Some(50000000007), other: OtherFields { inner: {"blobGasPrice": String("0x1")} } })
+[2026-05-27T08:27:56Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xC3D2e1b9065b678a00Fe55524750B33911BFc315] txn[upload_basic_info] hash: 0xad813463fd1d8c28a38d08d2055939d5b1e1b33b6afe312a1f85a8e3f66e77ad
+[2026-05-27T08:28:03Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xC3D2e1b9065b678a00Fe55524750B33911BFc315] txn[upload_basic_info] receipt: Some(TransactionReceipt { transaction_hash: 0xad813463fd1d8c28a38d08d2055939d5b1e1b33b6afe312a1f85a8e3f66e77ad, transaction_index: 0, block_hash: Some(0xa99d32d327dd4e2787a7b22ef72c677a8de5a6137e9797cd431c1f699258554d), block_number: Some(18789704), from: 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266, to: Some(0xc3d2e1b9065b678a00fe55524750b33911bfc315), cumulative_gas_used: 514553, gas_used: Some(514553), contract_address: None, logs: [Log { address: 0x8e85537d56e5eb80578e52c97e2174c1206ab036, topics: [0xe8c60b50c51da54511df9b2a8734e83cd565108d8a878ff287cd5b03de8f98b4, 0x828b19bfbb9ddbbdb33470eaf1726e9db175060d6cc77a1444474d332091063f], data: Bytes(0x), block_hash: Some(0xa99d32d327dd4e2787a7b22ef72c677a8de5a6137e9797cd431c1f699258554d), block_number: Some(18789704), transaction_hash: Some(0xad813463fd1d8c28a38d08d2055939d5b1e1b33b6afe312a1f85a8e3f66e77ad), transaction_index: Some(0), log_index: Some(0), transaction_log_index: None, log_type: None, removed: Some(false) }], status: Some(1), root: None, logs_bloom: 0x00000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000040000200000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000040000000000001000000000000000000000000000000000000002000000000000000000008000000000000000000000000000000000, transaction_type: Some(2), effective_gas_price: Some(50000000007), other: OtherFields { inner: {"blobGasPrice": String("0x1")} } })
+[2026-05-27T08:28:03Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xC3D2e1b9065b678a00Fe55524750B33911BFc315] txn[upload_tcb_levels_batch_0_3] hash: 0x7a34564260cf1a6487d786c872145dbdaec211750f404e11f658ae7cbd37ee2b
+[2026-05-27T08:28:10Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xC3D2e1b9065b678a00Fe55524750B33911BFc315] txn[upload_tcb_levels_batch_0_3] receipt: Some(TransactionReceipt { transaction_hash: 0x7a34564260cf1a6487d786c872145dbdaec211750f404e11f658ae7cbd37ee2b, transaction_index: 0, block_hash: Some(0x5f6400bd3b4e936865e24fb235e8fa1b98c911820d4640b543c22d6607da63b4), block_number: Some(18789705), from: 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266, to: Some(0xc3d2e1b9065b678a00fe55524750b33911bfc315), cumulative_gas_used: 2428787, gas_used: Some(2428787), contract_address: None, logs: [], status: Some(1), root: None, logs_bloom: 0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000, transaction_type: Some(2), effective_gas_price: Some(50000000007), other: OtherFields { inner: {"blobGasPrice": String("0x1")} } })
+[2026-05-27T08:28:10Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xC3D2e1b9065b678a00Fe55524750B33911BFc315] txn[upload_tcb_levels_batch_3_6] hash: 0x8ca7e4a7a2f9d6f0428c18c1a4e01dd0793b823c4891d4d7bc248c4b3a742e23
+[2026-05-27T08:28:17Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xC3D2e1b9065b678a00Fe55524750B33911BFc315] txn[upload_tcb_levels_batch_3_6] receipt: Some(TransactionReceipt { transaction_hash: 0x8ca7e4a7a2f9d6f0428c18c1a4e01dd0793b823c4891d4d7bc248c4b3a742e23, transaction_index: 0, block_hash: Some(0x3cee75ac39d4f885191f04f7e32dc6fb5363b0281d05c00c0af075ec2a4f6f50), block_number: Some(18789706), from: 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266, to: Some(0xc3d2e1b9065b678a00fe55524750b33911bfc315), cumulative_gas_used: 2632999, gas_used: Some(2632999), contract_address: None, logs: [], status: Some(1), root: None, logs_bloom: 0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000, transaction_type: Some(2), effective_gas_price: Some(50000000007), other: OtherFields { inner: {"blobGasPrice": String("0x1")} } })
+[2026-05-27T08:28:17Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xC3D2e1b9065b678a00Fe55524750B33911BFc315] txn[upload_tcb_levels_batch_6_9] hash: 0xb40f68b9492bb08922b65e451d7ae64a96ecf08ca2f6d6ed5a9121be6cfdde1b
+[2026-05-27T08:28:24Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xC3D2e1b9065b678a00Fe55524750B33911BFc315] txn[upload_tcb_levels_batch_6_9] receipt: Some(TransactionReceipt { transaction_hash: 0xb40f68b9492bb08922b65e451d7ae64a96ecf08ca2f6d6ed5a9121be6cfdde1b, transaction_index: 0, block_hash: Some(0x15347ff2ee8a4c6e71b5d4ce452d2c41a9a540aee02ab1c8b00dfaa35a9badb8), block_number: Some(18789707), from: 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266, to: Some(0xc3d2e1b9065b678a00fe55524750b33911bfc315), cumulative_gas_used: 2873818, gas_used: Some(2873818), contract_address: None, logs: [], status: Some(1), root: None, logs_bloom: 0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000, transaction_type: Some(2), effective_gas_price: Some(50000000007), other: OtherFields { inner: {"blobGasPrice": String("0x1")} } })
+[2026-05-27T08:28:24Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xC3D2e1b9065b678a00Fe55524750B33911BFc315] txn[upload_tcb_levels_batch_9_12] hash: 0xd357ef8fb636864066c5f7a98f8d2ce2a6af905e656c37e1f01c48b3ba9af8d0
+[2026-05-27T08:28:31Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xC3D2e1b9065b678a00Fe55524750B33911BFc315] txn[upload_tcb_levels_batch_9_12] receipt: Some(TransactionReceipt { transaction_hash: 0xd357ef8fb636864066c5f7a98f8d2ce2a6af905e656c37e1f01c48b3ba9af8d0, transaction_index: 0, block_hash: Some(0x3a592e220b8790250bafea88aad5a70325e2dde1a23bfe3ace8fcbc3e70a571d), block_number: Some(18789708), from: 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266, to: Some(0xc3d2e1b9065b678a00fe55524750b33911bfc315), cumulative_gas_used: 3148151, gas_used: Some(3148151), contract_address: None, logs: [], status: Some(1), root: None, logs_bloom: 0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000, transaction_type: Some(2), effective_gas_price: Some(50000000007), other: OtherFields { inner: {"blobGasPrice": String("0x1")} } })
+[2026-05-27T08:28:31Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xC3D2e1b9065b678a00Fe55524750B33911BFc315] txn[upload_tcb_levels_batch_12_15] hash: 0x35a993d0e2d343570f8e0520d21f3263bbf5fbd9be199f813e75cdccd37b3aa7
+[2026-05-27T08:28:38Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xC3D2e1b9065b678a00Fe55524750B33911BFc315] txn[upload_tcb_levels_batch_12_15] receipt: Some(TransactionReceipt { transaction_hash: 0x35a993d0e2d343570f8e0520d21f3263bbf5fbd9be199f813e75cdccd37b3aa7, transaction_index: 0, block_hash: Some(0x306b0c38f2edc4704aea5b2640bfd04408c082381302c7343c3a1da998ffbb6a), block_number: Some(18789709), from: 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266, to: Some(0xc3d2e1b9065b678a00fe55524750b33911bfc315), cumulative_gas_used: 3859317, gas_used: Some(3859317), contract_address: None, logs: [], status: Some(1), root: None, logs_bloom: 0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000, transaction_type: Some(2), effective_gas_price: Some(50000000007), other: OtherFields { inner: {"blobGasPrice": String("0x1")} } })
+[2026-05-27T08:28:48Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xC3D2e1b9065b678a00Fe55524750B33911BFc315] txn[finalize_async_upsert] hash: 0x0d09f3b3c9cb1169256236eff19c4fc2dd1f9e7fd77c631773a2be6c4253b2ae
+[2026-05-27T08:28:55Z INFO  automata_dcap_qpl_tool::helper::tcb_fmspc_async] [1315][0xC3D2e1b9065b678a00Fe55524750B33911BFc315] txn[finalize_async_upsert] receipt: Some(TransactionReceipt { transaction_hash: 0x0d09f3b3c9cb1169256236eff19c4fc2dd1f9e7fd77c631773a2be6c4253b2ae, transaction_index: 0, block_hash: Some(0x921afa33560546161acc92fc4befd50ce92176c98db5b3d0c79e04cbb406c6b3), block_number: Some(18789710), from: 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266, to: Some(0xc3d2e1b9065b678a00fe55524750b33911bfc315), cumulative_gas_used: 1829585, gas_used: Some(1829585), contract_address: None, logs: [Log { address: 0x8e85537d56e5eb80578e52c97e2174c1206ab036, topics: [0x7656bed4e956fe059c82a390825d59e565ad76d49b58cc2866a08883b22793e3, 0x954ba42331e37edd214436fec0ce0e349918ac84e3a806cea6c56fc02965a5ce], data: Bytes(0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000020), block_hash: Some(0x921afa33560546161acc92fc4befd50ce92176c98db5b3d0c79e04cbb406c6b3), block_number: Some(18789710), transaction_hash: Some(0x0d09f3b3c9cb1169256236eff19c4fc2dd1f9e7fd77c631773a2be6c4253b2ae), transaction_index: Some(0), log_index: Some(0), transaction_log_index: None, log_type: None, removed: Some(false) }, Log { address: 0x8e85537d56e5eb80578e52c97e2174c1206ab036, topics: [0x7656bed4e956fe059c82a390825d59e565ad76d49b58cc2866a08883b22793e3, 0x01f0d2b18b3c702689e57a49edbefc4bdf9c6d63562d338e47ccbb7bead7499d], data: Bytes(0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000020), block_hash: Some(0x921afa33560546161acc92fc4befd50ce92176c98db5b3d0c79e04cbb406c6b3), block_number: Some(18789710), transaction_hash: Some(0x0d09f3b3c9cb1169256236eff19c4fc2dd1f9e7fd77c631773a2be6c4253b2ae), transaction_index: Some(0), log_index: Some(1), transaction_log_index: None, log_type: None, removed: Some(false) }, Log { address: 0x8e85537d56e5eb80578e52c97e2174c1206ab036, topics: [0x7656bed4e956fe059c82a390825d59e565ad76d49b58cc2866a08883b22793e3, 0x377d22dfe2f8400103a2291bd1e80b415ead0f454c69ebb0224471eb6f57e2d3], data: Bytes(0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000020), block_hash: Some(0x921afa33560546161acc92fc4befd50ce92176c98db5b3d0c79e04cbb406c6b3), block_number: Some(18789710), transaction_hash: Some(0x0d09f3b3c9cb1169256236eff19c4fc2dd1f9e7fd77c631773a2be6c4253b2ae), transaction_index: Some(0), log_index: Some(2), transaction_log_index: None, log_type: None, removed: Some(false) }, Log { address: 0x8e85537d56e5eb80578e52c97e2174c1206ab036, topics: [0x4c1d95aa5b7b0987b2ce9caf74bc65727e4354e69ad1f8c9f3de71c109d00d2d, 0x02c053df62c53eb511dd2d9ae8ed55bef778eb9b7e99f4de369724c975a81722, 0x954ba42331e37edd214436fec0ce0e349918ac84e3a806cea6c56fc02965a5ce], data: Bytes(0x), block_hash: Some(0x921afa33560546161acc92fc4befd50ce92176c98db5b3d0c79e04cbb406c6b3), block_number: Some(18789710), transaction_hash: Some(0x0d09f3b3c9cb1169256236eff19c4fc2dd1f9e7fd77c631773a2be6c4253b2ae), transaction_index: Some(0), log_index: Some(3), transaction_log_index: None, log_type: None, removed: Some(false) }, Log { address: 0x8e85537d56e5eb80578e52c97e2174c1206ab036, topics: [0x4c1d95aa5b7b0987b2ce9caf74bc65727e4354e69ad1f8c9f3de71c109d00d2d, 0xc0b5831d4b627e913a57601926ba6bead80af5c7ee35c5ee3d85c071f2e76861, 0x01f0d2b18b3c702689e57a49edbefc4bdf9c6d63562d338e47ccbb7bead7499d], data: Bytes(0x), block_hash: Some(0x921afa33560546161acc92fc4befd50ce92176c98db5b3d0c79e04cbb406c6b3), block_number: Some(18789710), transaction_hash: Some(0x0d09f3b3c9cb1169256236eff19c4fc2dd1f9e7fd77c631773a2be6c4253b2ae), transaction_index: Some(0), log_index: Some(4), transaction_log_index: None, log_type: None, removed: Some(false) }, Log { address: 0x8e85537d56e5eb80578e52c97e2174c1206ab036, topics: [0x4c1d95aa5b7b0987b2ce9caf74bc65727e4354e69ad1f8c9f3de71c109d00d2d, 0x8503835f05264df7c74d8c4e95b6e5d753848ccef318b722ed60f3b5a8cebb03, 0x377d22dfe2f8400103a2291bd1e80b415ead0f454c69ebb0224471eb6f57e2d3], data: Bytes(0x), block_hash: Some(0x921afa33560546161acc92fc4befd50ce92176c98db5b3d0c79e04cbb406c6b3), block_number: Some(18789710), transaction_hash: Some(0x0d09f3b3c9cb1169256236eff19c4fc2dd1f9e7fd77c631773a2be6c4253b2ae), transaction_index: Some(0), log_index: Some(5), transaction_log_index: None, log_type: None, removed: Some(false) }, Log { address: 0x8e85537d56e5eb80578e52c97e2174c1206ab036, topics: [0x4c1d95aa5b7b0987b2ce9caf74bc65727e4354e69ad1f8c9f3de71c109d00d2d, 0x880933dc358a54647f56b9688592c453bac72739a79db06aee1bfedb2dc09568, 0x880933dc358a54647f56b9688592c453bac72739a79db06aee1bfedb2dc09568], data: Bytes(0x), block_hash: Some(0x921afa33560546161acc92fc4befd50ce92176c98db5b3d0c79e04cbb406c6b3), block_number: Some(18789710), transaction_hash: Some(0x0d09f3b3c9cb1169256236eff19c4fc2dd1f9e7fd77c631773a2be6c4253b2ae), transaction_index: Some(0), log_index: Some(6), transaction_log_index: None, log_type: None, removed: Some(false) }, Log { address: 0xc3d2e1b9065b678a00fe55524750b33911bfc315, topics: [0x1a463e8f53a16684615daa3981a361ef46053ca65356aca9ec7b63e327478928, 0x0000000000000000000000000000000000000000000000000000000000000000, 0x00606a0000000000000000000000000000000000000000000000000000000000, 0x0000000000000000000000000000000000000000000000000000000000000003], data: Bytes(0x), block_hash: Some(0x921afa33560546161acc92fc4befd50ce92176c98db5b3d0c79e04cbb406c6b3), block_number: Some(18789710), transaction_hash: Some(0x0d09f3b3c9cb1169256236eff19c4fc2dd1f9e7fd77c631773a2be6c4253b2ae), transaction_index: Some(0), log_index: Some(7), transaction_log_index: None, log_type: None, removed: Some(false) }], status: Some(1), root: None, logs_bloom: 0x0200000000000000001000000000000000000004000000000000a000000000000000000000002000000000000000000000000000020000000000000000000000000000080000008000000000000000000000000000000200000000001000010000000000020000200080000000004800000000000000100000000000000000200200000000000000400000041002000002040200200000000000000000082000000001000000420000000000000000000000000000800000000000000000400000000000000002000000010000000000000000008000000000000000000020000000000002000001000000010000000000000000000000000000000001002000, transaction_type: Some(2), effective_gas_price: Some(50000000007), other: OtherFields { inner: {"blobGasPrice": String("0x1")} } })
+[6/8] Verify router serves the upserted TCBInfo content hash
+Router-served content hash: 0x2f41e997bed8656b1004b828f85ff4b865e147363f0bc0623195d878927d3c3e
+[7/8] Verify quote through attestation entrypoint
+verifyAndAttestOnChain tx hash: 0x9504b5d5ee03910e1007a755bc24b92f1e72d3c6387aa9c6827c6a5d2b47b530
+
+blockHash            0xc610f34bc4484b61dccd2df483d3fdcf76b89e48ea7ff19d5a44219b09cf57c6
+blockNumber          18789711
+contractAddress      
+cumulativeGasUsed    7863812
+effectiveGasPrice    50000000000
+from                 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+gasUsed              7863812
+logs                 [{"address":"0xb8621da79b42a62e576408995155d48e9f856489","topics":["0x2a0eadb6ff52afa314e513d000bde06ac5db14a2a06a4f86ee5445dd314cd061"],"data":"0x000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000018b000300010100606a00000010101110ffff0100000000000000000000000000000000000000000000000000000000000000000000000000000000000500000000000000e700000000000000b646fadb1b57a3a90e5479bfbbee93502fc2b12de57ea0cd1bb49fec79a5547200000000000000000000000000000000000000000000000000000000000000004716807bda2f615e8be56543247cb313c6cb9b447f378b652cf416064f29f599000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006a5b82cfa29eb51317790e605b3443bc0c1a41463c4be29c7b0bd2d42216a3690000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000","blockHash":"0xc610f34bc4484b61dccd2df483d3fdcf76b89e48ea7ff19d5a44219b09cf57c6","blockNumber":"0x11eb54f","blockTimestamp":"0x6a16ab42","transactionHash":"0x9504b5d5ee03910e1007a755bc24b92f1e72d3c6387aa9c6827c6a5d2b47b530","transactionIndex":"0x0","logIndex":"0x0","removed":false}]
+logsBloom            0x00000000000000000000000000000000000800000000000000800010000080000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000
+root                 
+status               1 (success)
+transactionHash      0x9504b5d5ee03910e1007a755bc24b92f1e72d3c6387aa9c6827c6a5d2b47b530
+transactionIndex     0
+type                 2
+blobGasPrice         1
+blobGasUsed          
+to                   0xB8621Da79b42A62E576408995155D48E9f856489
+verifyAndAttestOnChain tx gasUsed: 7863812
+[8/8] Complete
+Fork delta update, async upsert, and entrypoint verification all succeeded.

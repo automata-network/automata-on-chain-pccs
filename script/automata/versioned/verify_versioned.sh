@@ -159,7 +159,12 @@ CRL_HELPER_ADDR=$(read_contract_address "X509CRLHelper")
 PCS_DAO_ADDR=$(read_contract_address "AutomataPcsDao")
 ENCLAVE_IDENTITY_HELPER_ADDR=$(read_contract_address "EnclaveIdentityHelper")
 FMSPC_TCB_HELPER_ADDR=$(read_contract_address "FmspcTcbHelper")
+FMSPC_TCB_HELPER_V2_ADDR=$(read_contract_address "FmspcTcbHelperV2" false)
 TCB_EVAL_HELPER_ADDR=$(read_contract_address "TcbEvalHelper")
+
+if [ -z "$FMSPC_TCB_HELPER_V2_ADDR" ]; then
+    FMSPC_TCB_HELPER_V2_ADDR="$FMSPC_TCB_HELPER_ADDR"
+fi
 
 # Set up forge verify command base
 FORGE_VERIFY_ARGS="--rpc-url $RPC_URL --verifier $VERIFIER --watch"
@@ -234,6 +239,11 @@ else
                 constructor_args=$(cast abi-encode "constructor(address,address,address,address,address,address,address,uint32)" \
                     "$STORAGE_ADDR" "$P256_ADDRESS" "$PCS_DAO_ADDR" "$FMSPC_TCB_HELPER_ADDR" "$X509_HELPER_ADDR" "$CRL_HELPER_ADDR" "$OWNER" "$tcb_eval_number")
                 verify_contract "$contract_addr" "src/automata_pccs/versioned/AutomataFmspcTcbDaoVersioned.sol:AutomataFmspcTcbDaoVersioned" "$constructor_args"
+                ;;
+            "AutomataFmspcTcbDaoVersionedV2")
+                constructor_args=$(cast abi-encode "constructor(address,address,address,address,address,address,address,uint32)" \
+                    "$(read_contract_address "AutomataDaoStorageV2")" "$P256_ADDRESS" "$PCS_DAO_ADDR" "$FMSPC_TCB_HELPER_V2_ADDR" "$X509_HELPER_ADDR" "$CRL_HELPER_ADDR" "$OWNER" "$tcb_eval_number")
+                verify_contract "$contract_addr" "src/automata_pccs/versioned/AutomataFmspcTcbDaoVersionedV2.sol:AutomataFmspcTcbDaoVersionedV2" "$constructor_args"
                 ;;
             *)
                 print_warn "Unknown versioned contract type: $contract_base"

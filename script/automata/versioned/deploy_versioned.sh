@@ -32,7 +32,9 @@ show_usage() {
     echo ""
     echo "Commands:"
     echo "  tcb-eval                   Deploy AutomataTcbEvalDao only"
+    echo "  storage-v2                 Deploy AutomataDaoStorageV2 only"
     echo "  versioned                  Deploy versioned DAO contracts (EnclaveIdentity + FmspcTcb)"
+    echo "  fmspc-v2                   Deploy AutomataFmspcTcbDaoVersionedV2 only"
     echo ""
     echo "Arguments for 'tcb-eval':"
     echo "  (no additional arguments required)"
@@ -50,6 +52,8 @@ echo "  RPC_URL                    RPC URL for the target network"
 echo "Optional Environment Variables:"
 echo "  SIMULATED                  Set to 'true' for simulation mode (default: false)"
 echo "  LEGACY                     Set to 'true' for legacy transaction mode"
+echo "  UNLOCKED                   Set to 'true' to use an unlocked sender on a local fork/anvil"
+echo "  OWNER                      Required when UNLOCKED=true; sender/owner address for forge script"
 echo "  MULTICHAIN                 Set to 'true' to deploy across all supported chains (default: false)"
 echo "  GAS_LIMIT                  Skip gas estimation if manually provided (informational only)"
 echo "  GAS_BUFFER                 Gas estimate buffer percentage (default: 10)"
@@ -57,7 +61,9 @@ echo "  SKIP_ESTIMATE              Skip gas estimation entirely"
     echo ""
     echo "Examples:"
     echo "  $0 tcb-eval                                   Deploy AutomataTcbEvalDao"
+    echo "  $0 storage-v2                                 Deploy AutomataDaoStorageV2"
     echo "  $0 versioned 17                               Deploy versioned contracts with tcb-eval-data-number 17"
+    echo "  $0 fmspc-v2 17                                Deploy AutomataFmspcTcbDaoVersionedV2 with tcb-eval-data-number 17"
     echo "  SIMULATED=true $0 versioned 18                Simulate deployment with tcb-eval-data-number 18"
 }
 
@@ -75,9 +81,9 @@ if [ -z "$COMMAND" ]; then
     exit 1
 fi
 
-if [ "$COMMAND" != "tcb-eval" ] && [ "$COMMAND" != "versioned" ]; then
+if [ "$COMMAND" != "tcb-eval" ] && [ "$COMMAND" != "storage-v2" ] && [ "$COMMAND" != "versioned" ] && [ "$COMMAND" != "fmspc-v2" ]; then
     print_error "Invalid command: $COMMAND"
-    print_error "Valid commands: tcb-eval, versioned"
+    print_error "Valid commands: tcb-eval, storage-v2, versioned, fmspc-v2"
     show_usage
     exit 1
 fi
@@ -90,9 +96,16 @@ if [ "$COMMAND" = "tcb-eval" ]; then
         exit 1
     fi
     TCB_EVALUATION_DATA_NUMBER=""  # Not used for tcb-eval
-elif [ "$COMMAND" = "versioned" ]; then
+elif [ "$COMMAND" = "storage-v2" ]; then
+    if [ $# -ne 1 ]; then
+        print_error "$COMMAND command takes no additional arguments"
+        show_usage
+        exit 1
+    fi
+    TCB_EVALUATION_DATA_NUMBER=""
+elif [ "$COMMAND" = "versioned" ] || [ "$COMMAND" = "fmspc-v2" ]; then
     if [ $# -ne 2 ]; then
-        print_error "versioned command requires tcb-eval-data-number argument"
+        print_error "$COMMAND command requires tcb-eval-data-number argument"
         show_usage
         exit 1
     fi
@@ -132,8 +145,16 @@ fi
 
 # Set up wallet authentication and derive OWNER
 WALLET_ARGS=""
-OWNER=""
-if [ -n "$PRIVATE_KEY" ]; then
+OWNER="${OWNER:-}"
+if [ "$UNLOCKED" = "true" ]; then
+    if [ -z "$OWNER" ]; then
+        print_error "OWNER environment variable is required when UNLOCKED=true"
+        exit 1
+    fi
+    WALLET_ARGS="--unlocked --sender $OWNER"
+    print_info "Using unlocked sender authentication"
+    print_info "Configured owner address: $OWNER"
+elif [ -n "$PRIVATE_KEY" ]; then
     OWNER=$(cast wallet address --private-key "$PRIVATE_KEY")
     WALLET_ARGS="--private-key $PRIVATE_KEY"
     print_info "Using private key authentication"
@@ -166,6 +187,7 @@ resolve_addresses() {
     CRL_HELPER=$(jq -r '.X509CRLHelper' "$DEPLOYMENT_FILE")
     ENCLAVE_HELPER=$(jq -r '.EnclaveIdentityHelper' "$DEPLOYMENT_FILE")
     FMSPC_HELPER=$(jq -r '.FmspcTcbHelper' "$DEPLOYMENT_FILE")
+    FMSPC_HELPER_V2=$(jq -r '.FmspcTcbHelperV2 // empty' "$DEPLOYMENT_FILE")
     TCB_EVAL_HELPER=$(jq -r '.TcbEvalHelper' "$DEPLOYMENT_FILE")
 
     # Get P256 verifier address
@@ -245,6 +267,12 @@ if [ "$LEGACY" = "true" ]; then
     FORGE_ARGS="$FORGE_ARGS --legacy"
 fi
 
+FORGE_ARGS="$FORGE_ARGS --disable-code-size-limit"
+
+if [ -n "${GAS_LIMIT:-}" ]; then
+    FORGE_ARGS="$FORGE_ARGS --gas-limit $GAS_LIMIT"
+fi
+
 # Execute command-specific deployment
 if [ "$COMMAND" = "tcb-eval" ]; then
     # Resolve addresses and estimate gas (skip in MULTICHAIN mode)
@@ -305,6 +333,57 @@ elif [ "$COMMAND" = "versioned" ]; then
 
     if [ $? -ne 0 ]; then
         print_error "Failed to deploy AutomataFmspcTcbDaoVersioned"
+        exit 1
+    fi
+elif [ "$COMMAND" = "storage-v2" ]; then
+    if [ "$MULTICHAIN" != "true" ]; then
+        resolve_addresses
+
+        STORAGE_V2_SPEC="AutomataDaoStorageV2:constructor(address,address):$OWNER,$STORAGE_ADDR"
+        estimate_gas "$STORAGE_V2_SPEC"
+    else
+        print_warn "MULTICHAIN mode: Gas estimation skipped (per-chain estimation)"
+    fi
+
+    print_info "Deploying AutomataDaoStorageV2..."
+    cd "$PROJECT_ROOT" && OWNER="$OWNER" forge script script/automata/versioned/DeployAutomataVersioned.s.sol:DeployAutomataVersioned \
+        $FORGE_ARGS \
+        --sig "deployStorageV2()"
+
+    if [ $? -ne 0 ]; then
+        print_error "Failed to deploy AutomataDaoStorageV2"
+        exit 1
+    fi
+elif [ "$COMMAND" = "fmspc-v2" ]; then
+    if [ "$MULTICHAIN" != "true" ]; then
+        resolve_addresses
+
+        STORAGE_V2_ADDR=$(jq -r '.AutomataDaoStorageV2' "$DEPLOYMENT_FILE")
+        if [ -z "$STORAGE_V2_ADDR" ] || [ "$STORAGE_V2_ADDR" = "null" ]; then
+            print_error "AutomataDaoStorageV2 not found in $DEPLOYMENT_FILE"
+            print_error "Please deploy storage-v2 first using: $0 storage-v2"
+            exit 1
+        fi
+
+        if [ -z "$FMSPC_HELPER_V2" ] || [ "$FMSPC_HELPER_V2" = "null" ]; then
+            print_error "FmspcTcbHelperV2 not found in $DEPLOYMENT_FILE"
+            print_error "Please deploy FmspcTcbHelperV2 first using: make deploy-helpers or DeployHelpers.deployFmspcTcbHelperV2()"
+            exit 1
+        fi
+
+        FMSPC_V2_SPEC="AutomataFmspcTcbDaoVersionedV2:constructor(address,address,address,address,address,address,address,address,uint32):$STORAGE_V2_ADDR,$P256_ADDR,$PCS_DAO_ADDR,$FMSPC_HELPER,$FMSPC_HELPER_V2,$X509_HELPER,$CRL_HELPER,$OWNER,$TCB_EVALUATION_DATA_NUMBER"
+        estimate_gas "$FMSPC_V2_SPEC"
+    else
+        print_warn "MULTICHAIN mode: Gas estimation skipped (per-chain estimation)"
+    fi
+
+    print_info "Deploying AutomataFmspcTcbDaoVersionedV2 (tcb-eval-data-number: $TCB_EVALUATION_DATA_NUMBER)..."
+    cd "$PROJECT_ROOT" && OWNER="$OWNER" forge script script/automata/versioned/DeployAutomataVersioned.s.sol:DeployAutomataVersioned \
+        $FORGE_ARGS \
+        --sig "deployFmspcTcbDaoVersionedV2(uint32)" "$TCB_EVALUATION_DATA_NUMBER"
+
+    if [ $? -ne 0 ]; then
+        print_error "Failed to deploy AutomataFmspcTcbDaoVersionedV2"
         exit 1
     fi
 fi
