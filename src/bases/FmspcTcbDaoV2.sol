@@ -768,7 +768,7 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
             let rem := mod(n, 0x20)
             if rem {
                 let lastPtr := sub(endPtr, rem)
-                let mask := not(sub(shl(mul(sub(0x20, rem), 8), 1), 1))
+                let mask := shl(mul(sub(0x20, rem), 8), not(0))
                 mstore(lastPtr, and(mload(lastPtr), mask))
             }
         }

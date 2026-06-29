@@ -579,13 +579,13 @@ contract FmspcTcbHelperV2 {
             for (uint256 i = 0; i < fields.length; i++) {
                 if (uint8(order[i]) == pos) {
                     if (fields[i].length == 0) revert Async_Upsert_Invalid_Order();
-                    if (wrote) out = abi.encodePacked(out, bytes(","));
-                    out = abi.encodePacked(out, fields[i]);
+                    if (wrote) out = bytes.concat(out, bytes(","));
+                    out = bytes.concat(out, fields[i]);
                     wrote = true;
                 }
             }
         }
-        out = abi.encodePacked(out, bytes("}"));
+        out = bytes.concat(out, bytes("}"));
     }
 
     function _requireOrder(bytes[] memory fields, bytes memory order) private pure {
@@ -651,8 +651,8 @@ contract FmspcTcbHelperV2 {
 
     function _joinAdvisories(bytes[] memory advisoryIds) private pure returns (bytes memory out) {
         for (uint256 i = 0; i < advisoryIds.length; i++) {
-            if (i > 0) out = abi.encodePacked(out, bytes("\n"));
-            out = abi.encodePacked(out, advisoryIds[i]);
+            if (i > 0) out = bytes.concat(out, bytes("\n"));
+            out = bytes.concat(out, advisoryIds[i]);
         }
     }
 

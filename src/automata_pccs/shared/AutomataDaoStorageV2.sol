@@ -184,8 +184,8 @@ contract AutomataDaoStorageV2 is AutomataTCBManager, IDaoAttestationResolver, Pa
                 let word := shr(mul(slotOffset, 8), calldataload(src))
 
                 let endOffset := add(slotOffset, writable)
-                let highEnd := not(sub(shl(mul(sub(32, endOffset), 8), 1), 1))
-                let highStart := not(sub(shl(mul(sub(32, slotOffset), 8), 1), 1))
+                let highEnd := shl(mul(sub(32, endOffset), 8), not(0))
+                let highStart := shl(mul(sub(32, slotOffset), 8), not(0))
                 let mask := xor(highEnd, highStart)
 
                 sstore(slot, or(and(sload(slot), not(mask)), and(word, mask)))
