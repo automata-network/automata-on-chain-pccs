@@ -27,6 +27,11 @@ abstract contract PcsDaoV2 is DaoBase, SigVerifyBase {
 
     X509CRLHelperV2 public crlLib;
 
+    /// @dev Authentication is cached against the hashes of every collateral
+    /// dependency used to validate the CRL. A CA certificate or ROOT CRL
+    /// replacement changes this context and forces one fresh authentication.
+    mapping(CA ca => mapping(bytes32 derHash => bytes32 context)) private _authenticatedCrlContexts;
+
     string constant PCK_PLATFORM_CA_COMMON_NAME = "Intel SGX PCK Platform CA";
     string constant PCK_PROCESSOR_CA_COMMON_NAME = "Intel SGX PCK Processor CA";
     string constant SIGNING_COMMON_NAME = "Intel SGX TCB Signing";
@@ -73,6 +78,7 @@ abstract contract PcsDaoV2 is DaoBase, SigVerifyBase {
     error Crl_Hash_Mismatch(bytes32 expected, bytes32 actual);
 
     event UpsertedPCSCollateral(CA indexed ca, bool isCrl);
+    event AuthenticatedCrl(CA indexed ca, bytes32 indexed derHash, bytes32 context);
 
     constructor(address _resolver, address _p256, address _x509, address _crl)
         SigVerifyBase(_p256, _x509)
@@ -92,6 +98,11 @@ abstract contract PcsDaoV2 is DaoBase, SigVerifyBase {
 
     function PCS_KEY(CA ca, bool isCrl) public pure returns (bytes32 key) {
         key = keccak256(abi.encodePacked(PCS_MAGIC, uint8(ca), isCrl));
+    }
+
+    function authenticatedCrls(CA ca, bytes32 derHash) public view returns (bool authenticated) {
+        bytes32 storedContext = _authenticatedCrlContexts[ca][derHash];
+        authenticated = storedContext != bytes32(0) && storedContext == _crlAuthenticationContext(ca);
     }
 
     modifier pckCACheck(CA ca) {
@@ -152,8 +163,9 @@ abstract contract PcsDaoV2 is DaoBase, SigVerifyBase {
      * @notice Validates and indexes a CRL that was stored by the legacy PCS DAO.
      * @dev This enables an immediate V2 migration even when re-upserting the
      * current CRL would correctly fail the duplicate and rollback checks. The
-     * DER is read from the trusted resolver and its stored TBS hash, issuer,
-     * AKI, validity and signature are all revalidated before the index persists.
+     * first batch authenticates the complete stored DER and caches that result;
+     * later batches remain bound to the current expected DER hash without
+     * repeating the full-list validation.
      */
     function indexStoredCrlBatch(CA ca, bytes32 expectedDerHash, uint256 maxEntries)
         external
@@ -163,16 +175,15 @@ abstract contract PcsDaoV2 is DaoBase, SigVerifyBase {
 
         bytes32 key = PCS_KEY(ca, true);
         bytes memory crl = _fetchDataFromResolver(key, false);
-        bytes memory storedHashData = _fetchDataFromResolver(key, true);
-        if (crl.length == 0 || storedHashData.length == 0) revert Missing_Crl(ca);
+        if (crl.length == 0) revert Missing_Crl(ca);
 
         bytes32 actualDerHash = keccak256(crl);
         if (actualDerHash != expectedDerHash) revert Crl_Hash_Mismatch(expectedDerHash, actualDerHash);
 
-        X509CRLMetadata memory currentCrl = crlLib.parseCRLMetadata(crl);
-        if (abi.decode(storedHashData, (bytes32)) != currentCrl.tbsHash) revert Invalid_Stored_Crl(ca);
-
-        _validatePcsCrlMetadata(ca, currentCrl, false);
+        _validateStoredCrlAndIssuerValidity(ca, key);
+        if (!authenticatedCrls(ca, actualDerHash)) {
+            _authenticateStoredCrl(ca, actualDerHash, key, crl);
+        }
         (indexedCount, complete) = crlLib.indexCrlBatch(crl, maxEntries);
     }
 
@@ -196,7 +207,45 @@ abstract contract PcsDaoV2 is DaoBase, SigVerifyBase {
 
         attestationId = _attestPcs(crl, hash, key);
 
+        _setCrlAuthenticated(ca, keccak256(crl));
         emit UpsertedPCSCollateral(ca, true);
+    }
+
+    function _authenticateStoredCrl(CA ca, bytes32 derHash, bytes32 key, bytes memory crl) private {
+        bytes memory storedHashData = _fetchDataFromResolver(key, true);
+        if (storedHashData.length == 0) revert Missing_Crl(ca);
+
+        X509CRLMetadata memory currentCrl = crlLib.parseCRLMetadata(crl);
+        if (abi.decode(storedHashData, (bytes32)) != currentCrl.tbsHash) revert Invalid_Stored_Crl(ca);
+
+        _validatePcsCrlMetadata(ca, currentCrl, false);
+        _setCrlAuthenticated(ca, derHash);
+    }
+
+    function _setCrlAuthenticated(CA ca, bytes32 derHash) private {
+        bytes32 context = _crlAuthenticationContext(ca);
+        _authenticatedCrlContexts[ca][derHash] = context;
+        emit AuthenticatedCrl(ca, derHash, context);
+    }
+
+    function _crlAuthenticationContext(CA ca) private view returns (bytes32 context) {
+        CA issuerCa = ca == CA.PLATFORM || ca == CA.PROCESSOR ? ca : CA.ROOT;
+        bytes memory issuerHashData = _fetchDataFromResolver(PCS_KEY(issuerCa, false), true);
+        bytes memory rootCrlHashData = ca == CA.ROOT ? bytes("") : _fetchDataFromResolver(PCS_KEY(CA.ROOT, true), true);
+        context = keccak256(abi.encode(issuerHashData, rootCrlHashData));
+    }
+
+    function _validateStoredCrlAndIssuerValidity(CA ca, bytes32 crlKey) private view {
+        (uint64 crlNotValidBefore, uint64 crlNotValidAfter) = _loadPcsValidity(crlKey);
+        if (block.timestamp <= crlNotValidBefore || block.timestamp >= crlNotValidAfter) {
+            revert Crl_Expired(ca);
+        }
+
+        CA issuerCa = ca == CA.PLATFORM || ca == CA.PROCESSOR ? ca : CA.ROOT;
+        (uint64 issuerNotValidBefore, uint64 issuerNotValidAfter) = _loadPcsValidity(PCS_KEY(issuerCa, false));
+        if (block.timestamp < issuerNotValidBefore || block.timestamp > issuerNotValidAfter) {
+            revert Certificate_Expired(issuerCa);
+        }
     }
 
     function _validatePcsCert(CA ca, bytes calldata cert)

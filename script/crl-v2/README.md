@@ -2,7 +2,9 @@
 
 `deploy.sh` deploys and validates the three CRL V2 contracts against an
 existing PCCS deployment. `index-stored-crls.sh` indexes the ROOT, PROCESSOR,
-and PLATFORM CRLs in resumable batches.
+and PLATFORM CRLs in resumable batches. A legacy stored CRL is fully
+authenticated once by the first batch; later batches reuse the CA-scoped DER
+authentication result and validate only their bounded serial range.
 
 Both scripts require:
 
