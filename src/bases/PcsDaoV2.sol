@@ -25,7 +25,7 @@ import {LibString} from "solady/utils/LibString.sol";
 abstract contract PcsDaoV2 is DaoBase, SigVerifyBase {
     using LibString for string;
 
-    X509CRLHelperV2 public crlLib;
+    X509CRLHelperV2 public immutable crlLib;
 
     /// @dev Authentication is cached against the hashes of every collateral
     /// dependency used to validate the CRL. A CA certificate or ROOT CRL
