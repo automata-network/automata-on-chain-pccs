@@ -1,10 +1,14 @@
 # CRL V2 PCCS deployment helpers
 
 `deploy.sh` deploys and validates the three CRL V2 contracts against an
-existing PCCS deployment. `index-stored-crls.sh` indexes the ROOT, PROCESSOR,
-and PLATFORM CRLs in resumable batches. A legacy stored CRL is fully
-authenticated once by the first batch; later batches reuse the CA-scoped DER
-authentication result and validate only their bounded serial range.
+existing PCCS deployment. `index-stored-crls.sh` migrates the ROOT, PROCESSOR,
+and PLATFORM CRLs already stored by V1. Each stored CRL is authenticated and
+indexed atomically in one transaction before the Router switches to V2.
+
+Once V2 is active, normal CRL upserts complete the exact serial index in the
+same transaction. The helper keys membership by the hash of the canonical
+`revokedCertificates` sequence, so metadata/signature-only reissues reuse an
+identical set without rewriting every serial.
 
 Both scripts require:
 

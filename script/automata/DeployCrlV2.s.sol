@@ -47,12 +47,12 @@ contract DeployCrlV2 is DeploymentConfig, P256Configuration {
         writeToJson("AutomataPckDaoV2", address(pckDao));
     }
 
-    /// @notice Run in bounded batches for each stored ROOT / PROCESSOR /
-    /// PLATFORM CRL. The expected hash prevents continuing a stale job after
-    /// the current CRL changes.
-    function indexStoredCrlBatch(CA ca, bytes32 expectedDerHash, uint256 maxEntries) public {
+    /// @notice Atomically validates and indexes a CRL already stored by V1.
+    /// The expected hash prevents indexing stale collateral if it changes
+    /// between the deployment read and this transaction.
+    function indexStoredCrl(CA ca, bytes32 expectedDerHash) public {
         AutomataPcsDaoV2 pcsDao = AutomataPcsDaoV2(readContractAddress("AutomataPcsDaoV2", true));
         vm.broadcast(owner);
-        pcsDao.indexStoredCrlBatch(ca, expectedDerHash, maxEntries);
+        pcsDao.indexStoredCrl(ca, expectedDerHash);
     }
 }

@@ -27,11 +27,6 @@ abstract contract PcsDaoV2 is DaoBase, SigVerifyBase {
 
     X509CRLHelperV2 public immutable crlLib;
 
-    /// @dev Authentication is cached against the hashes of every collateral
-    /// dependency used to validate the CRL. A CA certificate or ROOT CRL
-    /// replacement changes this context and forces one fresh authentication.
-    mapping(CA ca => mapping(bytes32 derHash => bytes32 context)) private _authenticatedCrlContexts;
-
     string constant PCK_PLATFORM_CA_COMMON_NAME = "Intel SGX PCK Platform CA";
     string constant PCK_PROCESSOR_CA_COMMON_NAME = "Intel SGX PCK Processor CA";
     string constant SIGNING_COMMON_NAME = "Intel SGX TCB Signing";
@@ -78,7 +73,7 @@ abstract contract PcsDaoV2 is DaoBase, SigVerifyBase {
     error Crl_Hash_Mismatch(bytes32 expected, bytes32 actual);
 
     event UpsertedPCSCollateral(CA indexed ca, bool isCrl);
-    event AuthenticatedCrl(CA indexed ca, bytes32 indexed derHash, bytes32 context);
+    event IndexedStoredCrl(CA indexed ca, bytes32 indexed derHash, uint256 revokedCertificateCount);
 
     constructor(address _resolver, address _p256, address _x509, address _crl)
         SigVerifyBase(_p256, _x509)
@@ -98,11 +93,6 @@ abstract contract PcsDaoV2 is DaoBase, SigVerifyBase {
 
     function PCS_KEY(CA ca, bool isCrl) public pure returns (bytes32 key) {
         key = keccak256(abi.encodePacked(PCS_MAGIC, uint8(ca), isCrl));
-    }
-
-    function authenticatedCrls(CA ca, bytes32 derHash) public view returns (bool authenticated) {
-        bytes32 storedContext = _authenticatedCrlContexts[ca][derHash];
-        authenticated = storedContext != bytes32(0) && storedContext == _crlAuthenticationContext(ca);
     }
 
     modifier pckCACheck(CA ca) {
@@ -160,17 +150,12 @@ abstract contract PcsDaoV2 is DaoBase, SigVerifyBase {
     }
 
     /**
-     * @notice Validates and indexes a CRL that was stored by the legacy PCS DAO.
-     * @dev This enables an immediate V2 migration even when re-upserting the
-     * current CRL would correctly fail the duplicate and rollback checks. The
-     * first batch authenticates the complete stored DER and caches that result;
-     * later batches remain bound to the current expected DER hash without
-     * repeating the full-list validation.
+     * @notice Atomically validates and indexes a CRL that was stored by V1.
+     * @dev This one-shot migration path is needed because re-upserting the
+     * current CRL correctly fails duplicate and rollback checks. Any validation
+     * failure reverts the helper index writes in the same transaction.
      */
-    function indexStoredCrlBatch(CA ca, bytes32 expectedDerHash, uint256 maxEntries)
-        external
-        returns (uint256 indexedCount, bool complete)
-    {
+    function indexStoredCrl(CA ca, bytes32 expectedDerHash) external returns (uint256 indexedCount) {
         if (ca == CA.SIGNING) revert Invalid_PCK_CA(ca);
 
         bytes32 key = PCS_KEY(ca, true);
@@ -181,10 +166,15 @@ abstract contract PcsDaoV2 is DaoBase, SigVerifyBase {
         if (actualDerHash != expectedDerHash) revert Crl_Hash_Mismatch(expectedDerHash, actualDerHash);
 
         _validateStoredCrlAndIssuerValidity(ca, key);
-        if (!authenticatedCrls(ca, actualDerHash)) {
-            _authenticateStoredCrl(ca, actualDerHash, key, crl);
-        }
-        (indexedCount, complete) = crlLib.indexCrlBatch(crl, maxEntries);
+        bytes memory storedHashData = _fetchDataFromResolver(key, true);
+        if (storedHashData.length == 0) revert Missing_Crl(ca);
+
+        X509CRLMetadata memory currentCrl = crlLib.parseAndIndexCRLMetadata(crl);
+        if (abi.decode(storedHashData, (bytes32)) != currentCrl.tbsHash) revert Invalid_Stored_Crl(ca);
+
+        _validatePcsCrlMetadata(ca, currentCrl, false);
+        indexedCount = currentCrl.revokedCertificateCount;
+        emit IndexedStoredCrl(ca, actualDerHash, indexedCount);
     }
 
     /**
@@ -207,32 +197,7 @@ abstract contract PcsDaoV2 is DaoBase, SigVerifyBase {
 
         attestationId = _attestPcs(crl, hash, key);
 
-        _setCrlAuthenticated(ca, keccak256(crl));
         emit UpsertedPCSCollateral(ca, true);
-    }
-
-    function _authenticateStoredCrl(CA ca, bytes32 derHash, bytes32 key, bytes memory crl) private {
-        bytes memory storedHashData = _fetchDataFromResolver(key, true);
-        if (storedHashData.length == 0) revert Missing_Crl(ca);
-
-        X509CRLMetadata memory currentCrl = crlLib.parseCRLMetadata(crl);
-        if (abi.decode(storedHashData, (bytes32)) != currentCrl.tbsHash) revert Invalid_Stored_Crl(ca);
-
-        _validatePcsCrlMetadata(ca, currentCrl, false);
-        _setCrlAuthenticated(ca, derHash);
-    }
-
-    function _setCrlAuthenticated(CA ca, bytes32 derHash) private {
-        bytes32 context = _crlAuthenticationContext(ca);
-        _authenticatedCrlContexts[ca][derHash] = context;
-        emit AuthenticatedCrl(ca, derHash, context);
-    }
-
-    function _crlAuthenticationContext(CA ca) private view returns (bytes32 context) {
-        CA issuerCa = ca == CA.PLATFORM || ca == CA.PROCESSOR ? ca : CA.ROOT;
-        bytes memory issuerHashData = _fetchDataFromResolver(PCS_KEY(issuerCa, false), true);
-        bytes memory rootCrlHashData = ca == CA.ROOT ? bytes("") : _fetchDataFromResolver(PCS_KEY(CA.ROOT, true), true);
-        context = keccak256(abi.encode(issuerHashData, rootCrlHashData));
     }
 
     function _validateStoredCrlAndIssuerValidity(CA ca, bytes32 crlKey) private view {
@@ -336,13 +301,12 @@ abstract contract PcsDaoV2 is DaoBase, SigVerifyBase {
 
     function _validatePcsCrl(CA ca, bytes calldata crl)
         private
-        view
         returns (bytes32 hash, bytes32 key, X509CRLMetadata memory currentCrl)
     {
-        // Upsert validates every revoked entry but intentionally does not write
-        // the serial index. Indexing is an optional, completion-gated batch
-        // operation after the CRL has safely become current.
-        currentCrl = crlLib.parseCRLMetadata(crl);
+        // Parsing and exact membership indexing are one atomic operation. The
+        // helper reuses an already complete index when only outer CRL metadata
+        // or the signature changed while the revokedCertificates DER is exact.
+        currentCrl = crlLib.parseAndIndexCRLMetadata(crl);
 
         key = PCS_KEY(ca, true);
         hash = currentCrl.tbsHash;

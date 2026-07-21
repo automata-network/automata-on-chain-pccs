@@ -56,24 +56,17 @@ contract AutomataPcsDaoV2Test is PCSSetupBase {
         pcsV2.upsertPckCrl(CA.PLATFORM, crl129);
         uint256 gas129 = before129 - gasleft();
         _assertStoredCrl(crl129);
-        assertTrue(pcsV2.authenticatedCrls(CA.PLATFORM, hash129));
-        assertFalse(pcsV2.authenticatedCrls(CA.PROCESSOR, hash129), "authentication was not CA-scoped");
-        assertFalse(crlV2.indexedCrls(hash129), "upsert eagerly indexed serials");
+        assertTrue(crlV2.indexedCrls(hash129), "upsert did not atomically index serials");
         assertTrue(crlV2.serialNumberIsRevoked(removedSerial, crl129));
         assertEq(parsed129.revokedCertificateCount, 129);
-        _completeStoredIndex(CA.PLATFORM, hash129, 50);
-        assertTrue(crlV2.indexedCrls(hash129));
 
         uint256 before57 = gasleft();
         pcsV2.upsertPckCrl(CA.PLATFORM, crl57);
         uint256 gas57 = before57 - gasleft();
         _assertStoredCrl(crl57);
-        assertTrue(pcsV2.authenticatedCrls(CA.PLATFORM, hash57));
-        assertFalse(crlV2.indexedCrls(hash57), "replacement eagerly indexed serials");
+        assertTrue(crlV2.indexedCrls(hash57), "replacement did not atomically index serials");
         assertFalse(crlV2.serialNumberIsRevoked(removedSerial, crl57), "removed serial leaked into smaller CRL");
         assertEq(parsed57.revokedCertificateCount, 57);
-        _completeStoredIndex(CA.PLATFORM, hash57, 50);
-        assertTrue(crlV2.indexedCrls(hash57));
         assertFalse(crlV2.serialNumberIsRevoked(removedSerial, crl57));
 
         vm.expectRevert(PcsDaoV2.Certificate_Out_Of_Date.selector);
@@ -84,129 +77,51 @@ contract AutomataPcsDaoV2Test is PCSSetupBase {
         console2.log("PcsDaoV2 57-entry replacement upsert gas", gas57);
     }
 
-    function testIndexesCurrentCrlStoredByLegacyDao() public {
+    function testIndexesCurrentCrlStoredByV1Atomically() public {
         pcs.upsertPckCrl(CA.PLATFORM, crl57);
         bytes32 derHash = keccak256(crl57);
         assertFalse(crlV2.indexedCrls(derHash));
-        assertFalse(pcsV2.authenticatedCrls(CA.PLATFORM, derHash));
 
-        (uint256 indexedCount, bool complete) = pcsV2.indexStoredCrlBatch(CA.PLATFORM, derHash, 50);
-        assertEq(indexedCount, 50);
-        assertFalse(complete);
-        assertTrue(pcsV2.authenticatedCrls(CA.PLATFORM, derHash));
-        assertFalse(crlV2.indexedCrls(derHash));
-
-        // Once the legacy CRL has been authenticated, subsequent batches must
-        // not repeat parseCRLMetadata's full revoked-list validation.
-        vm.mockCallRevert(
-            address(crlV2),
-            abi.encodeWithSelector(X509CRLHelperV2.parseCRLMetadata.selector, crl57),
-            bytes("unexpected metadata reparse")
-        );
-        (indexedCount, complete) = pcsV2.indexStoredCrlBatch(CA.PLATFORM, derHash, 50);
-        vm.clearMockedCalls();
+        uint256 indexedCount = pcsV2.indexStoredCrl(CA.PLATFORM, derHash);
         assertEq(indexedCount, 57);
-        assertTrue(complete);
         assertTrue(crlV2.indexedCrls(derHash));
         _assertStoredCrl(crl57);
     }
 
-    function testStaleBatchCannotContinueAfterCrlChanges() public {
+    function testStoredCrlMigrationRejectsStaleExpectedHash() public {
         bytes32 hash129 = keccak256(crl129);
         bytes32 hash57 = keccak256(crl57);
-        pcsV2.upsertPckCrl(CA.PLATFORM, crl129);
-
-        (uint256 indexedCount, bool complete) = pcsV2.indexStoredCrlBatch(CA.PLATFORM, hash129, 50);
-        assertEq(indexedCount, 50);
-        assertFalse(complete);
-
+        pcs.upsertPckCrl(CA.PLATFORM, crl129);
         pcsV2.upsertPckCrl(CA.PLATFORM, crl57);
 
         vm.expectRevert(abi.encodeWithSelector(PcsDaoV2.Crl_Hash_Mismatch.selector, hash129, hash57));
-        pcsV2.indexStoredCrlBatch(CA.PLATFORM, hash129, 50);
-
-        (,, indexedCount, complete) = crlV2.getIndexProgress(hash129);
-        assertEq(indexedCount, 50);
-        assertFalse(complete);
-        assertFalse(crlV2.indexedCrls(hash57));
+        pcsV2.indexStoredCrl(CA.PLATFORM, hash129);
+        assertTrue(crlV2.indexedCrls(hash57));
     }
 
-    function testV2UpsertAuthenticationSkipsMetadataReparseFromFirstBatch() public {
+    function testV2UpsertCompletesIndexWithoutFollowUpTransaction() public {
         bytes32 derHash = keccak256(crl129);
         pcsV2.upsertPckCrl(CA.PLATFORM, crl129);
-        assertTrue(pcsV2.authenticatedCrls(CA.PLATFORM, derHash));
-
-        vm.mockCallRevert(
-            address(crlV2),
-            abi.encodeWithSelector(X509CRLHelperV2.parseCRLMetadata.selector, crl129),
-            bytes("unexpected metadata reparse")
-        );
-        uint256 beforeBatch1 = gasleft();
-        (uint256 indexedCount, bool complete) = pcsV2.indexStoredCrlBatch(CA.PLATFORM, derHash, 50);
-        uint256 batch1Gas = beforeBatch1 - gasleft();
-        assertEq(indexedCount, 50);
-        assertFalse(complete);
-
-        uint256 beforeBatch2 = gasleft();
-        (indexedCount, complete) = pcsV2.indexStoredCrlBatch(CA.PLATFORM, derHash, 50);
-        uint256 batch2Gas = beforeBatch2 - gasleft();
-        assertEq(indexedCount, 100);
-        assertFalse(complete);
-
-        uint256 beforeBatch3 = gasleft();
-        (indexedCount, complete) = pcsV2.indexStoredCrlBatch(CA.PLATFORM, derHash, 50);
-        uint256 batch3Gas = beforeBatch3 - gasleft();
-        vm.clearMockedCalls();
-
-        assertEq(indexedCount, 129);
-        assertTrue(complete);
-        assertLt(batch1Gas, 14_000_000);
-        assertLt(batch2Gas, 14_000_000);
-        assertLt(batch3Gas, 14_000_000);
-
-        console2.log("PcsDaoV2 cached 129 index batch 1 gas", batch1Gas);
-        console2.log("PcsDaoV2 cached 129 index batch 2 gas", batch2Gas);
-        console2.log("PcsDaoV2 cached 129 index batch 3 gas", batch3Gas);
+        assertTrue(crlV2.indexedCrls(derHash));
     }
 
-    function testCachedAuthenticationIsInvalidatedByIssuerOrRootCrlChanges() public {
-        bytes32 derHash = keccak256(crl129);
-        pcsV2.upsertPckCrl(CA.PLATFORM, crl129);
-        assertTrue(pcsV2.authenticatedCrls(CA.PLATFORM, derHash));
-
-        bytes32 issuerKey = pcsV2.PCS_KEY(CA.PLATFORM, false);
-        bytes32 originalIssuerHash = pcsV2.getCollateralHash(issuerKey);
-        vm.prank(address(pcsV2));
-        pccsStorage.attest(issuerKey, bytes("replacement issuer"), bytes32(uint256(1)));
-        assertFalse(pcsV2.authenticatedCrls(CA.PLATFORM, derHash));
-
-        // Restore the original issuer through the normal validated fixture, then
-        // prove a ROOT CRL dependency change also invalidates the cache.
-        vm.prank(address(pcsV2));
-        pccsStorage.attest(issuerKey, platformDer, originalIssuerHash);
-        pcsV2.upsertPckCrl(CA.PLATFORM, crl57);
-        bytes32 hash57 = keccak256(crl57);
-        assertTrue(pcsV2.authenticatedCrls(CA.PLATFORM, hash57));
-
-        bytes32 rootCrlKey = pcsV2.PCS_KEY(CA.ROOT, true);
-        vm.prank(address(pcsV2));
-        pccsStorage.attest(rootCrlKey, bytes("replacement root crl"), bytes32(uint256(2)));
-        assertFalse(pcsV2.authenticatedCrls(CA.PLATFORM, hash57));
-    }
-
-    function testCachedAuthenticationDoesNotBypassCrlExpiry() public {
+    function testStoredCrlMigrationRejectsExpiredCrl() public {
         bytes32 derHash = keccak256(crl57);
         X509CRLMetadata memory metadata = crlV2.parseCRLMetadata(crl57);
-        pcsV2.upsertPckCrl(CA.PLATFORM, crl57);
-        assertTrue(pcsV2.authenticatedCrls(CA.PLATFORM, derHash));
+        pcs.upsertPckCrl(CA.PLATFORM, crl57);
 
         vm.warp(metadata.validityNotAfter + 1);
         vm.expectRevert(abi.encodeWithSelector(PcsDaoV2.Crl_Expired.selector, CA.PLATFORM));
-        pcsV2.indexStoredCrlBatch(CA.PLATFORM, derHash, 50);
+        pcsV2.indexStoredCrl(CA.PLATFORM, derHash);
+        assertFalse(crlV2.indexedCrls(derHash));
     }
 
     function testReissuedDatesWithSameRevokedContentIsNotDuplicate() public {
+        uint256 beforeInitial = gasleft();
         pcsV2.upsertPckCrl(CA.PLATFORM, crl57);
+        uint256 initialGas = beforeInitial - gasleft();
+        bytes32 initialDerHash = keccak256(crl57);
+        bytes32 initialSetHash = crlV2.crlRevokedSetHashes(initialDerHash);
         bytes memory reissued = _copy(crl57);
         _replaceFirst(reissued, bytes("260716114338Z"), bytes("260717114338Z"));
         _replaceFirst(reissued, bytes("260815114338Z"), bytes("260816114338Z"));
@@ -215,13 +130,23 @@ contract AutomataPcsDaoV2Test is PCSSetupBase {
         // dates. Mock only the P-256 primitive so this test isolates duplicate
         // and rollback behavior for a newly signed equivalent CRL.
         vm.mockCall(P256_VERIFIER, bytes(""), abi.encode(true));
+        uint256 beforeReissue = gasleft();
         pcsV2.upsertPckCrl(CA.PLATFORM, reissued);
+        uint256 reissueGas = beforeReissue - gasleft();
+        vm.clearMockedCalls();
 
         X509CRLObj memory beforeCrl = crlV2.parseCRLDER(crl57);
         X509CRLObj memory afterCrl = crlV2.parseCRLDER(reissued);
+        bytes32 reissuedDerHash = keccak256(reissued);
         assertEq(beforeCrl.serialNumbersRevoked, afterCrl.serialNumbersRevoked);
         assertNotEq(keccak256(beforeCrl.tbs), keccak256(afterCrl.tbs));
+        assertTrue(crlV2.indexedCrls(initialDerHash));
+        assertTrue(crlV2.indexedCrls(reissuedDerHash));
+        assertEq(crlV2.crlRevokedSetHashes(reissuedDerHash), initialSetHash, "exact set index was not reused");
         _assertStoredCrl(reissued);
+
+        console2.log("PcsDaoV2 57-entry first-set upsert gas", initialGas);
+        console2.log("PcsDaoV2 57-entry exact-set reuse upsert gas", reissueGas);
     }
 
     function testSignatureOnlyReissueWithIdenticalTbsIsDuplicate() public {
@@ -240,8 +165,8 @@ contract AutomataPcsDaoV2Test is PCSSetupBase {
 
         vm.expectRevert(PcsDaoV2.Invalid_Signature.selector);
         pcsV2.upsertPckCrl(CA.PLATFORM, malformed);
-        assertFalse(pcsV2.authenticatedCrls(CA.PLATFORM, keccak256(malformed)));
         assertFalse(crlV2.indexedCrls(keccak256(malformed)), "reverted upsert left a cache entry");
+        assertEq(crlV2.crlRevokedSetHashes(keccak256(malformed)), bytes32(0), "reverted upsert left a set binding");
     }
 
     function testRejectsWrongIssuer() public {
@@ -275,7 +200,6 @@ contract AutomataPcsDaoV2Test is PCSSetupBase {
         bytes memory malformed = bytes.concat(crl57, hex"00");
         vm.expectRevert(X509CRLHelperV2.Invalid_DER.selector);
         pcsV2.upsertPckCrl(CA.PLATFORM, malformed);
-        assertFalse(pcsV2.authenticatedCrls(CA.PLATFORM, keccak256(malformed)));
 
         bytes32 key = pcsV2.PCS_KEY(CA.PLATFORM, true);
         bytes32 pointer = pccsStorage.collateralHashPointer(key);
@@ -332,13 +256,5 @@ contract AutomataPcsDaoV2Test is PCSSetupBase {
             }
         }
         revert("no removed serial");
-    }
-
-    function _completeStoredIndex(CA ca, bytes32 derHash, uint256 batchSize) private {
-        bool complete;
-        for (uint256 i = 0; i < 32 && !complete; i++) {
-            (, complete) = pcsV2.indexStoredCrlBatch(ca, derHash, batchSize);
-        }
-        assertTrue(complete, "stored CRL index did not complete");
     }
 }

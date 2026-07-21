@@ -25,7 +25,7 @@ struct X509CRLMetadata {
 /**
  * @title Gas-bounded X509 CRL helper
  * @notice ABI-compatible replacement for X509CRLHelper with a metadata-only
- * parser for CRL upserts and a direct serial-number scan for verification.
+ * parser for CRL upserts and an exact serial-number index for verification.
  * @dev This parser intentionally supports the Intel PCS CRL profile used by
  * the on-chain PCCS: v2 CRLs, ECDSA-with-SHA256, a nextUpdate value and CRL
  * extensions. Malformed or unsupported encodings revert instead of being
@@ -41,18 +41,17 @@ contract X509CRLHelperV2 is Ownable {
     error Invalid_Serial_Number();
     error Missing_Common_Name();
     error Unauthorized_Indexer(address caller);
-    error Invalid_Batch_Size();
-    error Invalid_Index_Progress();
-
     event SetAuthorizedIndexer(address indexed indexer, bool authorized);
-    event IndexedCrlBatch(
-        bytes32 indexed derHash, uint256 indexedFrom, uint256 indexedTo, uint256 nextEntryOffset, bool complete
+    event IndexedCrl(
+        bytes32 indexed derHash, bytes32 indexed revokedSetHash, uint256 revokedCertificateCount, bool reused
     );
 
     mapping(address indexer => bool authorized) public authorizedIndexers;
-    mapping(bytes32 derHash => bool isIndexed) public indexedCrls;
-    mapping(bytes32 derHash => mapping(uint256 serialNumber => bool revoked)) private _revokedSerials;
-    mapping(bytes32 derHash => CrlIndexProgress progress) private _indexProgress;
+    /// @notice Binds an exact CRL DER to the canonical revokedCertificates sequence it contains.
+    mapping(bytes32 derHash => bytes32 revokedSetHash) public crlRevokedSetHashes;
+    mapping(bytes32 revokedSetHash => bool isIndexed) public indexedRevokedSets;
+    mapping(bytes32 revokedSetHash => uint256 revokedCertificateCount) public revokedSetCounts;
+    mapping(bytes32 revokedSetHash => mapping(uint256 serialNumber => bool revoked)) private _revokedSerials;
 
     struct Node {
         uint256 start;
@@ -70,12 +69,6 @@ contract X509CRLHelperV2 is Ownable {
         Node extensions;
         Node signature;
         bool hasRevokedCertificates;
-    }
-
-    struct CrlIndexProgress {
-        uint256 nextEntryOffset;
-        uint256 revokedCertificatesEnd;
-        uint256 indexedCount;
     }
 
     constructor(address initialOwner) {
@@ -124,8 +117,9 @@ contract X509CRLHelperV2 is Ownable {
 
     function serialNumberIsRevoked(uint256 serialNumber, bytes calldata der) external view returns (bool revoked) {
         bytes32 derHash = keccak256(der);
-        if (indexedCrls[derHash]) {
-            return _revokedSerials[derHash][serialNumber];
+        bytes32 revokedSetHash = crlRevokedSetHashes[derHash];
+        if (indexedRevokedSets[revokedSetHash]) {
+            return _revokedSerials[revokedSetHash][serialNumber];
         }
 
         // Safe migration fallback for a CRL that was stored before V2 was
@@ -177,72 +171,41 @@ contract X509CRLHelperV2 is Ownable {
     }
 
     /**
-     * @notice Indexes at most `maxEntries` consecutive revoked entries.
-     * @dev Callers cannot select ranges: progress always resumes at the stored
-     * DER byte cursor. `indexedCrls` becomes true only after that cursor reaches
-     * the exact end of the revokedCertificates sequence.
+     * @notice Strictly parses a CRL and makes its exact membership index available atomically.
+     * @dev Membership storage is keyed by the hash of the complete canonical DER
+     * revokedCertificates node, not by the full CRL DER. A CRL re-issue that only
+     * changes outer metadata or its signature therefore reuses an already verified
+     * exact index. Any later revert in the authorized PCS DAO also reverts these writes.
      */
-    function indexCrlBatch(bytes calldata der, uint256 maxEntries)
+    function parseAndIndexCRLMetadata(bytes calldata der)
         external
         onlyAuthorizedIndexer
-        returns (uint256 indexedCount, bool complete)
+        returns (X509CRLMetadata memory metadata)
     {
-        if (maxEntries == 0) revert Invalid_Batch_Size();
-
         CrlLayout memory layout = _locateCrl(der);
+        metadata = _metadataFromLayout(der, layout);
+
         bytes32 derHash = keccak256(der);
-        CrlIndexProgress storage progress = _indexProgress[derHash];
+        bytes32 revokedSetHash = _revokedSetHash(der, layout);
+        crlRevokedSetHashes[derHash] = revokedSetHash;
 
-        if (indexedCrls[derHash]) {
-            return (progress.indexedCount, true);
+        bool reused = indexedRevokedSets[revokedSetHash];
+        if (reused) {
+            metadata.revokedCertificateCount = revokedSetCounts[revokedSetHash];
+        } else {
+            if (layout.hasRevokedCertificates) {
+                metadata.revokedCertificateCount = _indexAllSerials(der, layout.revokedCertificates, revokedSetHash);
+            }
+            revokedSetCounts[revokedSetHash] = metadata.revokedCertificateCount;
+            indexedRevokedSets[revokedSetHash] = true;
         }
 
-        if (!layout.hasRevokedCertificates) {
-            indexedCrls[derHash] = true;
-            emit IndexedCrlBatch(derHash, 0, 0, 0, true);
-            return (0, true);
-        }
-
-        uint256 listStart = layout.revokedCertificates.content;
-        uint256 listEnd = layout.revokedCertificates.end;
-        uint256 cursor = progress.nextEntryOffset;
-
-        if (cursor == 0) {
-            cursor = listStart;
-            progress.revokedCertificatesEnd = listEnd;
-        } else if (cursor < listStart || cursor > listEnd || progress.revokedCertificatesEnd != listEnd) {
-            revert Invalid_Index_Progress();
-        }
-
-        uint256 indexedFrom = progress.indexedCount;
-        uint256 processed;
-        while (cursor < listEnd && processed < maxEntries) {
-            Node memory entry = _readNode(der, cursor, listEnd);
-            uint256 serial = _validateRevokedEntry(der, entry);
-            _revokedSerials[derHash][serial] = true;
-            cursor = entry.end;
-            processed++;
-        }
-
-        progress.nextEntryOffset = cursor;
-        progress.indexedCount = indexedFrom + processed;
-        complete = cursor == listEnd;
-        if (complete) indexedCrls[derHash] = true;
-
-        indexedCount = progress.indexedCount;
-        emit IndexedCrlBatch(derHash, indexedFrom, indexedCount, cursor, complete);
+        emit IndexedCrl(derHash, revokedSetHash, metadata.revokedCertificateCount, reused);
     }
 
-    function getIndexProgress(bytes32 derHash)
-        external
-        view
-        returns (uint256 nextEntryOffset, uint256 revokedCertificatesEnd, uint256 indexedCount, bool complete)
-    {
-        CrlIndexProgress storage progress = _indexProgress[derHash];
-        nextEntryOffset = progress.nextEntryOffset;
-        revokedCertificatesEnd = progress.revokedCertificatesEnd;
-        indexedCount = progress.indexedCount;
-        complete = indexedCrls[derHash];
+    /// @notice Reports whether the exact DER is bound to a complete shared membership index.
+    function indexedCrls(bytes32 derHash) public view returns (bool) {
+        return indexedRevokedSets[crlRevokedSetHashes[derHash]];
     }
 
     function _metadataFromLayout(bytes calldata der, CrlLayout memory layout)
@@ -259,6 +222,13 @@ contract X509CRLHelperV2 is Ownable {
         bytes memory tbs = _copyNode(der, layout.tbs, true);
         metadata.tbsHash = keccak256(tbs);
         metadata.tbsSha256 = sha256(tbs);
+    }
+
+    function _revokedSetHash(bytes calldata der, CrlLayout memory layout) private pure returns (bytes32) {
+        // Omitted and explicitly empty revokedCertificates lists have identical
+        // membership and intentionally share the canonical empty SEQUENCE hash.
+        if (!layout.hasRevokedCertificates) return keccak256(hex"3000");
+        return keccak256(_copyNode(der, layout.revokedCertificates, true));
     }
 
     /// =================================================================================
@@ -480,6 +450,21 @@ contract X509CRLHelperV2 is Ownable {
         while (cursor < revokedCertificates.end) {
             Node memory entry = _readNode(der, cursor, revokedCertificates.end);
             _validateRevokedEntry(der, entry);
+            count++;
+            cursor = entry.end;
+        }
+        if (cursor != revokedCertificates.end) revert Invalid_DER();
+    }
+
+    function _indexAllSerials(bytes calldata der, Node memory revokedCertificates, bytes32 revokedSetHash)
+        private
+        returns (uint256 count)
+    {
+        uint256 cursor = revokedCertificates.content;
+        while (cursor < revokedCertificates.end) {
+            Node memory entry = _readNode(der, cursor, revokedCertificates.end);
+            uint256 serial = _validateRevokedEntry(der, entry);
+            _revokedSerials[revokedSetHash][serial] = true;
             count++;
             cursor = entry.end;
         }

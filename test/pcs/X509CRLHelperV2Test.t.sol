@@ -31,7 +31,7 @@ contract X509CRLHelperV2Test is Test {
     function testFirstMiddleLastAndMissingSerials() public {
         X509CRLObj memory parsed = legacy.parseCRLDER(crl129);
         uint256 length = parsed.serialNumbersRevoked.length;
-        _completeIndex(crl129, 50);
+        _completeIndex(crl129);
 
         assertTrue(v2.serialNumberIsRevoked(parsed.serialNumbersRevoked[0], crl129), "first serial");
         assertTrue(v2.serialNumberIsRevoked(parsed.serialNumbersRevoked[length / 2], crl129), "middle serial");
@@ -40,7 +40,7 @@ contract X509CRLHelperV2Test is Test {
     }
 
     function testManyNonRevokedSerialsAndLegacyDifferential() public {
-        _completeIndex(crl129, 50);
+        _completeIndex(crl129);
         for (uint256 i = 0; i < 256; i++) {
             uint256 candidate = uint256(keccak256(abi.encode("non-revoked", i)));
             bool actual = v2.serialNumberIsRevoked(candidate, crl129);
@@ -70,57 +70,43 @@ contract X509CRLHelperV2Test is Test {
         address unauthorized = address(0xBEEF);
         vm.prank(unauthorized);
         vm.expectRevert(abi.encodeWithSelector(X509CRLHelperV2.Unauthorized_Indexer.selector, unauthorized));
-        v2.indexCrlBatch(crl57, 50);
+        v2.parseAndIndexCRLMetadata(crl57);
         assertFalse(v2.indexedCrls(keccak256(crl57)));
     }
 
-    function testPartialIndexNeverCreatesFalseNegativeAndOnlyCompletesAtEnd() public {
-        X509CRLObj memory parsed = legacy.parseCRLDER(crl129);
-        bytes32 derHash = keccak256(crl129);
+    function testOneShotIndexReusesExactRevokedSetAcrossReissue() public {
+        X509CRLMetadata memory initial = v2.parseAndIndexCRLMetadata(crl57);
+        bytes32 initialDerHash = keccak256(crl57);
+        bytes32 setHash = v2.crlRevokedSetHashes(initialDerHash);
+        assertTrue(v2.indexedCrls(initialDerHash));
+        assertTrue(v2.indexedRevokedSets(setHash));
+        assertEq(v2.revokedSetCounts(setHash), 57);
 
-        (uint256 indexedCount, bool complete) = v2.indexCrlBatch(crl129, 50);
-        assertEq(indexedCount, 50);
-        assertFalse(complete);
-        assertFalse(v2.indexedCrls(derHash));
+        bytes memory reissued = _copy(crl57);
+        _replaceFirst(reissued, bytes("260716114338Z"), bytes("260717114338Z"));
+        _replaceFirst(reissued, bytes("260815114338Z"), bytes("260816114338Z"));
+        X509CRLMetadata memory reused = v2.parseAndIndexCRLMetadata(reissued);
+        bytes32 reissuedDerHash = keccak256(reissued);
 
-        // The last serial has not been indexed yet. It must still be found by
-        // the strict linear fallback while the index is incomplete.
-        assertTrue(v2.serialNumberIsRevoked(parsed.serialNumbersRevoked[128], crl129));
+        assertEq(initial.revokedCertificateCount, 57);
+        assertEq(reused.revokedCertificateCount, 57);
+        assertNotEq(initial.tbsHash, reused.tbsHash);
+        assertEq(v2.crlRevokedSetHashes(reissuedDerHash), setHash);
+        assertTrue(v2.indexedCrls(reissuedDerHash));
 
-        assertFalse(v2.serialNumberIsRevoked(type(uint256).max, crl129));
-
-        (indexedCount, complete) = v2.indexCrlBatch(crl129, 50);
-        assertEq(indexedCount, 100);
-        assertFalse(complete);
-
-        (indexedCount, complete) = v2.indexCrlBatch(crl129, 50);
-        assertEq(indexedCount, 129);
-        assertTrue(complete);
-        assertTrue(v2.indexedCrls(derHash));
-
-        assertFalse(v2.serialNumberIsRevoked(type(uint256).max, crl129));
-
-        (,, uint256 progressCount, bool progressComplete) = v2.getIndexProgress(derHash);
-        assertEq(progressCount, 129);
-        assertTrue(progressComplete);
+        X509CRLObj memory parsed = legacy.parseCRLDER(reissued);
+        assertTrue(v2.serialNumberIsRevoked(parsed.serialNumbersRevoked[0], reissued));
+        assertTrue(v2.serialNumberIsRevoked(parsed.serialNumbersRevoked[56], reissued));
+        assertFalse(v2.serialNumberIsRevoked(type(uint256).max, reissued));
     }
 
-    function testRejectsZeroSizedIndexBatch() public {
-        vm.expectRevert(X509CRLHelperV2.Invalid_Batch_Size.selector);
-        v2.indexCrlBatch(crl57, 0);
-    }
-
-    function testIndexesTwoHundredSerialsInFourFiftyEntryBatches() public {
+    function testIndexesTwoHundredSerialsAtomically() public {
         bytes memory der = _syntheticCrlWithSerialCount(200);
         bytes32 derHash = keccak256(der);
+        X509CRLMetadata memory metadata = v2.parseAndIndexCRLMetadata(der);
 
-        for (uint256 batch = 1; batch <= 4; batch++) {
-            (uint256 indexedCount, bool complete) = v2.indexCrlBatch(der, 50);
-            assertEq(indexedCount, batch * 50);
-            assertEq(complete, batch == 4);
-            assertEq(v2.indexedCrls(derHash), batch == 4);
-        }
-
+        assertEq(metadata.revokedCertificateCount, 200);
+        assertTrue(v2.indexedCrls(derHash));
         assertTrue(v2.serialNumberIsRevoked(1, der));
         assertTrue(v2.serialNumberIsRevoked(100, der));
         assertTrue(v2.serialNumberIsRevoked(200, der));
@@ -162,7 +148,7 @@ contract X509CRLHelperV2Test is Test {
 
     function testGasBenchmark129NonMember() public {
         uint256 candidate = type(uint256).max;
-        _completeIndex(crl129, 50);
+        _completeIndex(crl129);
 
         uint256 beforeLegacy = gasleft();
         bool legacyResult = legacy.serialNumberIsRevoked(candidate, crl129);
@@ -184,8 +170,7 @@ contract X509CRLHelperV2Test is Test {
     function _assertMetadataAndEveryRevokedSerial(bytes memory der, uint256 expectedCount) private {
         X509CRLObj memory legacyParsed = legacy.parseCRLDER(der);
         X509CRLObj memory v2Parsed = v2.parseCRLDER(der);
-        X509CRLMetadata memory metadata = v2.parseCRLMetadata(der);
-        _completeIndex(der, 50);
+        X509CRLMetadata memory metadata = v2.parseAndIndexCRLMetadata(der);
 
         assertEq(legacyParsed.serialNumbersRevoked.length, expectedCount);
         assertEq(v2Parsed.serialNumbersRevoked.length, expectedCount);
@@ -205,12 +190,9 @@ contract X509CRLHelperV2Test is Test {
         }
     }
 
-    function _completeIndex(bytes memory der, uint256 batchSize) private {
-        bool complete;
-        for (uint256 i = 0; i < 32 && !complete; i++) {
-            (, complete) = v2.indexCrlBatch(der, batchSize);
-        }
-        assertTrue(complete, "index did not complete");
+    function _completeIndex(bytes memory der) private {
+        v2.parseAndIndexCRLMetadata(der);
+        assertTrue(v2.indexedCrls(keccak256(der)), "index did not complete");
     }
 
     function _syntheticCrl(bytes memory serialContent) private pure returns (bytes memory) {
@@ -258,6 +240,26 @@ contract X509CRLHelperV2Test is Test {
 
     function _copy(bytes memory input) private pure returns (bytes memory output) {
         output = _slice(input, 0, input.length);
+    }
+
+    function _replaceFirst(bytes memory input, bytes memory needle, bytes memory replacement) private pure {
+        require(needle.length == replacement.length && needle.length > 0, "invalid replacement");
+        for (uint256 i = 0; i + needle.length <= input.length; i++) {
+            bool matches = true;
+            for (uint256 j = 0; j < needle.length; j++) {
+                if (input[i + j] != needle[j]) {
+                    matches = false;
+                    break;
+                }
+            }
+            if (matches) {
+                for (uint256 j = 0; j < replacement.length; j++) {
+                    input[i + j] = replacement[j];
+                }
+                return;
+            }
+        }
+        revert("needle not found");
     }
 
     function _slice(bytes memory input, uint256 start, uint256 length) private pure returns (bytes memory output) {
