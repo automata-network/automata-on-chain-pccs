@@ -47,7 +47,7 @@ contract X509CRLHelperV2 is Ownable {
     );
 
     mapping(address indexer => bool authorized) public authorizedIndexers;
-    /// @notice Binds an exact CRL DER to the canonical revokedCertificates sequence it contains.
+    /// @notice Binds an exact CRL DER to its canonical ordered revoked-serial set.
     mapping(bytes32 derHash => bytes32 revokedSetHash) public crlRevokedSetHashes;
     mapping(bytes32 revokedSetHash => bool isIndexed) public indexedRevokedSets;
     mapping(bytes32 revokedSetHash => uint256 revokedCertificateCount) public revokedSetCounts;
@@ -172,10 +172,11 @@ contract X509CRLHelperV2 is Ownable {
 
     /**
      * @notice Strictly parses a CRL and makes its exact membership index available atomically.
-     * @dev Membership storage is keyed by the hash of the complete canonical DER
-     * revokedCertificates node, not by the full CRL DER. A CRL re-issue that only
-     * changes outer metadata or its signature therefore reuses an already verified
-     * exact index. Any later revert in the authorized PCS DAO also reverts these writes.
+     * @dev Membership storage is keyed by a domain-separated rolling hash of the
+     * strictly parsed uint256 serial sequence. Reissues that keep the same ordered
+     * serial set reuse the exact index even if revocation dates, entry metadata,
+     * outer metadata, or the signature change. Any later revert in the authorized
+     * PCS DAO also reverts these writes.
      */
     function parseAndIndexCRLMetadata(bytes calldata der)
         external
@@ -186,15 +187,16 @@ contract X509CRLHelperV2 is Ownable {
         metadata = _metadataFromLayout(der, layout);
 
         bytes32 derHash = keccak256(der);
-        bytes32 revokedSetHash = _revokedSetHash(der, layout);
+        (bytes32 revokedSetHash, uint256[] memory serials) = _parseRevokedSerialSet(der, layout);
         crlRevokedSetHashes[derHash] = revokedSetHash;
 
         bool reused = indexedRevokedSets[revokedSetHash];
+        metadata.revokedCertificateCount = serials.length;
         if (reused) {
-            metadata.revokedCertificateCount = revokedSetCounts[revokedSetHash];
+            if (revokedSetCounts[revokedSetHash] != serials.length) revert Invalid_DER();
         } else {
-            if (layout.hasRevokedCertificates) {
-                metadata.revokedCertificateCount = _indexAllSerials(der, layout.revokedCertificates, revokedSetHash);
+            for (uint256 i = 0; i < serials.length; i++) {
+                _revokedSerials[revokedSetHash][serials[i]] = true;
             }
             revokedSetCounts[revokedSetHash] = metadata.revokedCertificateCount;
             indexedRevokedSets[revokedSetHash] = true;
@@ -224,11 +226,40 @@ contract X509CRLHelperV2 is Ownable {
         metadata.tbsSha256 = sha256(tbs);
     }
 
-    function _revokedSetHash(bytes calldata der, CrlLayout memory layout) private pure returns (bytes32) {
-        // Omitted and explicitly empty revokedCertificates lists have identical
-        // membership and intentionally share the canonical empty SEQUENCE hash.
-        if (!layout.hasRevokedCertificates) return keccak256(hex"3000");
-        return keccak256(_copyNode(der, layout.revokedCertificates, true));
+    function _parseRevokedSerialSet(bytes calldata der, CrlLayout memory layout)
+        private
+        pure
+        returns (bytes32 revokedSetHash, uint256[] memory serials)
+    {
+        bytes32 rollingHash = keccak256("X509CRLHelperV2.revokedSerialSet.v1");
+        if (!layout.hasRevokedCertificates) {
+            serials = new uint256[](0);
+            return (keccak256(abi.encodePacked(rollingHash, uint256(0))), serials);
+        }
+
+        // A valid entry needs at least a SEQUENCE header, a one-byte positive
+        // INTEGER, and a UTCTime. This keeps the temporary array proportional
+        // to the maximum possible entry count instead of the CRL byte length.
+        uint256 listLength = layout.revokedCertificates.end - layout.revokedCertificates.content;
+        uint256 maxCount = listLength / 20 + 1;
+        serials = new uint256[](maxCount);
+
+        uint256 cursor = layout.revokedCertificates.content;
+        uint256 count;
+        while (cursor < layout.revokedCertificates.end) {
+            Node memory entry = _readNode(der, cursor, layout.revokedCertificates.end);
+            uint256 serial = _validateRevokedEntry(der, entry);
+            if (count == maxCount) revert Invalid_DER();
+            serials[count++] = serial;
+            rollingHash = keccak256(abi.encodePacked(rollingHash, serial));
+            cursor = entry.end;
+        }
+        if (cursor != layout.revokedCertificates.end) revert Invalid_DER();
+
+        assembly ("memory-safe") {
+            mstore(serials, count)
+        }
+        revokedSetHash = keccak256(abi.encodePacked(rollingHash, count));
     }
 
     /// =================================================================================
@@ -450,21 +481,6 @@ contract X509CRLHelperV2 is Ownable {
         while (cursor < revokedCertificates.end) {
             Node memory entry = _readNode(der, cursor, revokedCertificates.end);
             _validateRevokedEntry(der, entry);
-            count++;
-            cursor = entry.end;
-        }
-        if (cursor != revokedCertificates.end) revert Invalid_DER();
-    }
-
-    function _indexAllSerials(bytes calldata der, Node memory revokedCertificates, bytes32 revokedSetHash)
-        private
-        returns (uint256 count)
-    {
-        uint256 cursor = revokedCertificates.content;
-        while (cursor < revokedCertificates.end) {
-            Node memory entry = _readNode(der, cursor, revokedCertificates.end);
-            uint256 serial = _validateRevokedEntry(der, entry);
-            _revokedSerials[revokedSetHash][serial] = true;
             count++;
             cursor = entry.end;
         }

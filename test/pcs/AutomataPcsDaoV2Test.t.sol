@@ -16,12 +16,14 @@ contract AutomataPcsDaoV2Test is PCSSetupBase {
     X509CRLHelperV2 internal crlV2;
     AutomataPcsDaoV2 internal pcsV2;
     AutomataPckDaoV2 internal pckV2;
+    bytes internal crl57Previous;
     bytes internal crl57;
     bytes internal crl129;
 
     function setUp() public override {
         super.setUp();
 
+        crl57Previous = vm.parseBytes(vm.readLine("test/assets/crl/platform-57-20260707.hex"));
         crl57 = vm.parseBytes(vm.readLine("test/assets/crl/platform-57-20260716.hex"));
         crl129 = vm.parseBytes(vm.readLine("test/assets/crl/platform-129-20260716.hex"));
 
@@ -116,37 +118,29 @@ contract AutomataPcsDaoV2Test is PCSSetupBase {
         assertFalse(crlV2.indexedCrls(derHash));
     }
 
-    function testReissuedDatesWithSameRevokedContentIsNotDuplicate() public {
+    function testRealSignedExactSetReissueReusesIndexAndGas() public {
         uint256 beforeInitial = gasleft();
-        pcsV2.upsertPckCrl(CA.PLATFORM, crl57);
+        pcsV2.upsertPckCrl(CA.PLATFORM, crl57Previous);
         uint256 initialGas = beforeInitial - gasleft();
-        bytes32 initialDerHash = keccak256(crl57);
+        bytes32 initialDerHash = keccak256(crl57Previous);
         bytes32 initialSetHash = crlV2.crlRevokedSetHashes(initialDerHash);
-        bytes memory reissued = _copy(crl57);
-        _replaceFirst(reissued, bytes("260716114338Z"), bytes("260717114338Z"));
-        _replaceFirst(reissued, bytes("260815114338Z"), bytes("260816114338Z"));
 
-        // The fixture signature no longer matches after changing the signed
-        // dates. Mock only the P-256 primitive so this test isolates duplicate
-        // and rollback behavior for a newly signed equivalent CRL.
-        vm.mockCall(P256_VERIFIER, bytes(""), abi.encode(true));
         uint256 beforeReissue = gasleft();
-        pcsV2.upsertPckCrl(CA.PLATFORM, reissued);
+        pcsV2.upsertPckCrl(CA.PLATFORM, crl57);
         uint256 reissueGas = beforeReissue - gasleft();
-        vm.clearMockedCalls();
 
-        X509CRLObj memory beforeCrl = crlV2.parseCRLDER(crl57);
-        X509CRLObj memory afterCrl = crlV2.parseCRLDER(reissued);
-        bytes32 reissuedDerHash = keccak256(reissued);
+        X509CRLObj memory beforeCrl = crlV2.parseCRLDER(crl57Previous);
+        X509CRLObj memory afterCrl = crlV2.parseCRLDER(crl57);
+        bytes32 reissuedDerHash = keccak256(crl57);
         assertEq(beforeCrl.serialNumbersRevoked, afterCrl.serialNumbersRevoked);
         assertNotEq(keccak256(beforeCrl.tbs), keccak256(afterCrl.tbs));
         assertTrue(crlV2.indexedCrls(initialDerHash));
         assertTrue(crlV2.indexedCrls(reissuedDerHash));
         assertEq(crlV2.crlRevokedSetHashes(reissuedDerHash), initialSetHash, "exact set index was not reused");
-        _assertStoredCrl(reissued);
+        _assertStoredCrl(crl57);
 
-        console2.log("PcsDaoV2 57-entry first-set upsert gas", initialGas);
-        console2.log("PcsDaoV2 57-entry exact-set reuse upsert gas", reissueGas);
+        console2.log("PcsDaoV2 real-signed 57-entry first-set upsert gas", initialGas);
+        console2.log("PcsDaoV2 real-signed 57-entry exact-set reuse upsert gas", reissueGas);
     }
 
     function testSignatureOnlyReissueWithIdenticalTbsIsDuplicate() public {
