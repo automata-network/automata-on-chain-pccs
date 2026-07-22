@@ -146,6 +146,65 @@ contract X509CRLHelperV2Test is Test {
         assertFalse(v2.serialNumberIsRevoked(2, valid));
     }
 
+    function testRejectsInvalidMonth() public {
+        _assertRejectsInvalidTime(bytes("260716114338Z"), bytes("269916114338Z"));
+    }
+
+    function testRejectsInvalidDay() public {
+        _assertRejectsInvalidTime(bytes("260716114338Z"), bytes("260732114338Z"));
+    }
+
+    function testRejectsInvalidNonLeapDay() public {
+        _assertRejectsInvalidTime(bytes("260716114338Z"), bytes("250229114338Z"));
+    }
+
+    function testAcceptsValidLeapDay() public view {
+        bytes memory valid = _copy(crl57);
+        _replaceFirst(valid, bytes("260716114338Z"), bytes("240229114338Z"));
+        v2.parseCRLMetadata(valid);
+    }
+
+    function testRejectsInvalidHour() public {
+        _assertRejectsInvalidTime(bytes("260716114338Z"), bytes("260716244338Z"));
+    }
+
+    function testRejectsInvalidMinute() public {
+        _assertRejectsInvalidTime(bytes("260716114338Z"), bytes("260716116038Z"));
+    }
+
+    function testRejectsInvalidSecond() public {
+        _assertRejectsInvalidTime(bytes("260716114338Z"), bytes("260716114360Z"));
+    }
+
+    function testRejectsInvalidGeneralizedTimeCalendar() public {
+        bytes memory issuer = hex"3011310f300d06035504030c06497373756572";
+        bytes memory invalidThisUpdate = hex"180f32303236393931373030303030305a";
+        bytes memory validNextUpdate = hex"180f32303236303831363030303030305a";
+        bytes memory der = _syntheticCrlWithIssuerEntriesAndTimes(
+            issuer, _syntheticRevokedEntry(1), invalidThisUpdate, validNextUpdate
+        );
+
+        vm.expectRevert(X509CRLHelperV2.Invalid_DER.selector);
+        v2.parseCRLMetadata(der);
+    }
+
+    function testRejectsMalformedIssuerFieldAfterCommonName() public {
+        bytes memory malformedIssuer =
+            bytes.concat(hex"30", hex"1e", hex"310f300d06035504030c06497373756572", hex"320b3009060355040613025553");
+        bytes memory der = _syntheticCrlWithIssuerAndEntries(malformedIssuer, _syntheticRevokedEntry(1));
+
+        vm.expectRevert(X509CRLHelperV2.Invalid_DER.selector);
+        v2.parseCRLMetadata(der);
+    }
+
+    function testFallbackValidatesEntriesAfterMatchingSerial() public {
+        bytes memory entries = bytes.concat(_syntheticRevokedEntry(1), hex"310f020102170d3236303731373030303030305a");
+        bytes memory malformed = _syntheticCrlWithEntries(entries);
+
+        vm.expectRevert(X509CRLHelperV2.Invalid_DER.selector);
+        v2.serialNumberIsRevoked(1, malformed);
+    }
+
     function testGasBenchmark129NonMember() public {
         uint256 candidate = type(uint256).max;
         _completeIndex(crl129);
@@ -195,6 +254,18 @@ contract X509CRLHelperV2Test is Test {
         assertTrue(v2.indexedCrls(keccak256(der)), "index did not complete");
     }
 
+    function _assertRejectsInvalidTime(bytes memory original, bytes memory replacement) private {
+        bytes memory malformed = _copy(crl57);
+        _replaceFirst(malformed, original, replacement);
+        vm.expectRevert(X509CRLHelperV2.Invalid_DER.selector);
+        v2.parseCRLMetadata(malformed);
+    }
+
+    function _syntheticRevokedEntry(uint8 serial) private pure returns (bytes memory) {
+        bytes memory thisUpdate = hex"170d3236303731373030303030305a";
+        return _der(0x30, bytes.concat(_der(0x02, abi.encodePacked(bytes1(serial))), thisUpdate));
+    }
+
     function _syntheticCrl(bytes memory serialContent) private pure returns (bytes memory) {
         bytes memory thisUpdate = hex"170d3236303731373030303030305a";
         bytes memory serialNode = _der(0x02, serialContent);
@@ -215,10 +286,27 @@ contract X509CRLHelperV2Test is Test {
     }
 
     function _syntheticCrlWithEntries(bytes memory entries) private pure returns (bytes memory) {
-        bytes memory algorithm = hex"300a06082a8648ce3d040302";
         bytes memory issuer = hex"3011310f300d06035504030c06497373756572";
+        return _syntheticCrlWithIssuerAndEntries(issuer, entries);
+    }
+
+    function _syntheticCrlWithIssuerAndEntries(bytes memory issuer, bytes memory entries)
+        private
+        pure
+        returns (bytes memory)
+    {
         bytes memory thisUpdate = hex"170d3236303731373030303030305a";
         bytes memory nextUpdate = hex"170d3236303831363030303030305a";
+        return _syntheticCrlWithIssuerEntriesAndTimes(issuer, entries, thisUpdate, nextUpdate);
+    }
+
+    function _syntheticCrlWithIssuerEntriesAndTimes(
+        bytes memory issuer,
+        bytes memory entries,
+        bytes memory thisUpdate,
+        bytes memory nextUpdate
+    ) private pure returns (bytes memory) {
+        bytes memory algorithm = hex"300a06082a8648ce3d040302";
         bytes memory revoked = _der(0x30, entries);
         bytes memory extensions = hex"a011300f300d0603551d230406300480020102";
         bytes memory tbs =

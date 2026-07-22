@@ -9,7 +9,7 @@ import {DaoBase} from "../../src/bases/DaoBase.sol";
 import {PcsDaoV2} from "../../src/bases/PcsDaoV2.sol";
 import {AutomataPcsDaoV2} from "../../src/automata_pccs/AutomataPcsDaoV2.sol";
 import {AutomataPckDaoV2} from "../../src/automata_pccs/AutomataPckDaoV2.sol";
-import {X509CRLObj} from "../../src/helpers/X509CRLHelper.sol";
+import {X509CRLHelper, X509CRLObj} from "../../src/helpers/X509CRLHelper.sol";
 import {X509CRLHelperV2, X509CRLMetadata} from "../../src/helpers/X509CRLHelperV2.sol";
 
 contract AutomataPcsDaoV2Test is PCSSetupBase {
@@ -42,9 +42,50 @@ contract AutomataPcsDaoV2Test is PCSSetupBase {
 
     function testDeploymentsBindV2ComponentsWithoutChangingAbi() public {
         assertEq(address(pcsV2.crlLib()), address(crlV2));
-        assertEq(address(pckV2.crlLib()), address(crlV2));
-        assertEq(address(pckV2.Pcs()), address(pcsV2));
+        assertEq(address(pcsV2.x509()), address(x509Lib));
+        assertEq(address(pcsV2.P256_VERIFIER()), P256_VERIFIER);
         assertEq(address(pcsV2.resolver()), address(pccsStorage));
+        assertEq(address(pckV2.crlLib()), address(crlV2));
+        assertEq(address(pckV2.x509()), address(x509Lib));
+        assertEq(address(pckV2.P256_VERIFIER()), P256_VERIFIER);
+        assertEq(address(pckV2.resolver()), address(pccsStorage));
+        assertEq(address(pckV2.Pcs()), address(pcsV2));
+
+        bytes32 pcsProbe = keccak256("PCS_V2_STORAGE_PROBE");
+        bytes32 pckProbe = keccak256("PCK_V2_STORAGE_PROBE");
+        bytes32 pcsPointer = pccsStorage.collateralPointer(pcsProbe);
+        bytes32 pckPointer = pccsStorage.collateralPointer(pckProbe);
+        vm.prank(address(pcsV2));
+        pccsStorage.attest(pcsProbe, hex"01", bytes32(0));
+        vm.prank(address(pckV2));
+        pccsStorage.attest(pckProbe, hex"02", bytes32(0));
+
+        vm.prank(address(pcsV2));
+        assertEq(pccsStorage.readAttestation(pcsPointer), hex"01");
+        vm.prank(address(pckV2));
+        assertEq(pccsStorage.readAttestation(pckPointer), hex"02");
+    }
+
+    function testRuntimeCodeHashValidationDetectsWrongBuildAndImmutable() public {
+        X509CRLHelperV2 expectedCrl = new X509CRLHelperV2(admin);
+        X509CRLHelper legacyCrl = new X509CRLHelper();
+        assertEq(address(crlV2).codehash, address(expectedCrl).codehash);
+        assertNotEq(address(crlV2).codehash, address(legacyCrl).codehash);
+
+        AutomataPcsDaoV2 expectedPcs =
+            new AutomataPcsDaoV2(address(pccsStorage), P256_VERIFIER, address(x509Lib), address(crlV2));
+        AutomataPcsDaoV2 wrongPcs =
+            new AutomataPcsDaoV2(address(pccsStorage), address(0xDEAD), address(x509Lib), address(crlV2));
+        assertEq(address(pcsV2).codehash, address(expectedPcs).codehash);
+        assertNotEq(address(pcsV2).codehash, address(wrongPcs).codehash);
+
+        AutomataPckDaoV2 expectedPck =
+            new AutomataPckDaoV2(address(pccsStorage), P256_VERIFIER, address(pcsV2), address(x509Lib), address(crlV2));
+        AutomataPckDaoV2 wrongPck = new AutomataPckDaoV2(
+            address(pccsStorage), address(0xDEAD), address(pcsV2), address(x509Lib), address(crlV2)
+        );
+        assertEq(address(pckV2).codehash, address(expectedPck).codehash);
+        assertNotEq(address(pckV2).codehash, address(wrongPck).codehash);
     }
 
     function testNonInitialUpsert129Then57ShrinkAndRejectRollback() public {
@@ -87,6 +128,41 @@ contract AutomataPcsDaoV2Test is PCSSetupBase {
         uint256 indexedCount = pcsV2.indexStoredCrl(CA.PLATFORM, derHash);
         assertEq(indexedCount, 57);
         assertTrue(crlV2.indexedCrls(derHash));
+        _assertStoredCrl(crl57);
+    }
+
+    function testRevokedLegacyPcsCannotReplaceIndexedCrlButV2Can() public {
+        pcs.upsertPckCrl(CA.PLATFORM, crl129);
+        pcsV2.indexStoredCrl(CA.PLATFORM, keccak256(crl129));
+        assertTrue(crlV2.indexedCrls(keccak256(crl129)));
+
+        vm.prank(admin);
+        pccsStorage.revokeDao(address(pcs));
+
+        vm.expectRevert(bytes("FORBIDDEN"));
+        pcs.upsertPckCrl(CA.PLATFORM, crl57);
+        _assertStoredCrl(crl129);
+
+        pcsV2.upsertPckCrl(CA.PLATFORM, crl57);
+        assertTrue(crlV2.indexedCrls(keccak256(crl57)));
+        _assertStoredCrl(crl57);
+    }
+
+    function testPostRevocationReconcileIndexesCutoverRace() public {
+        pcs.upsertPckCrl(CA.PLATFORM, crl129);
+        pcsV2.indexStoredCrl(CA.PLATFORM, keccak256(crl129));
+
+        // Models a valid V1 update landing after the pre-cutover index check
+        // but before the legacy writer revocation transaction.
+        pcs.upsertPckCrl(CA.PLATFORM, crl57);
+        bytes32 racedDerHash = keccak256(crl57);
+        assertFalse(crlV2.indexedCrls(racedDerHash));
+
+        vm.prank(admin);
+        pccsStorage.revokeDao(address(pcs));
+        pcsV2.indexStoredCrl(CA.PLATFORM, racedDerHash);
+
+        assertTrue(crlV2.indexedCrls(racedDerHash));
         _assertStoredCrl(crl57);
     }
 

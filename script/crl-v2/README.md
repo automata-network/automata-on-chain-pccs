@@ -5,6 +5,13 @@ existing PCCS deployment. `index-stored-crls.sh` migrates the ROOT, PROCESSOR,
 and PLATFORM CRLs already stored by V1. Each stored CRL is authenticated and
 indexed atomically in one transaction before the Router switches to V2.
 
+After the Router switches to V2, `revoke-legacy-pcs-writer.sh` removes the
+legacy `AutomataPcsDao` storage authorization. This prevents V1 from replacing
+an indexed CRL with unindexed DER. The cross-repository rollout immediately
+reconciles all three current CRLs after revocation, closing any race between
+the Router switch and the revocation transaction. A rollback must re-grant the
+legacy DAO before switching the Router back.
+
 Once V2 is active, normal CRL upserts complete the exact serial index in the
 same transaction. The helper keys membership by a domain-separated hash of the
 strictly parsed serial sequence, so reissues with the same ordered serial set
@@ -25,6 +32,7 @@ for the keystore password. Raw private keys are not accepted.
 ```bash
 ./script/crl-v2/deploy.sh
 ./script/crl-v2/index-stored-crls.sh
+./script/crl-v2/revoke-legacy-pcs-writer.sh
 ```
 
 For the full cross-repository rollout, use the numbered scripts under

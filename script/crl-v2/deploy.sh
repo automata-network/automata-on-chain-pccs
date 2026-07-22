@@ -80,6 +80,7 @@ assert_address_eq \
     "AutomataPcsDaoV2 PCK helper" \
     "$(cast call "$PCS_DAO_ADDRESS" 'x509()(address)' --rpc-url "$RPC_URL")" \
     "$PCK_HELPER_ADDRESS"
+PCS_P256_ADDRESS="$(cast call "$PCS_DAO_ADDRESS" 'P256_VERIFIER()(address)' --rpc-url "$RPC_URL")"
 assert_address_eq \
     "AutomataPckDaoV2 resolver" \
     "$(cast call "$PCK_DAO_ADDRESS" 'resolver()(address)' --rpc-url "$RPC_URL")" \
@@ -92,6 +93,14 @@ assert_address_eq \
     "AutomataPckDaoV2 CRL helper" \
     "$(cast call "$PCK_DAO_ADDRESS" 'crlLib()(address)' --rpc-url "$RPC_URL")" \
     "$CRL_HELPER_ADDRESS"
+assert_address_eq \
+    "AutomataPckDaoV2 PCK helper" \
+    "$(cast call "$PCK_DAO_ADDRESS" 'x509()(address)' --rpc-url "$RPC_URL")" \
+    "$PCK_HELPER_ADDRESS"
+assert_address_eq \
+    "AutomataPckDaoV2 P256 verifier" \
+    "$(cast call "$PCK_DAO_ADDRESS" 'P256_VERIFIER()(address)' --rpc-url "$RPC_URL")" \
+    "$PCS_P256_ADDRESS"
 
 AUTHORIZED="$(
     cast call "$CRL_HELPER_ADDRESS" \
@@ -100,6 +109,9 @@ AUTHORIZED="$(
 )"
 [[ "$AUTHORIZED" == "true" ]] || die "AutomataPcsDaoV2 is not an authorized CRL indexer"
 
+require_storage_writer AutomataPcsDaoV2 "$STORAGE_ADDRESS" "$PCS_DAO_ADDRESS"
+require_storage_writer AutomataPckDaoV2 "$STORAGE_ADDRESS" "$PCK_DAO_ADDRESS"
+
 # This read crosses the DAO -> shared-storage authorization boundary. It also
 # confirms the migration has the ROOT collateral needed to validate the three
 # currently stored CRLs.
@@ -107,6 +119,15 @@ cast call "$PCS_DAO_ADDRESS" \
     'getCertificateById(uint8)(bytes,bytes)' 0 \
     --rpc-url "$RPC_URL" >/dev/null \
     || die "AutomataPcsDaoV2 cannot read ROOT collateral from AutomataDaoStorage"
+
+# Empty identifiers still exercise AutomataPckDaoV2 -> AutomataDaoStorage's
+# writer-gated TCB mapping read, without requiring a known PCK fixture.
+cast call "$PCK_DAO_ADDRESS" \
+    'getCert(string,string,string,string)(bytes)' "" "" "" "" \
+    --rpc-url "$RPC_URL" >/dev/null \
+    || die "AutomataPckDaoV2 cannot read through AutomataDaoStorage"
+
+validate_crl_v2_runtime_code "$OWNER_ADDRESS"
 
 success "CRL V2 contracts are deployed and bound correctly"
 printf '  X509CRLHelperV2: %s\n' "$CRL_HELPER_ADDRESS"

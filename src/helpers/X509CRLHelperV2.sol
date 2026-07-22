@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {X509CRLObj} from "./X509CRLHelper.sol";
 import {DateTimeUtils} from "../utils/DateTimeUtils.sol";
 import {Ownable} from "solady/auth/Ownable.sol";
+import {DateTimeLib} from "solady/utils/DateTimeLib.sol";
 
 /**
  * @notice The subset of a CRL needed by PcsDao when validating an upsert.
@@ -352,9 +353,28 @@ contract X509CRLHelperV2 is Ownable {
             if (char < 0x30 || char > 0x39) revert Invalid_DER();
         }
         if (der[node.end - 1] != 0x5A) revert Invalid_DER();
+
+        uint256 cursor = node.content;
+        uint256 year;
+        if (length == 13) {
+            year = _decimalPair(der, cursor);
+            year += year < 50 ? 2000 : 1900;
+            cursor += 2;
+        } else {
+            year = _decimalPair(der, cursor) * 100 + _decimalPair(der, cursor + 2);
+            cursor += 4;
+        }
+
+        uint256 month = _decimalPair(der, cursor);
+        uint256 day = _decimalPair(der, cursor + 2);
+        uint256 hour = _decimalPair(der, cursor + 4);
+        uint256 minute = _decimalPair(der, cursor + 6);
+        uint256 second = _decimalPair(der, cursor + 8);
+        if (!DateTimeLib.isSupportedDateTime(year, month, day, hour, minute, second)) revert Invalid_DER();
     }
 
     function _getCommonName(bytes calldata der, Node memory issuer) private pure returns (string memory commonName) {
+        bool found;
         uint256 rdnCursor = issuer.content;
         while (rdnCursor < issuer.end) {
             Node memory rdn = _readNode(der, rdnCursor, issuer.end);
@@ -370,8 +390,9 @@ contract X509CRLHelperV2 is Ownable {
                 Node memory value = _readNode(der, oid.end, attribute.end);
                 if (value.end != attribute.end || (_tag(der, value) & 0x20) != 0) revert Invalid_DER();
 
-                if (_contentEquals3(der, oid, COMMON_NAME_OID)) {
-                    return string(_copyContent(der, value));
+                if (!found && _contentEquals3(der, oid, COMMON_NAME_OID)) {
+                    commonName = string(_copyContent(der, value));
+                    found = true;
                 }
                 attributeCursor = attribute.end;
             }
@@ -379,7 +400,7 @@ contract X509CRLHelperV2 is Ownable {
             rdnCursor = rdn.end;
         }
         if (rdnCursor != issuer.end) revert Invalid_DER();
-        revert Missing_Common_Name();
+        if (!found) revert Missing_Common_Name();
     }
 
     function _getAuthorityKeyIdentifier(bytes calldata der, Node memory explicitExtensions)
@@ -459,17 +480,16 @@ contract X509CRLHelperV2 is Ownable {
     function _containsSerial(bytes calldata der, Node memory revokedCertificates, uint256 target)
         private
         pure
-        returns (bool)
+        returns (bool found)
     {
         uint256 cursor = revokedCertificates.content;
         while (cursor < revokedCertificates.end) {
             Node memory entry = _readNode(der, cursor, revokedCertificates.end);
             uint256 serial = _validateRevokedEntry(der, entry);
-            if (serial == target) return true;
+            if (serial == target) found = true;
             cursor = entry.end;
         }
         if (cursor != revokedCertificates.end) revert Invalid_DER();
-        return false;
     }
 
     function _countAndValidateSerials(bytes calldata der, Node memory revokedCertificates)
@@ -617,6 +637,10 @@ contract X509CRLHelperV2 is Ownable {
 
     function _contentEquals3(bytes calldata der, Node memory node, bytes3 expected) private pure returns (bool) {
         return node.end - node.content == 3 && bytes3(_wordAt(der, node.content)) == expected;
+    }
+
+    function _decimalPair(bytes calldata der, uint256 offset) private pure returns (uint256) {
+        return (uint8(der[offset]) - 0x30) * 10 + uint8(der[offset + 1]) - 0x30;
     }
 
     function _wordAt(bytes calldata der, uint256 offset) private pure returns (bytes32 word) {

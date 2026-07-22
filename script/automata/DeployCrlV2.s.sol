@@ -18,6 +18,8 @@ import {AutomataPckDaoV2} from "../../src/automata_pccs/AutomataPckDaoV2.sol";
 contract DeployCrlV2 is DeploymentConfig, P256Configuration {
     address internal owner = vm.envAddress("OWNER");
 
+    error Runtime_Code_Hash_Mismatch(string component, bytes32 expected, bytes32 actual);
+
     function run() public override {
         address storageAddr = readContractAddress("AutomataDaoStorage", true);
         address pckHelperAddr = readContractAddress("PCKHelper", true);
@@ -54,5 +56,34 @@ contract DeployCrlV2 is DeploymentConfig, P256Configuration {
         AutomataPcsDaoV2 pcsDao = AutomataPcsDaoV2(readContractAddress("AutomataPcsDaoV2", true));
         vm.broadcast(owner);
         pcsDao.indexStoredCrl(ca, expectedDerHash);
+    }
+
+    /// @notice Compares every recorded V2 runtime against a locally-created
+    /// reference with the expected constructor arguments and current build.
+    /// The reference deployments are simulation-only and are never broadcast.
+    function validateExistingRuntime() public {
+        address storageAddr = readContractAddress("AutomataDaoStorage", true);
+        address pckHelperAddr = readContractAddress("PCKHelper", true);
+        address crlHelperAddr = readContractAddress("X509CRLHelperV2", true);
+        address pcsDaoAddr = readContractAddress("AutomataPcsDaoV2", true);
+        address pckDaoAddr = readContractAddress("AutomataPckDaoV2", true);
+        address p256 = simulateVerify();
+
+        X509CRLHelperV2 expectedCrlHelper = new X509CRLHelperV2(owner);
+        AutomataPcsDaoV2 expectedPcsDao = new AutomataPcsDaoV2(storageAddr, p256, pckHelperAddr, crlHelperAddr);
+        AutomataPckDaoV2 expectedPckDao =
+            new AutomataPckDaoV2(storageAddr, p256, pcsDaoAddr, pckHelperAddr, crlHelperAddr);
+
+        _requireRuntimeCode("X509CRLHelperV2", crlHelperAddr, address(expectedCrlHelper));
+        _requireRuntimeCode("AutomataPcsDaoV2", pcsDaoAddr, address(expectedPcsDao));
+        _requireRuntimeCode("AutomataPckDaoV2", pckDaoAddr, address(expectedPckDao));
+    }
+
+    function _requireRuntimeCode(string memory component, address actual, address expected) private view {
+        bytes32 actualHash = actual.codehash;
+        bytes32 expectedHash = expected.codehash;
+        if (actualHash != expectedHash) {
+            revert Runtime_Code_Hash_Mismatch(component, expectedHash, actualHash);
+        }
     }
 }

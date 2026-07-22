@@ -151,6 +151,59 @@ require_contract_code() {
     [[ -n "$code" && "$code" != "0x" ]] || die "$label has no contract code at $address"
 }
 
+storage_writer_is_authorized() {
+    local storage_address="$1"
+    local dao_address="$2"
+    local probe_id="0x0000000000000000000000000000000000000000000000000000000000000000"
+
+    cast call "$storage_address" \
+        'readAttestation(bytes32)(bytes)' "$probe_id" \
+        --from "$dao_address" \
+        --rpc-url "$RPC_URL" >/dev/null 2>&1
+}
+
+require_storage_writer() {
+    local label="$1"
+    local storage_address="$2"
+    local dao_address="$3"
+    local probe_key="0x43524c5f56325f5752495445525f50524f424500000000000000000000000000"
+    local zero_hash="0x0000000000000000000000000000000000000000000000000000000000000000"
+
+    storage_writer_is_authorized "$storage_address" "$dao_address" \
+        || die "$label cannot read AutomataDaoStorage as an authorized DAO"
+
+    cast call "$storage_address" \
+        'attest(bytes32,bytes,bytes32)(bytes32,bytes32)' \
+        "$probe_key" 0x "$zero_hash" \
+        --from "$dao_address" \
+        --rpc-url "$RPC_URL" >/dev/null \
+        || die "$label cannot write AutomataDaoStorage as an authorized DAO"
+}
+
+require_storage_writer_revoked() {
+    local label="$1"
+    local storage_address="$2"
+    local dao_address="$3"
+
+    if storage_writer_is_authorized "$storage_address" "$dao_address"; then
+        die "$label still has AutomataDaoStorage writer authorization"
+    fi
+}
+
+validate_crl_v2_runtime_code() {
+    local owner_address="$1"
+
+    require_command forge
+    info "Comparing deployed CRL V2 runtime code hashes with the current build"
+    (
+        cd "$PCCS_ROOT"
+        OWNER="$owner_address" forge script script/automata/DeployCrlV2.s.sol:DeployCrlV2 \
+            --rpc-url "$RPC_URL" \
+            --sig 'validateExistingRuntime()' \
+            -vv
+    )
+}
+
 assert_address_eq() {
     local label="$1"
     local actual="$2"
