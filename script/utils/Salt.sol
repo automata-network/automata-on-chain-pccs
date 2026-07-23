@@ -7,6 +7,7 @@ bytes32 constant FMSPC_TCB_HELPER_V2_SALT = keccak256(bytes("FMSPC_TCB_HELPER_V2
 bytes32 constant X509_HELPER_SALT = keccak256(bytes("X509_HELPER_SALT"));
 bytes32 constant X509_CRL_HELPER_SALT = keccak256(bytes("X509_CRL_HELPER_SALT"));
 bytes32 constant X509_CRL_HELPER_V2_SALT = keccak256(bytes("X509_CRL_HELPER_V2_SALT"));
+bytes32 constant PCCS_DEPENDENCY_CONFIG_SALT = keccak256(bytes("PCCS_DEPENDENCY_CONFIG_SALT"));
 bytes32 constant TCB_EVAL_HELPER_SALT = keccak256(bytes("TCB_EVAL_HELPER_SALT"));
 
 bytes32 constant PCCS_STORAGE_SALT = keccak256(bytes("PCCS_STORAGE_SALT"));

@@ -8,6 +8,7 @@ import "../utils/DeploymentConfig.sol";
 import {CA} from "../../src/Common.sol";
 import {X509CRLHelperV2} from "../../src/helpers/X509CRLHelperV2.sol";
 import {AutomataDaoStorage} from "../../src/automata_pccs/shared/AutomataDaoStorage.sol";
+import {PccsDependencyConfig} from "../../src/automata_pccs/shared/PccsDependencyConfig.sol";
 import {AutomataPcsDaoV2} from "../../src/automata_pccs/AutomataPcsDaoV2.sol";
 import {AutomataPckDaoV2} from "../../src/automata_pccs/AutomataPckDaoV2.sol";
 
@@ -27,11 +28,14 @@ contract DeployCrlV2 is DeploymentConfig, P256Configuration {
         vm.startBroadcast(owner);
 
         X509CRLHelperV2 crlHelper = new X509CRLHelperV2{salt: X509_CRL_HELPER_V2_SALT}(owner);
+        PccsDependencyConfig dependencyConfig =
+            new PccsDependencyConfig{salt: PCCS_DEPENDENCY_CONFIG_SALT}(owner);
         AutomataPcsDaoV2 pcsDao = new AutomataPcsDaoV2{salt: PCS_DAO_V2_SALT}(
-            storageAddr, simulateVerify(), pckHelperAddr, address(crlHelper)
+            storageAddr, simulateVerify(), pckHelperAddr, address(dependencyConfig)
         );
+        dependencyConfig.initialize(address(pcsDao), address(crlHelper));
         AutomataPckDaoV2 pckDao = new AutomataPckDaoV2{salt: PCK_DAO_V2_SALT}(
-            storageAddr, simulateVerify(), address(pcsDao), pckHelperAddr, address(crlHelper)
+            storageAddr, simulateVerify(), address(dependencyConfig), pckHelperAddr
         );
 
         AutomataDaoStorage storageContract = AutomataDaoStorage(storageAddr);
@@ -42,9 +46,11 @@ contract DeployCrlV2 is DeploymentConfig, P256Configuration {
         vm.stopBroadcast();
 
         console.log("[LOG] X509CRLHelperV2 deployed at: ", address(crlHelper));
+        console.log("[LOG] PccsDependencyConfig deployed at: ", address(dependencyConfig));
         console.log("[LOG] AutomataPcsDaoV2 deployed at: ", address(pcsDao));
         console.log("[LOG] AutomataPckDaoV2 deployed at: ", address(pckDao));
         writeToJson("X509CRLHelperV2", address(crlHelper));
+        writeToJson("PccsDependencyConfig", address(dependencyConfig));
         writeToJson("AutomataPcsDaoV2", address(pcsDao));
         writeToJson("AutomataPckDaoV2", address(pckDao));
     }
@@ -65,16 +71,20 @@ contract DeployCrlV2 is DeploymentConfig, P256Configuration {
         address storageAddr = readContractAddress("AutomataDaoStorage", true);
         address pckHelperAddr = readContractAddress("PCKHelper", true);
         address crlHelperAddr = readContractAddress("X509CRLHelperV2", true);
+        address dependencyConfigAddr = readContractAddress("PccsDependencyConfig", true);
         address pcsDaoAddr = readContractAddress("AutomataPcsDaoV2", true);
         address pckDaoAddr = readContractAddress("AutomataPckDaoV2", true);
         address p256 = simulateVerify();
 
         X509CRLHelperV2 expectedCrlHelper = new X509CRLHelperV2(owner);
-        AutomataPcsDaoV2 expectedPcsDao = new AutomataPcsDaoV2(storageAddr, p256, pckHelperAddr, crlHelperAddr);
+        PccsDependencyConfig expectedDependencyConfig = new PccsDependencyConfig(owner);
+        AutomataPcsDaoV2 expectedPcsDao =
+            new AutomataPcsDaoV2(storageAddr, p256, pckHelperAddr, dependencyConfigAddr);
         AutomataPckDaoV2 expectedPckDao =
-            new AutomataPckDaoV2(storageAddr, p256, pcsDaoAddr, pckHelperAddr, crlHelperAddr);
+            new AutomataPckDaoV2(storageAddr, p256, dependencyConfigAddr, pckHelperAddr);
 
         _requireRuntimeCode("X509CRLHelperV2", crlHelperAddr, address(expectedCrlHelper));
+        _requireRuntimeCode("PccsDependencyConfig", dependencyConfigAddr, address(expectedDependencyConfig));
         _requireRuntimeCode("AutomataPcsDaoV2", pcsDaoAddr, address(expectedPcsDao));
         _requireRuntimeCode("AutomataPckDaoV2", pckDaoAddr, address(expectedPckDao));
     }

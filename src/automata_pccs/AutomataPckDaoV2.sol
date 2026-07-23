@@ -1,19 +1,38 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {PckDao} from "../bases/PckDao.sol";
+import {PckDao, PcsDao, X509CRLHelper} from "../bases/PckDao.sol";
 import {DaoBase} from "../bases/DaoBase.sol";
 import {AutomataDaoStorage} from "./shared/AutomataDaoStorage.sol";
 import {AutomataDaoBase} from "./shared/AutomataDaoBase.sol";
+import {IPccsDependencyConfig} from "./shared/PccsDependencyConfig.sol";
 
 /**
  * @notice PCK DAO deployment variant bound to AutomataPcsDaoV2 and X509CRLHelperV2.
  * @dev Its public ABI and shared-storage keys are identical to AutomataPckDao.
  */
 contract AutomataPckDaoV2 is AutomataDaoBase, PckDao {
-    constructor(address _storage, address _p256, address _pcs, address _x509, address _crl)
-        PckDao(_storage, _p256, _pcs, _x509, _crl)
-    {}
+    IPccsDependencyConfig public immutable dependencyConfig;
+
+    constructor(address _storage, address _p256, address _dependencyConfig, address _x509)
+        PckDao(
+            _storage,
+            _p256,
+            IPccsDependencyConfig(_dependencyConfig).pcsDao(),
+            _x509,
+            IPccsDependencyConfig(_dependencyConfig).crlHelper()
+        )
+    {
+        dependencyConfig = IPccsDependencyConfig(_dependencyConfig);
+    }
+
+    function _pcsDao() internal view override returns (PcsDao) {
+        return PcsDao(dependencyConfig.pcsDao());
+    }
+
+    function _crlHelper() internal view override returns (X509CRLHelper) {
+        return X509CRLHelper(dependencyConfig.crlHelper());
+    }
 
     function _onFetchDataFromResolver(bytes32 key, bool hash)
         internal

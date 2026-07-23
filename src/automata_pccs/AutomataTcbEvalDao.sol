@@ -4,20 +4,39 @@ pragma solidity ^0.8.0;
 import {OwnableRoles} from "solady/auth/OwnableRoles.sol";
 import {TcbEvalDao, PcsDao, DaoBase} from "../bases/TcbEvalDao.sol";
 import {AutomataDaoBase} from "./shared/AutomataDaoBase.sol";
+import {IPccsDependencyConfig} from "./shared/PccsDependencyConfig.sol";
 
 contract AutomataTcbEvalDao is AutomataDaoBase, TcbEvalDao, OwnableRoles {
     uint256 public constant ATTESTER_ROLE = _ROLE_0;
-    
+    IPccsDependencyConfig public immutable dependencyConfig;
+
     constructor(
         address _storage,
         address _p256,
-        address _pcs,
+        address _dependencyConfig,
         address _tcbEvalHelper,
         address _x509Helper,
-        address _crl,
         address _owner
-    ) TcbEvalDao(_storage, _p256, _pcs, _tcbEvalHelper, _x509Helper, _crl) {
+    )
+        TcbEvalDao(
+            _storage,
+            _p256,
+            IPccsDependencyConfig(_dependencyConfig).pcsDao(),
+            _tcbEvalHelper,
+            _x509Helper,
+            IPccsDependencyConfig(_dependencyConfig).crlHelper()
+        )
+    {
+        dependencyConfig = IPccsDependencyConfig(_dependencyConfig);
         _initializeOwner(_owner);
+    }
+
+    function _pcsDao() internal view override returns (PcsDao) {
+        return PcsDao(dependencyConfig.pcsDao());
+    }
+
+    function _crlHelperAddress() internal view override returns (address) {
+        return dependencyConfig.crlHelper();
     }
 
     function _attestTcbEval(bytes memory reqData, bytes32 hash, bytes32 key)

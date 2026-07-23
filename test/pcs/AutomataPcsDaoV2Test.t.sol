@@ -9,11 +9,13 @@ import {DaoBase} from "../../src/bases/DaoBase.sol";
 import {PcsDaoV2} from "../../src/bases/PcsDaoV2.sol";
 import {AutomataPcsDaoV2} from "../../src/automata_pccs/AutomataPcsDaoV2.sol";
 import {AutomataPckDaoV2} from "../../src/automata_pccs/AutomataPckDaoV2.sol";
+import {PccsDependencyConfig} from "../../src/automata_pccs/shared/PccsDependencyConfig.sol";
 import {X509CRLHelper, X509CRLObj} from "../../src/helpers/X509CRLHelper.sol";
 import {X509CRLHelperV2, X509CRLMetadata} from "../../src/helpers/X509CRLHelperV2.sol";
 
 contract AutomataPcsDaoV2Test is PCSSetupBase {
     X509CRLHelperV2 internal crlV2;
+    PccsDependencyConfig internal v2Config;
     AutomataPcsDaoV2 internal pcsV2;
     AutomataPckDaoV2 internal pckV2;
     bytes internal crl57Previous;
@@ -29,9 +31,10 @@ contract AutomataPcsDaoV2Test is PCSSetupBase {
 
         vm.startPrank(admin);
         crlV2 = new X509CRLHelperV2(admin);
-        pcsV2 = new AutomataPcsDaoV2(address(pccsStorage), P256_VERIFIER, address(x509Lib), address(crlV2));
-        pckV2 =
-            new AutomataPckDaoV2(address(pccsStorage), P256_VERIFIER, address(pcsV2), address(x509Lib), address(crlV2));
+        v2Config = new PccsDependencyConfig(admin);
+        pcsV2 = new AutomataPcsDaoV2(address(pccsStorage), P256_VERIFIER, address(x509Lib), address(v2Config));
+        v2Config.initialize(address(pcsV2), address(crlV2));
+        pckV2 = new AutomataPckDaoV2(address(pccsStorage), P256_VERIFIER, address(v2Config), address(x509Lib));
         pccsStorage.grantDao(address(pcsV2));
         pccsStorage.grantDao(address(pckV2));
         crlV2.setAuthorizedIndexer(address(pcsV2), true);
@@ -73,16 +76,16 @@ contract AutomataPcsDaoV2Test is PCSSetupBase {
         assertNotEq(address(crlV2).codehash, address(legacyCrl).codehash);
 
         AutomataPcsDaoV2 expectedPcs =
-            new AutomataPcsDaoV2(address(pccsStorage), P256_VERIFIER, address(x509Lib), address(crlV2));
+            new AutomataPcsDaoV2(address(pccsStorage), P256_VERIFIER, address(x509Lib), address(v2Config));
         AutomataPcsDaoV2 wrongPcs =
-            new AutomataPcsDaoV2(address(pccsStorage), address(0xDEAD), address(x509Lib), address(crlV2));
+            new AutomataPcsDaoV2(address(pccsStorage), address(0xDEAD), address(x509Lib), address(v2Config));
         assertEq(address(pcsV2).codehash, address(expectedPcs).codehash);
         assertNotEq(address(pcsV2).codehash, address(wrongPcs).codehash);
 
         AutomataPckDaoV2 expectedPck =
-            new AutomataPckDaoV2(address(pccsStorage), P256_VERIFIER, address(pcsV2), address(x509Lib), address(crlV2));
+            new AutomataPckDaoV2(address(pccsStorage), P256_VERIFIER, address(v2Config), address(x509Lib));
         AutomataPckDaoV2 wrongPck = new AutomataPckDaoV2(
-            address(pccsStorage), address(0xDEAD), address(pcsV2), address(x509Lib), address(crlV2)
+            address(pccsStorage), address(0xDEAD), address(v2Config), address(x509Lib)
         );
         assertEq(address(pckV2).codehash, address(expectedPck).codehash);
         assertNotEq(address(pckV2).codehash, address(wrongPck).codehash);

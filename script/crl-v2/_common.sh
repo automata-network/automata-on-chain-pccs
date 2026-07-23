@@ -100,6 +100,7 @@ forge_broadcast_args() {
     FORGE_BROADCAST_ARGS=(
         --rpc-url "$RPC_URL"
         "${FORGE_WALLET_ARGS[@]}"
+        --sender "$OWNER_ADDRESS"
         --broadcast
         -vv
     )

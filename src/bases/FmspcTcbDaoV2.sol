@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {LibString} from "solady/utils/LibString.sol";
 
 import {FmspcTcbDao} from "./FmspcTcbDao.sol";
+import {PcsDao} from "./PcsDao.sol";
 import {AutomataDaoStorageV2} from "../automata_pccs/shared/AutomataDaoStorageV2.sol";
 import {FmspcTcbHelperV2} from "../helpers/FmspcTcbHelperV2.sol";
 import {DateTimeUtils} from "../utils/DateTimeUtils.sol";
@@ -578,8 +579,9 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
     function _validateTcbInfoV2(string memory tcbInfoStr, bytes memory signature) internal view {
         if (signature.length == 0) revert Async_Upsert_Missing_Signature();
 
-        bytes32 issuerKey = Pcs.PCS_KEY(CA.SIGNING, false);
-        (uint256 issuerNotValidBefore, uint256 issuerNotValidAfter) = Pcs.getCollateralValidity(issuerKey);
+        PcsDao pcs = _pcsDao();
+        bytes32 issuerKey = pcs.PCS_KEY(CA.SIGNING, false);
+        (uint256 issuerNotValidBefore, uint256 issuerNotValidAfter) = pcs.getCollateralValidity(issuerKey);
         if (block.timestamp < issuerNotValidBefore || block.timestamp > issuerNotValidAfter) {
             revert TCB_Cert_Expired();
         }
@@ -587,15 +589,15 @@ abstract contract FmspcTcbDaoV2 is FmspcTcbDao {
         bytes memory signingDer = _fetchDataFromResolver(issuerKey, false);
         if (signingDer.length == 0) revert Missing_TCB_Cert();
 
-        bytes memory rootCrl = _fetchDataFromResolver(Pcs.PCS_KEY(CA.ROOT, true), false);
+        bytes memory rootCrl = _fetchDataFromResolver(pcs.PCS_KEY(CA.ROOT, true), false);
         if (rootCrl.length > 0) {
             (bool snSuccess, bytes memory serialNumberData) =
                 x509.staticcall(abi.encodeWithSelector(0xb29b51cb, signingDer));
-            require(snSuccess, "Failed to get serial number");
+            if (!snSuccess) revert TCBInfo_Invalid();
             uint256 serialNumber = abi.decode(serialNumberData, (uint256));
             (bool crlSuccess, bytes memory serialNumberRevokedData) =
-                crlLibAddr.staticcall(abi.encodeWithSelector(0xcedb9781, serialNumber, rootCrl));
-            require(crlSuccess, "Failed to check CRL revocation");
+                _crlHelperAddress().staticcall(abi.encodeWithSelector(0xcedb9781, serialNumber, rootCrl));
+            if (!crlSuccess) revert TCBInfo_Invalid();
             bool revoked = abi.decode(serialNumberRevokedData, (bool));
             if (revoked) revert TCB_Cert_Revoked(serialNumber);
         }

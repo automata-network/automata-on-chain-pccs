@@ -5,6 +5,7 @@ import "forge-std/Script.sol";
 import {CA} from "../../src/Common.sol";
 import {AutomataDaoStorage} from "../../src/automata_pccs/shared/AutomataDaoStorage.sol";
 import {AutomataDaoStorageV2} from "../../src/automata_pccs/shared/AutomataDaoStorageV2.sol";
+import {PccsDependencyConfig} from "../../src/automata_pccs/shared/PccsDependencyConfig.sol";
 import {AutomataPcsDao} from "../../src/automata_pccs/AutomataPcsDao.sol";
 import {AutomataFmspcTcbDaoVersioned} from "../../src/automata_pccs/versioned/AutomataFmspcTcbDaoVersioned.sol";
 import {AutomataFmspcTcbDaoVersionedV2} from "../../src/automata_pccs/versioned/AutomataFmspcTcbDaoVersionedV2.sol";
@@ -39,6 +40,8 @@ contract DeployLocalTcbBench is Script, PCSConstants {
         AutomataPcsDao pcsAsync = new AutomataPcsDao(
             address(storageAsyncFallback), address(verifierStub), address(x509Lib), address(x509CrlLib)
         );
+        PccsDependencyConfig dependencyConfig = new PccsDependencyConfig(admin);
+        dependencyConfig.initialize(address(pcsAsync), address(x509CrlLib));
 
         AutomataFmspcTcbDaoVersioned daoV1 = new AutomataFmspcTcbDaoVersioned(
             address(storageSync),
@@ -55,11 +58,10 @@ contract DeployLocalTcbBench is Script, PCSConstants {
         AutomataFmspcTcbDaoVersionedV2 daoV2 = new AutomataFmspcTcbDaoVersionedV2(
             address(storageV2),
             address(verifierStub),
-            address(pcsAsync),
+            address(dependencyConfig),
             address(fmspcTcbLib),
             address(fmspcTcbLibV2),
             address(x509Lib),
-            address(x509CrlLib),
             admin,
             TEST_EVAL
         );

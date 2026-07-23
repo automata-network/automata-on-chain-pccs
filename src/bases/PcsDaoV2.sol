@@ -25,8 +25,6 @@ import {LibString} from "solady/utils/LibString.sol";
 abstract contract PcsDaoV2 is DaoBase, SigVerifyBase {
     using LibString for string;
 
-    X509CRLHelperV2 public immutable crlLib;
-
     string constant PCK_PLATFORM_CA_COMMON_NAME = "Intel SGX PCK Platform CA";
     string constant PCK_PROCESSOR_CA_COMMON_NAME = "Intel SGX PCK Processor CA";
     string constant SIGNING_COMMON_NAME = "Intel SGX TCB Signing";
@@ -75,12 +73,9 @@ abstract contract PcsDaoV2 is DaoBase, SigVerifyBase {
     event UpsertedPCSCollateral(CA indexed ca, bool isCrl);
     event IndexedStoredCrl(CA indexed ca, bytes32 indexed derHash, uint256 revokedCertificateCount);
 
-    constructor(address _resolver, address _p256, address _x509, address _crl)
-        SigVerifyBase(_p256, _x509)
-        DaoBase(_resolver)
-    {
-        crlLib = X509CRLHelperV2(_crl);
-    }
+    constructor(address _resolver, address _p256, address _x509) SigVerifyBase(_p256, _x509) DaoBase(_resolver) {}
+
+    function crlLib() public view virtual returns (X509CRLHelperV2);
 
     function getCollateralValidity(bytes32 key)
         external
@@ -169,7 +164,7 @@ abstract contract PcsDaoV2 is DaoBase, SigVerifyBase {
         bytes memory storedHashData = _fetchDataFromResolver(key, true);
         if (storedHashData.length == 0) revert Missing_Crl(ca);
 
-        X509CRLMetadata memory currentCrl = crlLib.parseAndIndexCRLMetadata(crl);
+        X509CRLMetadata memory currentCrl = crlLib().parseAndIndexCRLMetadata(crl);
         if (abi.decode(storedHashData, (bytes32)) != currentCrl.tbsHash) revert Invalid_Stored_Crl(ca);
 
         _validatePcsCrlMetadata(ca, currentCrl, false);
@@ -272,7 +267,7 @@ abstract contract PcsDaoV2 is DaoBase, SigVerifyBase {
             }
         } else if (rootCrlData.length > 0) {
             uint256 serialNum = currentCert.serialNumber;
-            bool revoked = crlLib.serialNumberIsRevoked(serialNum, rootCrlData);
+            bool revoked = crlLib().serialNumberIsRevoked(serialNum, rootCrlData);
             if (revoked) {
                 revert Certificate_Revoked(ca, serialNum);
             }
@@ -306,7 +301,7 @@ abstract contract PcsDaoV2 is DaoBase, SigVerifyBase {
         // Parsing and exact membership indexing are one atomic operation. The
         // helper reuses an already complete index when only outer CRL metadata
         // or the signature changed while the revokedCertificates DER is exact.
-        currentCrl = crlLib.parseAndIndexCRLMetadata(crl);
+        currentCrl = crlLib().parseAndIndexCRLMetadata(crl);
 
         key = PCS_KEY(ca, true);
         hash = currentCrl.tbsHash;
@@ -390,7 +385,7 @@ abstract contract PcsDaoV2 is DaoBase, SigVerifyBase {
             bytes memory rootCrl = _fetchDataFromResolver(PCS_KEY(CA.ROOT, true), false);
             if (rootCrl.length > 0) {
                 uint256 serialNum = X509Helper(x509).getSerialNumber(issuerCert);
-                bool revoked = crlLib.serialNumberIsRevoked(serialNum, rootCrl);
+                bool revoked = crlLib().serialNumberIsRevoked(serialNum, rootCrl);
                 if (revoked) {
                     revert Certificate_Revoked(issuerCa, serialNum);
                 }

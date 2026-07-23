@@ -18,10 +18,9 @@ contract AutomataTcbEvalDaoTest is PCSSetupBase {
         tcbEvalDao = new AutomataTcbEvalDao(
             address(pccsStorage),
             P256_VERIFIER,
-            address(pcs),
+            address(dependencyConfig),
             address(tcbEvalHelper),
             address(x509Lib),
-            address(x509CrlLib),
             admin
         );
 

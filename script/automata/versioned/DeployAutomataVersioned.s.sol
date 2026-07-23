@@ -32,13 +32,13 @@ contract DeployAutomataVersioned is DeploymentConfig, P256Configuration, Multich
 
     function deployTcbEvalDao() public multichain {
         address pccsStorageAddr = readContractAddress("AutomataDaoStorage", true);
-        address pcsDaoAddr = readContractAddress("AutomataPcsDao", true);
+        address dependencyConfigAddr = readContractAddress("PccsDependencyConfig", true);
         address tcbEvalHelper = readContractAddress("TcbEvalHelper", true);
 
         vm.startBroadcast(owner);
 
         AutomataTcbEvalDao tcbEvalDao = new AutomataTcbEvalDao{salt: TCB_EVAL_DAO_SALT}(
-            pccsStorageAddr, simulateVerify(), pcsDaoAddr, tcbEvalHelper, x509, x509Crl, owner
+            pccsStorageAddr, simulateVerify(), dependencyConfigAddr, tcbEvalHelper, x509, owner
         );
 
         AutomataDaoStorage pccsStorage = AutomataDaoStorage(pccsStorageAddr);
@@ -47,24 +47,33 @@ contract DeployAutomataVersioned is DeploymentConfig, P256Configuration, Multich
         vm.stopBroadcast();
 
         console.log("[LOG] AutomataTcbEvalDao deployed at: ", address(tcbEvalDao));
-        writeToJson("AutomataTcbEvalDao", address(tcbEvalDao));
+        writeToJson("AutomataTcbEvalDaoCrlV2", address(tcbEvalDao));
     }
 
     function deployEnclaveIdDaoVersioned(uint32 tcbEvaluationDataNumber) public multichain {
         address pccsStorageAddr = readContractAddress("AutomataDaoStorage", true);
-        address pcsDaoAddr = readContractAddress("AutomataPcsDao", true);
+        address dependencyConfigAddr = readContractAddress("PccsDependencyConfig", true);
 
         vm.startBroadcast(owner);
 
-        AutomataEnclaveIdentityDaoVersioned enclaveIdDao = new AutomataEnclaveIdentityDaoVersioned{salt: ENCLAVE_ID_DAO_SALT}(
-            pccsStorageAddr, simulateVerify(), pcsDaoAddr, enclaveIdentityHelper, x509, x509Crl, owner, tcbEvaluationDataNumber
-        );
+        AutomataEnclaveIdentityDaoVersioned enclaveIdDao =
+            new AutomataEnclaveIdentityDaoVersioned{salt: ENCLAVE_ID_DAO_SALT}(
+                pccsStorageAddr,
+                simulateVerify(),
+                dependencyConfigAddr,
+                enclaveIdentityHelper,
+                x509,
+                owner,
+                tcbEvaluationDataNumber
+            );
 
         AutomataDaoStorage pccsStorage = AutomataDaoStorage(pccsStorageAddr);
         pccsStorage.grantDao(address(enclaveIdDao));
 
         console.log("[LOG] AutomataEnclaveIdDaoVersioned deployed at: ", address(enclaveIdDao));
-        writeToJsonVersioned("AutomataEnclaveIdentityDaoVersioned", tcbEvaluationDataNumber, address(enclaveIdDao));
+        writeToJsonVersioned(
+            "AutomataEnclaveIdentityDaoVersionedCrlV2", tcbEvaluationDataNumber, address(enclaveIdDao)
+        );
 
         vm.stopBroadcast();
     }
@@ -107,7 +116,7 @@ contract DeployAutomataVersioned is DeploymentConfig, P256Configuration, Multich
 
     function deployFmspcTcbDaoVersionedV2(uint32 tcbEvaluationDataNumber) public multichain {
         address pccsStorageV2Addr = readContractAddress("AutomataDaoStorageV2", true);
-        address pcsDaoAddr = readContractAddress("AutomataPcsDao", true);
+        address dependencyConfigAddr = readContractAddress("PccsDependencyConfig", true);
 
         vm.startBroadcast(owner);
 
@@ -115,22 +124,20 @@ contract DeployAutomataVersioned is DeploymentConfig, P256Configuration, Multich
             ? new AutomataFmspcTcbDaoVersionedV2{salt: FMSPC_TCB_DAO_V2_SALT}(
                 pccsStorageV2Addr,
                 simulateVerify(),
-                pcsDaoAddr,
+                dependencyConfigAddr,
                 fmspcTcbHelper,
                 fmspcTcbHelperV2,
                 x509,
-                x509Crl,
                 owner,
                 tcbEvaluationDataNumber
             )
             : new AutomataFmspcTcbDaoVersionedV2(
                 pccsStorageV2Addr,
                 simulateVerify(),
-                pcsDaoAddr,
+                dependencyConfigAddr,
                 fmspcTcbHelper,
                 fmspcTcbHelperV2,
                 x509,
-                x509Crl,
                 owner,
                 tcbEvaluationDataNumber
             );
@@ -140,7 +147,9 @@ contract DeployAutomataVersioned is DeploymentConfig, P256Configuration, Multich
         }
 
         console.log("[LOG] AutomataFmspcTcbDaoVersionedV2 deployed at: ", address(fmspcTcbDao));
-        writeToJsonVersioned("AutomataFmspcTcbDaoVersionedV2", tcbEvaluationDataNumber, address(fmspcTcbDao));
+        writeToJsonVersioned(
+            "AutomataFmspcTcbDaoVersionedV2CrlV2", tcbEvaluationDataNumber, address(fmspcTcbDao)
+        );
 
         vm.stopBroadcast();
     }

@@ -34,10 +34,9 @@ contract AutomataEnclaveIdentityDaoVersionedTest is PCSSetupBase, IdentityConsta
             new AutomataEnclaveIdentityDaoVersioned(
                 address(pccsStorage),
                 P256_VERIFIER,
-                address(pcs),
+                address(dependencyConfig),
                 address(enclaveIdentityLib),
                 address(x509Lib),
-                address(x509CrlLib),
                 admin,
                 19 // TCB_EVALUATION_NUMBER
             );

@@ -5,25 +5,45 @@ import {OwnableRoles} from "solady/auth/OwnableRoles.sol";
 
 import {AutomataEnclaveIdentityDao} from "../AutomataEnclaveIdentityDao.sol";
 import {IdentityObj} from "../../helpers/EnclaveIdentityHelper.sol";
+import {PcsDao} from "../../bases/PcsDao.sol";
+import {IPccsDependencyConfig} from "../shared/PccsDependencyConfig.sol";
 
 contract AutomataEnclaveIdentityDaoVersioned is AutomataEnclaveIdentityDao, OwnableRoles {
     uint32 public immutable TCB_EVALUATION_NUMBER;
     uint256 public constant ATTESTER_ROLE = _ROLE_0;
+    IPccsDependencyConfig public immutable dependencyConfig;
 
     error Invalid_Tcb_Evaluation_Data_Number();
     
     constructor(
         address _storage,
         address _p256,
-        address _pcs,
+        address _dependencyConfig,
         address _enclaveIdentityHelper,
         address _x509Helper,
-        address _crl,
         address _owner,
         uint32 _tcbEvaluationNumber
-    ) AutomataEnclaveIdentityDao(_storage, _p256, _pcs, _enclaveIdentityHelper, _x509Helper, _crl) {
+    )
+        AutomataEnclaveIdentityDao(
+            _storage,
+            _p256,
+            IPccsDependencyConfig(_dependencyConfig).pcsDao(),
+            _enclaveIdentityHelper,
+            _x509Helper,
+            IPccsDependencyConfig(_dependencyConfig).crlHelper()
+        )
+    {
+        dependencyConfig = IPccsDependencyConfig(_dependencyConfig);
         _initializeOwner(_owner);
         TCB_EVALUATION_NUMBER = _tcbEvaluationNumber;
+    }
+
+    function _pcsDao() internal view override returns (PcsDao) {
+        return PcsDao(dependencyConfig.pcsDao());
+    }
+
+    function _crlHelperAddress() internal view override returns (address) {
+        return dependencyConfig.crlHelper();
     }
 
     function ENCLAVE_ID_KEY(uint256 id, uint256 version) public view override returns (bytes32 key) {

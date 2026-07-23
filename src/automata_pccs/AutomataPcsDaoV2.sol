@@ -3,14 +3,26 @@ pragma solidity ^0.8.0;
 
 import {PcsDaoV2} from "../bases/PcsDaoV2.sol";
 import {DaoBase} from "../bases/DaoBase.sol";
+import {X509CRLHelperV2} from "../helpers/X509CRLHelperV2.sol";
 import {AutomataDaoBase} from "./shared/AutomataDaoBase.sol";
+import {IPccsDependencyConfig} from "./shared/PccsDependencyConfig.sol";
 
 /**
  * @notice Versioned PCS DAO using the gas-bounded CRL metadata parser.
  * @dev It intentionally reuses the existing AutomataDaoStorage schema and PCS keys.
  */
 contract AutomataPcsDaoV2 is AutomataDaoBase, PcsDaoV2 {
-    constructor(address _storage, address _p256, address _x509, address _crl) PcsDaoV2(_storage, _p256, _x509, _crl) {}
+    IPccsDependencyConfig public immutable dependencyConfig;
+
+    constructor(address _storage, address _p256, address _x509, address _dependencyConfig)
+        PcsDaoV2(_storage, _p256, _x509)
+    {
+        dependencyConfig = IPccsDependencyConfig(_dependencyConfig);
+    }
+
+    function crlLib() public view override returns (X509CRLHelperV2) {
+        return X509CRLHelperV2(dependencyConfig.crlHelper());
+    }
 
     function _onFetchDataFromResolver(bytes32 key, bool hash)
         internal
