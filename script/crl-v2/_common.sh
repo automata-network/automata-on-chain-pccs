@@ -6,6 +6,7 @@ CRL_V2_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PCCS_ROOT="${PCCS_ROOT:-$(cd "$CRL_V2_SCRIPT_DIR/../.." && pwd)}"
 
 _CRL_V2_OWNS_PASSWORD_FILE=false
+_CRL_V2_FORBIDDEN_REVERT_DATA="0x08c379a000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000009464f5242494444454e0000000000000000000000000000000000000000000000"
 
 info() {
     printf '[INFO] %s\n' "$*"
@@ -151,15 +152,44 @@ require_contract_code() {
     [[ -n "$code" && "$code" != "0x" ]] || die "$label has no contract code at $address"
 }
 
-storage_writer_is_authorized() {
+_is_forbidden_storage_revert() {
+    local output="${1,,}"
+
+    if [[ "$output" == *"$_CRL_V2_FORBIDDEN_REVERT_DATA"* ]]; then
+        return 0
+    fi
+
+    # Some cast versions decode Error(string) without printing the raw revert
+    # data. Match the complete reason token, not an arbitrary FORBIDDEN
+    # substring, so unrelated failures remain unknown.
+    [[ "$output" =~ execution[[:space:]]reverted:[[:space:]]forbidden([^a-z0-9_]|$) ]]
+}
+
+storage_writer_state() {
     local storage_address="$1"
     local dao_address="$2"
     local probe_id="0x0000000000000000000000000000000000000000000000000000000000000000"
+    local output
 
-    cast call "$storage_address" \
-        'readAttestation(bytes32)(bytes)' "$probe_id" \
-        --from "$dao_address" \
-        --rpc-url "$RPC_URL" >/dev/null 2>&1
+    if output="$(
+        cast call "$storage_address" \
+            'readAttestation(bytes32)(bytes)' "$probe_id" \
+            --from "$dao_address" \
+            --rpc-url "$RPC_URL" 2>&1
+    )"; then
+        if [[ "$output" =~ ^0x([0-9a-fA-F]{2})*$ ]]; then
+            printf 'authorized\n'
+            return
+        fi
+        die "Could not determine AutomataDaoStorage authorization: malformed successful response: $output"
+    fi
+
+    if _is_forbidden_storage_revert "$output"; then
+        printf 'revoked\n'
+        return
+    fi
+
+    die "Could not determine AutomataDaoStorage authorization: $output"
 }
 
 require_storage_writer() {
@@ -168,8 +198,10 @@ require_storage_writer() {
     local dao_address="$3"
     local probe_key="0x43524c5f56325f5752495445525f50524f424500000000000000000000000000"
     local zero_hash="0x0000000000000000000000000000000000000000000000000000000000000000"
+    local state
 
-    storage_writer_is_authorized "$storage_address" "$dao_address" \
+    state="$(storage_writer_state "$storage_address" "$dao_address")"
+    [[ "$state" == "authorized" ]] \
         || die "$label cannot read AutomataDaoStorage as an authorized DAO"
 
     cast call "$storage_address" \
@@ -184,10 +216,11 @@ require_storage_writer_revoked() {
     local label="$1"
     local storage_address="$2"
     local dao_address="$3"
+    local state
 
-    if storage_writer_is_authorized "$storage_address" "$dao_address"; then
-        die "$label still has AutomataDaoStorage writer authorization"
-    fi
+    state="$(storage_writer_state "$storage_address" "$dao_address")"
+    [[ "$state" == "revoked" ]] \
+        || die "$label still has AutomataDaoStorage writer authorization"
 }
 
 validate_crl_v2_runtime_code() {

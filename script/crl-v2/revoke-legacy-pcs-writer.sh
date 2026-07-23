@@ -32,14 +32,10 @@ if [[ -n "${CONFIRMATIONS:-}" ]]; then
     CAST_SEND_ARGS+=(--confirmations "$CONFIRMATIONS")
 fi
 
-if storage_writer_is_authorized "$STORAGE_ADDRESS" "$LEGACY_PCS_DAO_ADDRESS"; then
-    info "Revoking legacy AutomataPcsDao storage authorization"
-    cast send "$STORAGE_ADDRESS" \
-        'revokeDao(address)' "$LEGACY_PCS_DAO_ADDRESS" \
-        "${CAST_SEND_ARGS[@]}"
-else
-    info "Legacy AutomataPcsDao storage authorization is already revoked"
-fi
+info "Revoking legacy AutomataPcsDao storage authorization (idempotent)"
+cast send "$STORAGE_ADDRESS" \
+    'revokeDao(address)' "$LEGACY_PCS_DAO_ADDRESS" \
+    "${CAST_SEND_ARGS[@]}"
 
 require_storage_writer_revoked AutomataPcsDao "$STORAGE_ADDRESS" "$LEGACY_PCS_DAO_ADDRESS"
 success "Legacy AutomataPcsDao can no longer read or write AutomataDaoStorage"
