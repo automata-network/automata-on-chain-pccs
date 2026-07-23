@@ -131,6 +131,17 @@ contract AutomataPcsDaoV2Test is PCSSetupBase {
         _assertStoredCrl(crl57);
     }
 
+    function testIndexesCurrentRootCrlStoredByV1Atomically() public {
+        vm.warp(1711000000); // Within the real ROOT CRL validity window.
+        bytes32 derHash = keccak256(rootCrlDer);
+        assertFalse(crlV2.indexedCrls(derHash));
+
+        uint256 indexedCount = pcsV2.indexStoredCrl(CA.ROOT, derHash);
+
+        assertEq(indexedCount, 0);
+        assertTrue(crlV2.indexedCrls(derHash));
+    }
+
     function testRevokedLegacyPcsCannotReplaceIndexedCrlButV2Can() public {
         pcs.upsertPckCrl(CA.PLATFORM, crl129);
         pcsV2.indexStoredCrl(CA.PLATFORM, keccak256(crl129));

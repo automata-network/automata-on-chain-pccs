@@ -36,11 +36,19 @@ contract X509CRLHelperV2 is Ownable {
     bytes8 private constant ECDSA_WITH_SHA256_OID = 0x2a8648ce3d040302;
     bytes3 private constant COMMON_NAME_OID = 0x550403;
     bytes3 private constant AUTHORITY_KEY_IDENTIFIER_OID = 0x551d23;
+    bytes3 private constant CRL_NUMBER_OID = 0x551d14;
+    bytes3 private constant REASON_CODE_OID = 0x551d15;
+    bytes3 private constant DELTA_CRL_INDICATOR_OID = 0x551d1b;
+    bytes3 private constant ISSUING_DISTRIBUTION_POINT_OID = 0x551d1c;
+    bytes3 private constant CERTIFICATE_ISSUER_OID = 0x551d1d;
 
     error Invalid_DER();
     error Invalid_CRL_Profile();
     error Invalid_Serial_Number();
     error Missing_Common_Name();
+    error Unsupported_Critical_Extension();
+    error Unsupported_CRL_Extension();
+    error Duplicate_CRL_Extension();
     error Unauthorized_Indexer(address caller);
     event SetAuthorizedIndexer(address indexed indexer, bool authorized);
     event IndexedCrl(
@@ -219,7 +227,13 @@ contract X509CRLHelperV2 is Ownable {
         metadata.issuerCommonName = _getCommonName(der, layout.issuer);
         metadata.validityNotBefore = _parseTime(der, layout.thisUpdate);
         metadata.validityNotAfter = _parseTime(der, layout.nextUpdate);
-        metadata.authorityKeyIdentifier = _getAuthorityKeyIdentifier(der, layout.extensions);
+        bool hasAuthorityKeyIdentifier;
+        bool hasCrlNumber;
+        (metadata.authorityKeyIdentifier, hasAuthorityKeyIdentifier, hasCrlNumber) =
+            _parseCrlExtensions(der, layout.extensions);
+        if (!hasAuthorityKeyIdentifier || metadata.authorityKeyIdentifier.length == 0 || !hasCrlNumber) {
+            revert Invalid_CRL_Profile();
+        }
         metadata.signature = _getSignature(der, layout.signature);
 
         bytes memory tbs = _copyNode(der, layout.tbs, true);
@@ -408,6 +422,14 @@ contract X509CRLHelperV2 is Ownable {
         pure
         returns (bytes memory akid)
     {
+        (akid,,) = _parseCrlExtensions(der, explicitExtensions);
+    }
+
+    function _parseCrlExtensions(bytes calldata der, Node memory explicitExtensions)
+        private
+        pure
+        returns (bytes memory akid, bool hasAuthorityKeyIdentifier, bool hasCrlNumber)
+    {
         Node memory extensions = _readNode(der, explicitExtensions.content, explicitExtensions.end);
         _requireTag(der, extensions, 0x30);
         if (extensions.end != explicitExtensions.end) revert Invalid_DER();
@@ -415,26 +437,56 @@ contract X509CRLHelperV2 is Ownable {
         uint256 cursor = extensions.content;
         while (cursor < extensions.end) {
             Node memory extension = _readNode(der, cursor, extensions.end);
-            _requireTag(der, extension, 0x30);
-
-            Node memory oid = _readNode(der, extension.content, extension.end);
-            _requireTag(der, oid, 0x06);
-            Node memory value = _readNode(der, oid.end, extension.end);
-            if (_tag(der, value) == 0x01) {
-                if (value.end - value.content != 1) revert Invalid_DER();
-                uint8 booleanValue = uint8(der[value.content]);
-                if (booleanValue != 0x00 && booleanValue != 0xFF) revert Invalid_DER();
-                value = _readNode(der, value.end, extension.end);
-            }
-            _requireTag(der, value, 0x04);
-            if (value.end != extension.end) revert Invalid_DER();
+            (Node memory oid, Node memory value, bool critical) = _readExtension(der, extension);
 
             if (_contentEquals3(der, oid, AUTHORITY_KEY_IDENTIFIER_OID)) {
+                if (hasAuthorityKeyIdentifier) revert Duplicate_CRL_Extension();
+                hasAuthorityKeyIdentifier = true;
                 akid = _decodeAuthorityKeyIdentifier(der, value);
+            } else if (_contentEquals3(der, oid, CRL_NUMBER_OID)) {
+                if (hasCrlNumber) revert Duplicate_CRL_Extension();
+                hasCrlNumber = true;
+                _validateCrlNumber(der, value);
+            } else if (
+                _contentEquals3(der, oid, DELTA_CRL_INDICATOR_OID)
+                    || _contentEquals3(der, oid, ISSUING_DISTRIBUTION_POINT_OID)
+            ) {
+                revert Unsupported_CRL_Extension();
+            } else if (critical) {
+                revert Unsupported_Critical_Extension();
             }
             cursor = extension.end;
         }
         if (cursor != extensions.end) revert Invalid_DER();
+    }
+
+    function _readExtension(bytes calldata der, Node memory extension)
+        private
+        pure
+        returns (Node memory oid, Node memory value, bool critical)
+    {
+        _requireTag(der, extension, 0x30);
+
+        oid = _readNode(der, extension.content, extension.end);
+        _requireTag(der, oid, 0x06);
+        value = _readNode(der, oid.end, extension.end);
+        if (_tag(der, value) == 0x01) {
+            if (value.end - value.content != 1) revert Invalid_DER();
+
+            uint8 booleanValue = uint8(der[value.content]);
+            if (booleanValue != 0x00 && booleanValue != 0xFF) revert Invalid_DER();
+
+            critical = booleanValue == 0xFF;
+            value = _readNode(der, value.end, extension.end);
+        }
+        _requireTag(der, value, 0x04);
+        if (value.end != extension.end) revert Invalid_DER();
+    }
+
+    function _validateCrlNumber(bytes calldata der, Node memory octetString) private pure {
+        Node memory crlNumber = _readNode(der, octetString.content, octetString.end);
+        if (crlNumber.end != octetString.end) revert Invalid_DER();
+        _readPositiveInteger(der, crlNumber, false);
     }
 
     function _decodeAuthorityKeyIdentifier(bytes calldata der, Node memory octetString)
@@ -548,22 +600,29 @@ contract X509CRLHelperV2 is Ownable {
         uint256 cursor = extensions.content;
         while (cursor < extensions.end) {
             Node memory extension = _readNode(der, cursor, extensions.end);
-            _requireTag(der, extension, 0x30);
+            (Node memory oid, Node memory value, bool critical) = _readExtension(der, extension);
 
-            Node memory oid = _readNode(der, extension.content, extension.end);
-            _requireTag(der, oid, 0x06);
-            Node memory value = _readNode(der, oid.end, extension.end);
-            if (_tag(der, value) == 0x01) {
-                if (value.end - value.content != 1) revert Invalid_DER();
-                uint8 booleanValue = uint8(der[value.content]);
-                if (booleanValue != 0x00 && booleanValue != 0xFF) revert Invalid_DER();
-                value = _readNode(der, value.end, extension.end);
+            if (_contentEquals3(der, oid, CERTIFICATE_ISSUER_OID)) {
+                revert Unsupported_CRL_Extension();
             }
-            _requireTag(der, value, 0x04);
-            if (value.end != extension.end) revert Invalid_DER();
+            if (critical) revert Unsupported_Critical_Extension();
+            if (_contentEquals3(der, oid, REASON_CODE_OID)) {
+                _validateReasonCode(der, value);
+            }
             cursor = extension.end;
         }
         if (cursor != extensions.end) revert Invalid_DER();
+    }
+
+    function _validateReasonCode(bytes calldata der, Node memory octetString) private pure {
+        Node memory reason = _readNode(der, octetString.content, octetString.end);
+        if (_tag(der, reason) != 0x0A || reason.end != octetString.end || reason.end - reason.content != 1) {
+            revert Invalid_DER();
+        }
+
+        uint8 reasonCode = uint8(der[reason.content]);
+        if (reasonCode == 8) revert Unsupported_CRL_Extension();
+        if (reasonCode == 7 || reasonCode > 10) revert Invalid_DER();
     }
 
     /// =================================================================================

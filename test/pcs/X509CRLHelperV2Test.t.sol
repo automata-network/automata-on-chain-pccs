@@ -5,8 +5,9 @@ import {Test, console2} from "forge-std/Test.sol";
 
 import {X509CRLHelper, X509CRLObj} from "../../src/helpers/X509CRLHelper.sol";
 import {X509CRLHelperV2, X509CRLMetadata} from "../../src/helpers/X509CRLHelperV2.sol";
+import {PCSConstants} from "./PCSConstants.t.sol";
 
-contract X509CRLHelperV2Test is Test {
+contract X509CRLHelperV2Test is Test, PCSConstants {
     X509CRLHelper internal legacy;
     X509CRLHelperV2 internal v2;
     bytes internal crl57;
@@ -26,6 +27,21 @@ contract X509CRLHelperV2Test is Test {
 
     function testMetadataAndEveryRevokedSerial129() public {
         _assertMetadataAndEveryRevokedSerial(crl129, 129);
+    }
+
+    function testMetadataAcceptsRealRootCrlProfile() public {
+        X509CRLMetadata memory metadata = v2.parseCRLMetadata(rootCrlDer);
+
+        assertEq(metadata.revokedCertificateCount, 0);
+        assertGt(metadata.authorityKeyIdentifier.length, 0);
+    }
+
+    function testMetadataAcceptsRealPckCrlReasonExtensions() public {
+        X509CRLObj memory parsed = legacy.parseCRLDER(pckCrlDer);
+        X509CRLMetadata memory metadata = v2.parseCRLMetadata(pckCrlDer);
+
+        assertGt(parsed.serialNumbersRevoked.length, 0);
+        assertEq(metadata.revokedCertificateCount, parsed.serialNumbersRevoked.length);
     }
 
     function testFirstMiddleLastAndMissingSerials() public {
@@ -205,6 +221,130 @@ contract X509CRLHelperV2Test is Test {
         v2.serialNumberIsRevoked(1, malformed);
     }
 
+    function testAcceptsUnknownNonCriticalCrlExtension() public {
+        bytes memory extensions = bytes.concat(_defaultCrlExtensionItems(), _extension(hex"2a0304", false, hex"0500"));
+        X509CRLMetadata memory metadata = v2.parseCRLMetadata(_syntheticCrlWithCrlExtensions(extensions));
+
+        assertEq(metadata.revokedCertificateCount, 1);
+        assertEq(metadata.authorityKeyIdentifier, hex"0102");
+    }
+
+    function testRejectsUnknownCriticalCrlExtension() public {
+        bytes memory extensions = bytes.concat(_defaultCrlExtensionItems(), _extension(hex"2a0304", true, hex"0500"));
+
+        vm.expectRevert(X509CRLHelperV2.Unsupported_Critical_Extension.selector);
+        v2.parseCRLMetadata(_syntheticCrlWithCrlExtensions(extensions));
+    }
+
+    function testRejectsDeltaCrlIndicator() public {
+        for (uint256 critical = 0; critical < 2; critical++) {
+            bytes memory extensions =
+                bytes.concat(_defaultCrlExtensionItems(), _extension(hex"551d1b", critical == 1, hex"020101"));
+
+            vm.expectRevert(X509CRLHelperV2.Unsupported_CRL_Extension.selector);
+            v2.parseCRLMetadata(_syntheticCrlWithCrlExtensions(extensions));
+        }
+    }
+
+    function testRejectsIssuingDistributionPoint() public {
+        for (uint256 critical = 0; critical < 2; critical++) {
+            bytes memory extensions =
+                bytes.concat(_defaultCrlExtensionItems(), _extension(hex"551d1c", critical == 1, hex"3000"));
+
+            vm.expectRevert(X509CRLHelperV2.Unsupported_CRL_Extension.selector);
+            v2.parseCRLMetadata(_syntheticCrlWithCrlExtensions(extensions));
+        }
+    }
+
+    function testRejectsDuplicateAuthorityKeyIdentifier() public {
+        bytes memory extensions = bytes.concat(_defaultCrlExtensionItems(), _authorityKeyIdentifierExtension());
+
+        vm.expectRevert(X509CRLHelperV2.Duplicate_CRL_Extension.selector);
+        v2.parseCRLMetadata(_syntheticCrlWithCrlExtensions(extensions));
+    }
+
+    function testRejectsDuplicateCrlNumber() public {
+        bytes memory extensions = bytes.concat(_defaultCrlExtensionItems(), _crlNumberExtension());
+
+        vm.expectRevert(X509CRLHelperV2.Duplicate_CRL_Extension.selector);
+        v2.parseCRLMetadata(_syntheticCrlWithCrlExtensions(extensions));
+    }
+
+    function testRejectsMissingCrlNumberOnMetadataPath() public {
+        bytes memory der = _syntheticCrlWithCrlExtensions(_authorityKeyIdentifierExtension());
+        assertEq(v2.getAuthorityKeyIdentifier(der), hex"0102", "compatibility getter changed");
+
+        vm.expectRevert(X509CRLHelperV2.Invalid_CRL_Profile.selector);
+        v2.parseCRLMetadata(der);
+
+        vm.expectRevert(X509CRLHelperV2.Invalid_CRL_Profile.selector);
+        v2.parseAndIndexCRLMetadata(der);
+    }
+
+    function testRejectsMissingAuthorityKeyIdentifierOnMetadataPath() public {
+        bytes memory der = _syntheticCrlWithCrlExtensions(_crlNumberExtension());
+        assertEq(v2.getAuthorityKeyIdentifier(der).length, 0, "compatibility getter must return empty");
+
+        vm.expectRevert(X509CRLHelperV2.Invalid_CRL_Profile.selector);
+        v2.parseCRLMetadata(der);
+    }
+
+    function testRejectsMalformedCrlNumber() public {
+        bytes memory extensions =
+            bytes.concat(_authorityKeyIdentifierExtension(), _extension(hex"551d14", false, hex"020180"));
+
+        vm.expectRevert(X509CRLHelperV2.Invalid_DER.selector);
+        v2.parseCRLMetadata(_syntheticCrlWithCrlExtensions(extensions));
+    }
+
+    function testRejectsCriticalEntryExtension() public {
+        bytes memory entryExtensions = _extension(hex"2a0304", true, hex"0500");
+        bytes memory der = _syntheticCrlWithEntries(_syntheticRevokedEntryWithExtensions(1, entryExtensions));
+
+        vm.expectRevert(X509CRLHelperV2.Unsupported_Critical_Extension.selector);
+        v2.parseCRLMetadata(der);
+    }
+
+    function testRejectsCertificateIssuerEntryExtension() public {
+        bytes memory entryExtensions = _extension(hex"551d1d", false, hex"3000");
+        bytes memory der = _syntheticCrlWithEntries(_syntheticRevokedEntryWithExtensions(1, entryExtensions));
+
+        vm.expectRevert(X509CRLHelperV2.Unsupported_CRL_Extension.selector);
+        v2.parseCRLMetadata(der);
+    }
+
+    function testAcceptsNonCriticalReasonCodeEntryExtension() public {
+        bytes memory entryExtensions = _extension(hex"551d15", false, hex"0a0101");
+        bytes memory der = _syntheticCrlWithEntries(_syntheticRevokedEntryWithExtensions(1, entryExtensions));
+        X509CRLMetadata memory metadata = v2.parseCRLMetadata(der);
+
+        assertEq(metadata.revokedCertificateCount, 1);
+        assertTrue(v2.serialNumberIsRevoked(1, der));
+    }
+
+    function testRejectsRemoveFromCrlReasonWithoutDeltaCrlSupport() public {
+        bytes memory entryExtensions = _extension(hex"551d15", false, hex"0a0108");
+        bytes memory der = _syntheticCrlWithEntries(_syntheticRevokedEntryWithExtensions(1, entryExtensions));
+
+        vm.expectRevert(X509CRLHelperV2.Unsupported_CRL_Extension.selector);
+        v2.parseCRLMetadata(der);
+    }
+
+    function testFallbackRejectsUnsupportedCrlAndEntryExtensions() public {
+        bytes memory extensions = bytes.concat(_defaultCrlExtensionItems(), _extension(hex"2a0304", true, hex"0500"));
+        vm.expectRevert(X509CRLHelperV2.Unsupported_Critical_Extension.selector);
+        v2.serialNumberIsRevoked(1, _syntheticCrlWithCrlExtensions(extensions));
+
+        extensions = bytes.concat(_defaultCrlExtensionItems(), _extension(hex"551d1b", false, hex"020101"));
+        vm.expectRevert(X509CRLHelperV2.Unsupported_CRL_Extension.selector);
+        v2.serialNumberIsRevoked(1, _syntheticCrlWithCrlExtensions(extensions));
+
+        bytes memory entryExtensions = _extension(hex"551d1d", false, hex"3000");
+        bytes memory indirect = _syntheticCrlWithEntries(_syntheticRevokedEntryWithExtensions(1, entryExtensions));
+        vm.expectRevert(X509CRLHelperV2.Unsupported_CRL_Extension.selector);
+        v2.serialNumberIsRevoked(1, indirect);
+    }
+
     function testGasBenchmark129NonMember() public {
         uint256 candidate = type(uint256).max;
         _completeIndex(crl129);
@@ -266,6 +406,18 @@ contract X509CRLHelperV2Test is Test {
         return _der(0x30, bytes.concat(_der(0x02, abi.encodePacked(bytes1(serial))), thisUpdate));
     }
 
+    function _syntheticRevokedEntryWithExtensions(uint8 serial, bytes memory extensionItems)
+        private
+        pure
+        returns (bytes memory)
+    {
+        bytes memory thisUpdate = hex"170d3236303731373030303030305a";
+        return
+            _der(
+                0x30, bytes.concat(_der(0x02, abi.encodePacked(bytes1(serial))), thisUpdate, _der(0x30, extensionItems))
+            );
+    }
+
     function _syntheticCrl(bytes memory serialContent) private pure returns (bytes memory) {
         bytes memory thisUpdate = hex"170d3236303731373030303030305a";
         bytes memory serialNode = _der(0x02, serialContent);
@@ -306,13 +458,52 @@ contract X509CRLHelperV2Test is Test {
         bytes memory thisUpdate,
         bytes memory nextUpdate
     ) private pure returns (bytes memory) {
+        return _syntheticCrlWithIssuerEntriesTimesAndExtensions(
+            issuer, entries, thisUpdate, nextUpdate, _defaultCrlExtensionItems()
+        );
+    }
+
+    function _syntheticCrlWithCrlExtensions(bytes memory extensionItems) private pure returns (bytes memory) {
+        bytes memory issuer = hex"3011310f300d06035504030c06497373756572";
+        bytes memory thisUpdate = hex"170d3236303731373030303030305a";
+        bytes memory nextUpdate = hex"170d3236303831363030303030305a";
+        return _syntheticCrlWithIssuerEntriesTimesAndExtensions(
+            issuer, _syntheticRevokedEntry(1), thisUpdate, nextUpdate, extensionItems
+        );
+    }
+
+    function _syntheticCrlWithIssuerEntriesTimesAndExtensions(
+        bytes memory issuer,
+        bytes memory entries,
+        bytes memory thisUpdate,
+        bytes memory nextUpdate,
+        bytes memory extensionItems
+    ) private pure returns (bytes memory) {
         bytes memory algorithm = hex"300a06082a8648ce3d040302";
         bytes memory revoked = _der(0x30, entries);
-        bytes memory extensions = hex"a011300f300d0603551d230406300480020102";
+        bytes memory extensions = _der(0xA0, _der(0x30, extensionItems));
         bytes memory tbs =
             _der(0x30, bytes.concat(hex"020101", algorithm, issuer, thisUpdate, nextUpdate, revoked, extensions));
         bytes memory signature = hex"0309003006020101020101";
         return _der(0x30, bytes.concat(tbs, algorithm, signature));
+    }
+
+    function _defaultCrlExtensionItems() private pure returns (bytes memory) {
+        return bytes.concat(_authorityKeyIdentifierExtension(), _crlNumberExtension());
+    }
+
+    function _authorityKeyIdentifierExtension() private pure returns (bytes memory) {
+        return _extension(hex"551d23", false, hex"300480020102");
+    }
+
+    function _crlNumberExtension() private pure returns (bytes memory) {
+        return _extension(hex"551d14", false, hex"020101");
+    }
+
+    function _extension(bytes memory oid, bool critical, bytes memory value) private pure returns (bytes memory) {
+        bytes memory criticalNode;
+        if (critical) criticalNode = hex"0101ff";
+        return _der(0x30, bytes.concat(_der(0x06, oid), criticalNode, _der(0x04, value)));
     }
 
     function _der(uint8 tag, bytes memory content) private pure returns (bytes memory) {
