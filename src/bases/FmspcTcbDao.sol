@@ -45,9 +45,9 @@ import {
  * data published on-chain.
  */
 abstract contract FmspcTcbDao is DaoBase, SigVerifyBase {
-    PcsDao private _pcsContract;
+    PcsDao private immutable _pcsContract;
     FmspcTcbHelper public FmspcTcbLib;
-    address private _crlLibAddress;
+    address private immutable _crlLibAddress;
 
     // first 4 bytes of FMSPC_TCB_MAGIC
     bytes4 constant FMSPC_TCB_MAGIC = 0xbb69b29c;

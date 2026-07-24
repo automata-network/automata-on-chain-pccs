@@ -70,9 +70,9 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
     string constant PCK_PROCESSOR_CA_COMMON_NAME = "Intel SGX PCK Processor CA";
     string constant PCK_COMMON_NAME = "Intel SGX PCK Certificate";
 
-    PcsDao private _pcsContract;
+    PcsDao private immutable _pcsContract;
     PCKHelper public pckLib;
-    X509CRLHelper private _crlLib;
+    X509CRLHelper private immutable _crlLib;
 
     modifier pckCACheck(CA ca) {
         if (ca == CA.ROOT || ca == CA.SIGNING) {

@@ -22,9 +22,9 @@ import {TcbEvalHelper, TcbEvalJsonObj, TcbEvalDataBasic, TcbEvalNumber, TcbId} f
  * data published on-chain.
  */
 abstract contract TcbEvalDao is DaoBase, SigVerifyBase {
-    PcsDao private _pcsContract;
+    PcsDao private immutable _pcsContract;
     TcbEvalHelper public TcbEvalLib;
-    address private _crlLibAddress;
+    address private immutable _crlLibAddress;
 
     // first 4 bytes of keccak256("TCB_EVAL_MAGIC")
     bytes4 constant TCB_EVAL_MAGIC = 0xbebc7284;

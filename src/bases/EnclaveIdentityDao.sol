@@ -22,9 +22,9 @@ import {PcsDao} from "./PcsDao.sol";
  * Identity.json data published on-chain.
  */
 abstract contract EnclaveIdentityDao is DaoBase, SigVerifyBase {
-    PcsDao private _pcsContract;
+    PcsDao private immutable _pcsContract;
     EnclaveIdentityHelper public EnclaveIdentityLib;
-    address private _crlLibAddress;
+    address private immutable _crlLibAddress;
 
     // first 4 bytes of keccak256("ENCLAVE_ID_MAGIC")
     bytes4 constant ENCLAVE_ID_MAGIC = 0xff818fce;
