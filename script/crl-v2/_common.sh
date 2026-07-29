@@ -114,6 +114,11 @@ forge_broadcast_args() {
     if [[ "${SLOW:-false}" == "true" ]]; then
         FORGE_BROADCAST_ARGS+=(--slow)
     fi
+    if [[ -n "${GAS_ESTIMATE_MULTIPLIER:-}" ]]; then
+        [[ "$GAS_ESTIMATE_MULTIPLIER" =~ ^[1-9][0-9]*$ ]] \
+            || die "GAS_ESTIMATE_MULTIPLIER must be a positive integer percentage"
+        FORGE_BROADCAST_ARGS+=(--gas-estimate-multiplier "$GAS_ESTIMATE_MULTIPLIER")
+    fi
 }
 
 json_address() {
