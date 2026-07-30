@@ -22,7 +22,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: v1.7.1
 
       - name: Run Forge build
         run: |
@@ -34,6 +34,11 @@ jobs:
         run: |
           forge test --gas-report > gasreport.ansi
         id: test
+
+      - name: Run deployment shell tests
+        run: |
+          bash -n script/crl-v2/_common.sh script/crl-v2/revoke-legacy-pcs-writer.sh test/script/crl-v2-common.sh
+          bash test/script/crl-v2-common.sh
 
       - name: Compare gas reports
         uses: Rubilmax/foundry-gas-diff@v3.18

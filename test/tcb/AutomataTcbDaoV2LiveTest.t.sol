@@ -6,15 +6,16 @@ import {AutomataDaoStorage} from "../../src/automata_pccs/shared/AutomataDaoStor
 import {AutomataDaoStorageV2} from "../../src/automata_pccs/shared/AutomataDaoStorageV2.sol";
 import {AutomataPcsDao} from "../../src/automata_pccs/AutomataPcsDao.sol";
 import {AutomataFmspcTcbDaoVersionedV2} from "../../src/automata_pccs/versioned/AutomataFmspcTcbDaoVersionedV2.sol";
+import {PccsDependencyConfig} from "../../src/automata_pccs/shared/PccsDependencyConfig.sol";
 import {FmspcTcbDaoV2} from "../../src/bases/FmspcTcbDaoV2.sol";
 import {FmspcTcbHelperV2} from "../../src/helpers/FmspcTcbHelperV2.sol";
 import {TcbId} from "../../src/helpers/FmspcTcbHelper.sol";
 import {AlwaysTrueP256Verifier} from "../mock/AlwaysTrueP256Verifier.sol";
 
 contract FmspcTcbDaoV2CompletenessHarness is AutomataFmspcTcbDaoVersionedV2 {
-    constructor()
+    constructor(address dependencyConfig)
         AutomataFmspcTcbDaoVersionedV2(
-            address(1), address(2), address(3), address(4), address(5), address(6), address(7), address(this), 19
+            address(1), address(2), dependencyConfig, address(4), address(5), address(6), address(this), 19
         )
     {}
 
@@ -70,6 +71,7 @@ contract AutomataTcbDaoV2LiveTest is PCSSetupBase {
     AutomataDaoStorage storageAsyncFallback;
     AutomataDaoStorageV2 storageV2;
     AutomataPcsDao pcsAsync;
+    PccsDependencyConfig asyncDependencyConfig;
     AutomataFmspcTcbDaoVersionedV2 daoV2;
     FmspcTcbHelperV2 fmspcTcbLibV2;
     AlwaysTrueP256Verifier verifierStub;
@@ -85,15 +87,16 @@ contract AutomataTcbDaoV2LiveTest is PCSSetupBase {
         pcsAsync = new AutomataPcsDao(
             address(storageAsyncFallback), address(verifierStub), address(x509Lib), address(x509CrlLib)
         );
+        asyncDependencyConfig = new PccsDependencyConfig(admin);
+        asyncDependencyConfig.initialize(address(pcsAsync), address(x509CrlLib));
         storageV2 = new AutomataDaoStorageV2(admin, address(storageAsyncFallback));
         daoV2 = new AutomataFmspcTcbDaoVersionedV2(
             address(storageV2),
             address(verifierStub),
-            address(pcsAsync),
+            address(asyncDependencyConfig),
             address(fmspcTcbLib),
             address(fmspcTcbLibV2),
             address(x509Lib),
-            address(x509CrlLib),
             admin,
             TEST_EVAL
         );
@@ -113,7 +116,8 @@ contract AutomataTcbDaoV2LiveTest is PCSSetupBase {
     }
 
     function testV2_ParseCompleteRequiresLevelsStreamToReachExpectedLength() public {
-        FmspcTcbDaoV2CompletenessHarness harness = new FmspcTcbDaoV2CompletenessHarness();
+        FmspcTcbDaoV2CompletenessHarness harness =
+            new FmspcTcbDaoV2CompletenessHarness(address(asyncDependencyConfig));
         bytes32 refId = keccak256("sgx-incomplete-level-stream");
 
         harness.setCompletenessState(refId, TcbId.SGX, 2, 2, 96, 64, 100, 99, 0, 0, 0, 0, 0, 0);
@@ -124,7 +128,8 @@ contract AutomataTcbDaoV2LiveTest is PCSSetupBase {
     }
 
     function testV2_ParseCompleteRequiresLevelsRawCursorToReachArrayEnd() public {
-        FmspcTcbDaoV2CompletenessHarness harness = new FmspcTcbDaoV2CompletenessHarness();
+        FmspcTcbDaoV2CompletenessHarness harness =
+            new FmspcTcbDaoV2CompletenessHarness(address(asyncDependencyConfig));
         bytes32 refId = keccak256("sgx-incomplete-level-raw");
 
         harness.setCompletenessState(refId, TcbId.SGX, 2, 2, 96, 96, 100, 98, 0, 0, 0, 0, 0, 0);
@@ -135,7 +140,8 @@ contract AutomataTcbDaoV2LiveTest is PCSSetupBase {
     }
 
     function testV2_ParseCompleteRequiresTdxIdentityStreamToReachExpectedLength() public {
-        FmspcTcbDaoV2CompletenessHarness harness = new FmspcTcbDaoV2CompletenessHarness();
+        FmspcTcbDaoV2CompletenessHarness harness =
+            new FmspcTcbDaoV2CompletenessHarness(address(asyncDependencyConfig));
         bytes32 refId = keccak256("tdx-incomplete-identity-stream");
 
         harness.setCompletenessState(refId, TcbId.TDX, 2, 2, 96, 96, 100, 99, 1, 1, 128, 64, 200, 199);
@@ -146,7 +152,8 @@ contract AutomataTcbDaoV2LiveTest is PCSSetupBase {
     }
 
     function testV2_ParseCompleteRequiresTdxIdentityRawCursorToReachArrayEnd() public {
-        FmspcTcbDaoV2CompletenessHarness harness = new FmspcTcbDaoV2CompletenessHarness();
+        FmspcTcbDaoV2CompletenessHarness harness =
+            new FmspcTcbDaoV2CompletenessHarness(address(asyncDependencyConfig));
         bytes32 refId = keccak256("tdx-incomplete-identity-raw");
 
         harness.setCompletenessState(refId, TcbId.TDX, 2, 2, 96, 96, 100, 99, 1, 1, 128, 128, 200, 198);

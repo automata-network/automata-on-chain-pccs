@@ -22,9 +22,9 @@ import {TcbEvalHelper, TcbEvalJsonObj, TcbEvalDataBasic, TcbEvalNumber, TcbId} f
  * data published on-chain.
  */
 abstract contract TcbEvalDao is DaoBase, SigVerifyBase {
-    PcsDao public Pcs;
+    PcsDao private immutable _pcsContract;
     TcbEvalHelper public TcbEvalLib;
-    address public crlLibAddr;
+    address private immutable _crlLibAddress;
 
     // first 4 bytes of keccak256("TCB_EVAL_MAGIC")
     bytes4 constant TCB_EVAL_MAGIC = 0xbebc7284;
@@ -56,9 +56,25 @@ abstract contract TcbEvalDao is DaoBase, SigVerifyBase {
         address _x509Helper,
         address _crlLib
     ) SigVerifyBase(_p256, _x509Helper) DaoBase(_resolver) {
-        Pcs = PcsDao(_pcs);
+        _pcsContract = PcsDao(_pcs);
         TcbEvalLib = TcbEvalHelper(_tcbEvalHelper);
-        crlLibAddr = _crlLib;
+        _crlLibAddress = _crlLib;
+    }
+
+    function Pcs() public view virtual returns (PcsDao) {
+        return _pcsDao();
+    }
+
+    function crlLibAddr() public view virtual returns (address) {
+        return _crlHelperAddress();
+    }
+
+    function _pcsDao() internal view virtual returns (PcsDao) {
+        return _pcsContract;
+    }
+
+    function _crlHelperAddress() internal view virtual returns (address) {
+        return _crlLibAddress;
     }
 
     function getCollateralValidity(bytes32 key)
@@ -148,8 +164,9 @@ abstract contract TcbEvalDao is DaoBase, SigVerifyBase {
      * @return rootCert - DER encoded Intel SGX Root CA
      */
     function getTcbEvalIssuerChain() external view returns (bytes memory signingCert, bytes memory rootCert) {
-        signingCert = _onFetchDataFromResolver(Pcs.PCS_KEY(CA.SIGNING, false), false);
-        rootCert = _onFetchDataFromResolver(Pcs.PCS_KEY(CA.ROOT, false), false);
+        PcsDao pcs = _pcsDao();
+        signingCert = _onFetchDataFromResolver(pcs.PCS_KEY(CA.SIGNING, false), false);
+        rootCert = _onFetchDataFromResolver(pcs.PCS_KEY(CA.ROOT, false), false);
     }
 
     function _getTcbEvaluationDataNumbers(TcbId id)
@@ -217,15 +234,16 @@ abstract contract TcbEvalDao is DaoBase, SigVerifyBase {
 
     function _validateTcbEvalData(TcbEvalJsonObj calldata tcbEvalObj) private view {
         // Check issuer expiration - use Intel TCB Signing CA (CA.SIGNING)
-        bytes32 issuerKey = Pcs.PCS_KEY(CA.SIGNING, false);
-        (uint256 issuerNotValidBefore, uint256 issuerNotValidAfter) = Pcs.getCollateralValidity(issuerKey);
+        PcsDao pcs = _pcsDao();
+        bytes32 issuerKey = pcs.PCS_KEY(CA.SIGNING, false);
+        (uint256 issuerNotValidBefore, uint256 issuerNotValidAfter) = pcs.getCollateralValidity(issuerKey);
         if (block.timestamp < issuerNotValidBefore || block.timestamp > issuerNotValidAfter) {
             revert TCB_Eval_Cert_Expired();
         }
 
         bytes memory signingDer = _fetchDataFromResolver(issuerKey, false);
         if (signingDer.length > 0) {
-            bytes memory rootCrl = _fetchDataFromResolver(Pcs.PCS_KEY(CA.ROOT, true), false);
+            bytes memory rootCrl = _fetchDataFromResolver(pcs.PCS_KEY(CA.ROOT, true), false);
             if (rootCrl.length > 0) {
                 // Check revocation
                 (bool snSuccess, bytes memory serialNumberData) = x509.staticcall(
@@ -236,7 +254,7 @@ abstract contract TcbEvalDao is DaoBase, SigVerifyBase {
                 );
                 require(snSuccess, "Failed to get serial number");
                 uint256 serialNumber = abi.decode(serialNumberData, (uint256));
-                (bool crlSuccess, bytes memory serialNumberRevokedData) = crlLibAddr.staticcall(
+                (bool crlSuccess, bytes memory serialNumberRevokedData) = _crlHelperAddress().staticcall(
                     abi.encodeWithSelector(
                         0xcedb9781, // X509CRLHelper.serialNumberIsRevoked(uint256,bytes)
                         serialNumber,

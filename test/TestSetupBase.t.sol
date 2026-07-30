@@ -8,6 +8,7 @@ import "../src/automata_pccs/AutomataFmspcTcbDao.sol";
 import "../src/automata_pccs/AutomataEnclaveIdentityDao.sol";
 import "../src/automata_pccs/AutomataPcsDao.sol";
 import "../src/automata_pccs/AutomataPckDao.sol";
+import "../src/automata_pccs/shared/PccsDependencyConfig.sol";
 
 import {EnclaveIdentityHelper, EnclaveIdentityJsonObj} from "../src/helpers/EnclaveIdentityHelper.sol";
 import {FmspcTcbHelper, TcbInfoJsonObj} from "../src/helpers/FmspcTcbHelper.sol";
@@ -25,6 +26,7 @@ abstract contract TestSetupBase is Test {
     AutomataPcsDao pcs;
     AutomataPckDao pck;
     AutomataEnclaveIdentityDao enclaveIdDao;
+    PccsDependencyConfig dependencyConfig;
 
     address P256_VERIFIER;
 
@@ -54,6 +56,8 @@ abstract contract TestSetupBase is Test {
         pccsStorage = new AutomataDaoStorage(admin);
 
         pcs = new AutomataPcsDao(address(pccsStorage), P256_VERIFIER, address(x509Lib), address(x509CrlLib));
+        dependencyConfig = new PccsDependencyConfig(admin);
+        dependencyConfig.initialize(address(pcs), address(x509CrlLib));
 
         enclaveIdDao = new AutomataEnclaveIdentityDao(
             address(pccsStorage),

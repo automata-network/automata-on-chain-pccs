@@ -70,9 +70,9 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
     string constant PCK_PROCESSOR_CA_COMMON_NAME = "Intel SGX PCK Processor CA";
     string constant PCK_COMMON_NAME = "Intel SGX PCK Certificate";
 
-    PcsDao public Pcs;
+    PcsDao private immutable _pcsContract;
     PCKHelper public pckLib;
-    X509CRLHelper public crlLib;
+    X509CRLHelper private immutable _crlLib;
 
     modifier pckCACheck(CA ca) {
         if (ca == CA.ROOT || ca == CA.SIGNING) {
@@ -85,9 +85,25 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         SigVerifyBase(_p256, _x509)
         DaoBase(_resolver)
     {
-        Pcs = PcsDao(_pcs);
+        _pcsContract = PcsDao(_pcs);
         pckLib = PCKHelper(_x509);
-        crlLib = X509CRLHelper(_crl);
+        _crlLib = X509CRLHelper(_crl);
+    }
+
+    function Pcs() public view virtual returns (PcsDao) {
+        return _pcsDao();
+    }
+
+    function crlLib() public view virtual returns (X509CRLHelper) {
+        return _crlHelper();
+    }
+
+    function _pcsDao() internal view virtual returns (PcsDao) {
+        return _pcsContract;
+    }
+
+    function _crlHelper() internal view virtual returns (X509CRLHelper) {
+        return _crlLib;
     }
 
     function PCK_KEY(bytes16 qeidBytes, bytes2 pceidBytes, bytes18 tcbmBytes) public pure returns (bytes32 key) {
@@ -253,8 +269,9 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         pckCACheck(ca)
         returns (bytes memory intermediateCert, bytes memory rootCert)
     {
-        intermediateCert = _onFetchDataFromResolver(Pcs.PCS_KEY(ca, false), false);
-        rootCert = _onFetchDataFromResolver(Pcs.PCS_KEY(CA.ROOT, false), false);
+        PcsDao pcs = _pcsDao();
+        intermediateCert = _onFetchDataFromResolver(pcs.PCS_KEY(ca, false), false);
+        rootCert = _onFetchDataFromResolver(pcs.PCS_KEY(CA.ROOT, false), false);
     }
 
     /**
@@ -337,27 +354,29 @@ abstract contract PckDao is DaoBase, SigVerifyBase {
         _validatePckTcb(pceid, tcbm, der, pck.extensionPtr);
 
         // Step 5: Check whether the pck has been revoked
-        bytes memory crlData = _fetchDataFromResolver(Pcs.PCS_KEY(ca, true), false);
+        PcsDao pcs = _pcsDao();
+        X509CRLHelper currentCrlLib = _crlHelper();
+        bytes memory crlData = _fetchDataFromResolver(pcs.PCS_KEY(ca, true), false);
         if (crlData.length > 0) {
-            bool revocable = crlLib.serialNumberIsRevoked(pck.serialNumber, crlData);
+            bool revocable = currentCrlLib.serialNumberIsRevoked(pck.serialNumber, crlData);
             if (revocable) {
                 revert Certificate_Revoked(pck.serialNumber);
             }
         }
 
         // Step 5: Check signature against issuer certificate
-        bytes32 issuerKey = Pcs.PCS_KEY(ca, false);
-        (uint256 notBefore, uint256 notAfter) = Pcs.getCollateralValidity(issuerKey);
+        bytes32 issuerKey = pcs.PCS_KEY(ca, false);
+        (uint256 notBefore, uint256 notAfter) = pcs.getCollateralValidity(issuerKey);
         if (block.timestamp < notBefore || block.timestamp > notAfter) {
             revert Issuer_Expired(ca);
         }
         bytes memory issuerCert = _fetchDataFromResolver(issuerKey, false);
         if (issuerCert.length > 0) {
             // check issuer evocation status
-            bytes memory rootCrl = _fetchDataFromResolver(Pcs.PCS_KEY(CA.ROOT, true), false);
+            bytes memory rootCrl = _fetchDataFromResolver(pcs.PCS_KEY(CA.ROOT, true), false);
             if (rootCrl.length > 0) {
                 uint256 issuerSerialNumber = pckLib.getSerialNumber(issuerCert);
-                bool issuerRevoked = crlLib.serialNumberIsRevoked(issuerSerialNumber, rootCrl);
+                bool issuerRevoked = currentCrlLib.serialNumberIsRevoked(issuerSerialNumber, rootCrl);
                 if (issuerRevoked) {
                     revert Issuer_Revoked(ca, issuerSerialNumber);
                 }
