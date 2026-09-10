@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {X509Helper, X509CertObj, Asn1Decode, NodePtr, BytesUtils} from "./X509Helper.sol";
+import {StrictPckExtension} from "./StrictPckExtension.sol";
 
 /**
  * @title PCK X509 Certificate Parser
@@ -33,6 +34,15 @@ contract PCKHelper is X509Helper {
         bool fmspcFound;
         bool pceidFound;
         bool tcbFound;
+    }
+
+    function parsePckExtensionWithIdentity(bytes memory der, uint256 extensionPtr)
+        external pure
+        returns (uint16 pcesvn, uint8[] memory cpusvns, bytes memory fmspcBytes, bytes memory pceidBytes,
+            bytes16 ppid, bytes16 piid, bool piidPresent)
+    {
+        StrictPckExtension.Identity memory parsed = StrictPckExtension.parse(der, extensionPtr);
+        return (parsed.pcesvn, parsed.cpusvns, parsed.fmspc, parsed.pceid, parsed.ppid, parsed.piid, parsed.piidPresent);
     }
 
     function parsePckExtension(bytes memory der, uint256 extensionPtr)
