@@ -27,7 +27,7 @@ library StrictPckExtension {
         expect(wrapper.tag == 0xa3);
         Node memory extensions = node(der, wrapper.start, wrapper.end);
         expect(extensions.tag == 0x30 && extensions.end == wrapper.end);
-        bool found;
+        bool found = false;
         uint256 cursor = extensions.start;
         while (cursor < extensions.end) {
             Node memory extension = node(der, cursor, extensions.end);
@@ -54,7 +54,7 @@ library StrictPckExtension {
     }
 
     function parseSgx(bytes memory der, Node memory seq) private pure returns (Identity memory out) {
-        uint256 seen;
+        uint256 seen = 0;
         uint256 cursor = seq.start;
         while (cursor < seq.end) {
             (uint256 id, Node memory value, uint256 next) = field(der, cursor, seq.end, hex"2a864886f84d010d01");
@@ -84,7 +84,7 @@ library StrictPckExtension {
     function parseTcb(bytes memory der, Node memory seq) private pure returns (uint16 pcesvn, uint8[] memory svns) {
         expect(seq.tag == 0x30);
         svns = new uint8[](16);
-        uint256 seen;
+        uint256 seen = 0;
         uint256 cursor = seq.start;
         while (cursor < seq.end) {
             (uint256 id, Node memory value, uint256 next) = field(der, cursor, seq.end, hex"2a864886f84d010d0102");
@@ -100,7 +100,7 @@ library StrictPckExtension {
 
     function parseConfiguration(bytes memory der, Node memory seq) private pure {
         expect(seq.tag == 0x30);
-        uint256 seen;
+        uint256 seen = 0;
         uint256 cursor = seq.start;
         while (cursor < seq.end) {
             (uint256 id, Node memory value, uint256 next) = field(der, cursor, seq.end, hex"2a864886f84d010d0107");
