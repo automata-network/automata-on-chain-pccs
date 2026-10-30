@@ -80,6 +80,10 @@ library StrictPckExtension {
             cursor = next;
         }
         expect(seen & 0x3e == 0x3e); // PPID, TCB, PCEID, FMSPC, SGX Type.
+        // Platform CA certificates contain both; Processor CA certificates contain neither.
+        // The v2 verifier checks PIID presence against the issuer after chain authentication.
+        bool configurationPresent = (seen & (1 << 7)) != 0;
+        expect(out.piidPresent == configurationPresent);
     }
 
     function parseTcb(bytes memory der, Node memory seq) private pure returns (uint16 pcesvn, uint8[] memory svns) {

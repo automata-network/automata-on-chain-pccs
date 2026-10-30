@@ -27,25 +27,39 @@ contract StrictPckSgxTypeTest is Test {
         return tlv(0x30, bytes.concat(tlv(0x06, bytes.concat(prefix, bytes1(id))), value));
     }
 
+    function configuration() internal pure returns (bytes memory) {
+        return tlv(
+            0x30,
+            bytes.concat(
+                field(bytes.concat(PREFIX, hex"07"), 1, hex"0101ff"),
+                field(bytes.concat(PREFIX, hex"07"), 2, hex"010100"),
+                field(bytes.concat(PREFIX, hex"07"), 3, hex"0101ff")
+            )
+        );
+    }
+
     function extension(bytes memory sgxType) internal pure returns (bytes memory) {
+        return extension(sgxType, true, configuration());
+    }
+
+    function extension(bytes memory sgxType, bool piidPresent, bytes memory config)
+        internal
+        pure
+        returns (bytes memory)
+    {
         bytes memory tcb;
         for (uint8 i = 1; i <= 17; ++i) {
             tcb = bytes.concat(tcb, field(bytes.concat(PREFIX, hex"02"), i, hex"020101"));
         }
         tcb = bytes.concat(tcb, field(bytes.concat(PREFIX, hex"02"), 18, tlv(0x04, new bytes(16))));
-        bytes memory config = bytes.concat(
-            field(bytes.concat(PREFIX, hex"07"), 1, hex"0101ff"),
-            field(bytes.concat(PREFIX, hex"07"), 2, hex"010100"),
-            field(bytes.concat(PREFIX, hex"07"), 3, hex"0101ff")
-        );
         bytes memory fields = bytes.concat(
             field(PREFIX, 1, tlv(0x04, new bytes(16))),
             field(PREFIX, 2, tlv(0x30, tcb)),
             field(PREFIX, 3, hex"04020001"),
             field(PREFIX, 4, hex"0406010203040506"),
             field(PREFIX, 5, sgxType),
-            field(PREFIX, 6, tlv(0x04, hex"01020304050607080910111213141516")),
-            field(PREFIX, 7, tlv(0x30, config))
+            piidPresent ? field(PREFIX, 6, tlv(0x04, hex"01020304050607080910111213141516")) : bytes(""),
+            config.length != 0 ? field(PREFIX, 7, config) : bytes("")
         );
         return tlv(0xa3, tlv(0x30, tlv(0x30, bytes.concat(tlv(0x06, PREFIX), tlv(0x04, tlv(0x30, fields))))));
     }
@@ -62,6 +76,49 @@ contract StrictPckSgxTypeTest is Test {
             assertEq(identity.pceid, hex"0001");
             assertTrue(identity.piidPresent);
             assertEq(identity.piid, bytes16(hex"01020304050607080910111213141516"));
+        }
+    }
+
+    function testPiidAndConfigurationMustAppearTogetherForEveryKnownType() public {
+        for (uint8 value; value <= 2; ++value) {
+            bytes memory sgxType = abi.encodePacked(hex"0a01", value);
+            StrictPckExtension.Identity memory absent = parser.parse(extension(sgxType, false, bytes("")));
+            assertFalse(absent.piidPresent);
+            bytes memory missingConfig = extension(sgxType, true, bytes(""));
+            vm.expectRevert(StrictPckExtension.InvalidPckExtension.selector);
+            parser.parse(missingConfig);
+            bytes memory missingPiid = extension(sgxType, false, configuration());
+            vm.expectRevert(StrictPckExtension.InvalidPckExtension.selector);
+            parser.parse(missingPiid);
+        }
+    }
+
+    function testAllFalseConfigurationIsPresent() public {
+        bytes memory flags;
+        for (uint8 i = 1; i <= 3; ++i) {
+            flags = bytes.concat(flags, field(bytes.concat(PREFIX, hex"07"), i, hex"010100"));
+        }
+        assertTrue(parser.parse(extension(hex"0a0102", true, tlv(0x30, flags))).piidPresent);
+    }
+
+    function testRejectsMalformedConfigurationWithPiidPresent() public {
+        bytes memory prefix = bytes.concat(PREFIX, hex"07");
+        bytes memory first = field(prefix, 1, hex"010100");
+        bytes memory second = field(prefix, 2, hex"010100");
+        bytes memory third = field(prefix, 3, hex"010100");
+        bytes[7] memory invalid = [
+            bytes(hex"3000"),
+            tlv(0x30, bytes.concat(first, second)),
+            tlv(0x30, bytes.concat(first, second, third, third)),
+            tlv(0x30, bytes.concat(first, second, field(prefix, 3, hex"020100"))),
+            tlv(0x30, bytes.concat(first, second, field(prefix, 3, hex"010101"))),
+            tlv(0x30, bytes.concat(first, second, third, field(prefix, 4, hex"010100"))),
+            tlv(0x31, bytes.concat(first, second, third))
+        ];
+        for (uint256 i; i < invalid.length; ++i) {
+            bytes memory der = extension(hex"0a0102", true, invalid[i]);
+            vm.expectRevert(StrictPckExtension.InvalidPckExtension.selector);
+            parser.parse(der);
         }
     }
 
