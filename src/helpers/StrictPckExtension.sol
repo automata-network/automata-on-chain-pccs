@@ -69,7 +69,8 @@ library StrictPckExtension {
             } else if (id == 4) {
                 out.fmspc = octets(der, value, 6);
             } else if (id == 5) {
-                expect(number(der, value, 0x0a, 1) <= 1);
+                // Intel PCK Certificate Profile 1.5: standard, scalable, scalable with integrity.
+                expect(number(der, value, 0x0a, 2) <= 2);
             } else if (id == 6) {
                 out.piid = bytes16(octets(der, value, 16));
                 out.piidPresent = true;
